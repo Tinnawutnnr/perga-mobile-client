@@ -114,8 +114,8 @@ const ProfileScreen = () => {
             </TouchableOpacity>
           </ThemedView>
           <ThemedView style={styles.userInfo}>
-            <ThemedText style={styles.userName}>จิราพร สุขใจ</ThemedText>
-            <ThemedText type="muted" style={styles.userEmail}>jiraporn.s@email.com</ThemedText>
+            <ThemedText style={styles.userName}>jane doe</ThemedText>
+            <ThemedText type="muted" style={styles.userEmail}>jane.doe@email.com</ThemedText>
             <ThemedText type="muted" style={styles.userPhone}>+66 89-123-4567</ThemedText>
           </ThemedView>
         </ThemedView>
