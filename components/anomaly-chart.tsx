@@ -54,7 +54,8 @@ const AnomalyChart: React.FC<AnomalyChartProps> = ({ data, maxValue = 4 }) => {
             >
               <ThemedView style={styles.chartDataContainer}>
                 {data.map((value, index) => {
-                  const dotPosition = value > 0 ? 140 - (value / maxValue) * 140 : null;
+                  const chartHeight = screenWidth < 400 ? 120 : 140;
+                  const dotPosition = value > 0 ? chartHeight - (value / maxValue) * chartHeight : null;
                   return (
                     <ThemedView key={index} style={styles.dataColumn}>
                       <ThemedView style={styles.dataArea}>
@@ -119,7 +120,7 @@ const styles = StyleSheet.create({
     borderRadius: 6,
   },
   axisLabel: {
-    fontSize: 15,
+    fontSize: screenWidth < 400 ? 13 : 15,
     fontWeight: "600",
   },
   chartWrapper: {
@@ -129,11 +130,11 @@ const styles = StyleSheet.create({
   },
   staticChartFrame: {
     width: "100%",
-    maxWidth: Math.min(screenWidth - 32, 400),
-    height: 250,
-    borderRadius: 16,
+    maxWidth: screenWidth - 40,
+    height: screenWidth < 400 ? 220 : 250,
+    borderRadius: screenWidth < 400 ? 12 : 16,
     borderWidth: 1,
-    padding: 16,
+    padding: screenWidth < 400 ? 12 : 16,
     overflow: "hidden",
     shadowColor: "#000",
     shadowOffset: {
@@ -146,24 +147,24 @@ const styles = StyleSheet.create({
   },
   staticYAxis: {
     position: "absolute",
-    left: 16,
-    top: 16,
-    width: 40,
-    height: 140,
+    left: screenWidth < 400 ? 12 : 16,
+    top: screenWidth < 400 ? 12 : 16,
+    width: screenWidth < 400 ? 35 : 40,
+    height: screenWidth < 400 ? 120 : 140,
     justifyContent: "space-between",
     paddingVertical: 4,
   },
   chartContentArea: {
     flex: 1,
-    marginLeft: 50,
+    marginLeft: screenWidth < 400 ? 42 : 50,
     marginTop: 4,
   },
   staticGridLines: {
     position: "absolute",
     top: 4,
     left: 0,
-    right: 16,
-    height: 140,
+    right: screenWidth < 400 ? 12 : 16,
+    height: screenWidth < 400 ? 120 : 140,
     justifyContent: "space-between",
   },
   gridLine: {
@@ -171,7 +172,7 @@ const styles = StyleSheet.create({
     opacity: 0.8,
   },
   chartScrollView: {
-    height: 140,
+    height: screenWidth < 400 ? 120 : 140,
     marginTop: 4,
   },
   chartScrollContent: {
@@ -179,7 +180,7 @@ const styles = StyleSheet.create({
   },
   chartDataContainer: {
     flexDirection: "row",
-    height: 140,
+    height: screenWidth < 400 ? 120 : 140,
     alignItems: "flex-end",
   },
   dataColumn: {
@@ -191,7 +192,7 @@ const styles = StyleSheet.create({
   },
   dataArea: {
     width: screenWidth < 400 ? 12 : 16,
-    height: 140,
+    height: screenWidth < 400 ? 120 : 140,
     position: "relative",
   },
   staticXAxis: {
@@ -215,11 +216,11 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   xAxisLabel: {
-    fontSize: 10,
+    fontSize: screenWidth < 400 ? 9 : 10,
     fontWeight: "500",
   },
   yAxisLabel: {
-    fontSize: 12,
+    fontSize: screenWidth < 400 ? 10 : 12,
     textAlign: "right",
     fontWeight: "500",
   },
