@@ -6,7 +6,7 @@
 
 ## 🧠 Overview
 
-The **PGAD Mobile App** is a React Native application built with **Expo** that allows caretakers and elderly users to monitor gait activity, view anomaly alerts, and visualize real-time sensor data streamed from IoT devices.
+The **Personalized Gait Anomaly Detection Mobile App** is a React Native application built with **Expo** that allows caretakers and elderly users to monitor gait activity, view anomaly alerts, and visualize real-time sensor data streamed from IoT devices.
 
 This frontend is part of the broader **PGAD System**, which integrates:
 - Wearable IMU sensors (ESP32-C3 + BNO085)
