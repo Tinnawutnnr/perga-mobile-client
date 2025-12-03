@@ -68,11 +68,6 @@ const RegisterScreen = () => {
     router.push("/login");
   };
 
-  const handleGoogleRegister = () => {
-    console.log("Register with Google");
-    // TODO: Integrate Google OAuth
-  };
-
   const handleTermsPress = () => {
     console.log("Open terms and conditions");
   };
