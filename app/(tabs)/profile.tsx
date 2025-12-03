@@ -1,4 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   Image,
@@ -10,6 +11,7 @@ import {
 } from "react-native";
 import { ThemedText } from "../../components/themed-text";
 import { ThemedView } from "../../components/themed-view";
+import { useAuth } from "../../context/auth-context";
 import { useThemeContext } from "../../context/theme-context";
 import { useColorScheme } from "../../hooks/use-color-scheme";
 import { useThemeColor } from "../../hooks/use-theme-color";
@@ -17,6 +19,7 @@ import { useThemeColor } from "../../hooks/use-theme-color";
 const ProfileScreen = () => {
   const colorScheme = useColorScheme();
   const { toggleColorScheme } = useThemeContext();
+  const { clearTempEmail } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
 
@@ -30,6 +33,12 @@ const ProfileScreen = () => {
 
   const handleDarkModeToggle = () => {
     toggleColorScheme();
+  };
+
+  const handleLogout = () => {
+    // Clear any stored auth data
+    clearTempEmail();
+    router.replace("/login");
   };
 
   const menuItems = [
@@ -178,7 +187,11 @@ const ProfileScreen = () => {
         </ThemedView>
 
         {/* Logout Button */}
-        <TouchableOpacity style={[styles.logoutButton, { backgroundColor: cardColor, borderColor }]}>
+        <TouchableOpacity 
+          style={[styles.logoutButton, { backgroundColor: cardColor, borderColor }]}
+          onPress={handleLogout}
+          activeOpacity={0.8}
+        >
           <Ionicons name="log-out-outline" size={20} color="#FF4444" />
           <ThemedText style={styles.logoutText}>Log Out</ThemedText>
         </TouchableOpacity>

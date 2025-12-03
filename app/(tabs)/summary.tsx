@@ -1,11 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
+import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    FlatList,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
+  FlatList,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
 } from "react-native";
 import AnomalyChart from "../../components/anomaly-chart";
 import DistanceChart from "../../components/distance-chart";
@@ -135,7 +136,11 @@ const SummaryScreen = () => {
         {/* Header */}
         <ThemedView style={styles.headerRow}>
           <ThemedText style={styles.title}>Summary</ThemedText>
-          <TouchableOpacity style={[styles.avatar, { backgroundColor: cardColor }]}>
+          <TouchableOpacity 
+            style={[styles.avatar, { backgroundColor: cardColor }]}
+            onPress={() => router.push("/profile")}
+            activeOpacity={0.8}
+          >
             <Ionicons name="person" size={24} color={tintColor} />
           </TouchableOpacity>
         </ThemedView>
