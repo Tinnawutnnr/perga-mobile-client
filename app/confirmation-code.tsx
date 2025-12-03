@@ -20,18 +20,40 @@ const ConfirmationCodeScreen = () => {
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [focusedIndex, setFocusedIndex] = useState(0);
 
+  // useEffect(() => {
+  //   // wait for component mount
+  //   const timer = setTimeout(() => {
+  //     if (tempEmail) {
+  //       setEmail(tempEmail);
+  //     } else {
+  //       router.replace("/login");
+  //     }
+  //   }, 100); 
+
+  //   return () => clearTimeout(timer);
+  // }, []);
+
   useEffect(() => {
-    // wait for component mount
-    const timer = setTimeout(() => {
-      if (tempEmail) {
-        setEmail(tempEmail);
-      } else {
+    if (Platform.OS === "web") {
+      // if website platform component stable
+      const timer = setTimeout(() => {
+        if (!tempEmail) {
+          router.replace("/login");
+        }
+      }, 100);
+      return () => clearTimeout(timer);
+    } else {
+      
+      // others
+      if (!tempEmail) {
         router.replace("/login");
       }
-    }, 100); 
+    }
 
-    return () => clearTimeout(timer);
-  }, []);
+    if (tempEmail) {
+      setEmail(tempEmail);
+    }
+  }, [tempEmail]);
 
   const handleChange = (text: string, index: number) => {
     const newCode = [...code];
