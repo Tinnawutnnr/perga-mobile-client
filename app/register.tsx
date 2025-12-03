@@ -2,15 +2,15 @@ import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
@@ -61,8 +61,7 @@ const RegisterScreen = () => {
 
   const handleGoogleRegister = () => {
     console.log("Register with Google");
-    saveTempEmail("google-account");
-    router.push("/confirmation-code");
+    // TODO: Integrate Google OAuth
   };
 
   const handleTermsPress = () => {

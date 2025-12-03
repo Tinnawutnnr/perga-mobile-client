@@ -52,8 +52,7 @@ const LoginScreen = () => {
 
   const handleGoogleLogin = () => {
     console.log("Login with Google");
-    // TODO: Implement Google OAuth flow and retrieve user's email before saving
-    router.push("/confirmation-code");
+    // TODO: Integrate Google OAuth
   };
 
   return (
