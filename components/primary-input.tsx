@@ -1,6 +1,6 @@
 // components/PrimaryInput.tsx
+import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { FaEye, FaEyeSlash } from "react-icons/fa";
 import {
   KeyboardTypeOptions,
   StyleSheet,
@@ -52,9 +52,9 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
         >
           {rightIcon ? (
             rightIcon === "eye" ? (
-              <FaEye size={20} color="#666666" />
+              <Ionicons name="eye" size={20} color="#666666" />
             ) : rightIcon === "eye-off" ? (
-              <FaEyeSlash size={20} color="#666666" />
+              <Ionicons name="eye-off" size={20} color="#666666" />
             ) : (
               <Text style={styles.rightText}>{rightIcon}</Text>
             )
