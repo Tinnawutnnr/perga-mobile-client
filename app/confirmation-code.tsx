@@ -1,21 +1,39 @@
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import CodeInput from "../components/code-input";
+import { useAuth } from "../context/auth-context";
 
 const CODE_LENGTH = 4;
 
 const ConfirmationCodeScreen = () => {
+  const { getTempEmail, clearTempEmail } = useAuth();
+  const [email, setEmail] = useState<string>('');
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [focusedIndex, setFocusedIndex] = useState(0);
+
+  useEffect(() => {
+    // wait for component mount
+    const timer = setTimeout(() => {
+      const savedEmail = getTempEmail();
+      if (savedEmail) {
+        setEmail(savedEmail);
+      } else {
+        
+        router.replace("/login");
+      }
+    }, 100); 
+
+    return () => clearTimeout(timer);
+  }, []);
 
   const handleChange = (text: string, index: number) => {
     const newCode = [...code];
@@ -42,6 +60,7 @@ const ConfirmationCodeScreen = () => {
     const finalCode = code.join("");
     if (finalCode.length === 4) {
       console.log("Confirm code:", finalCode);
+      clearTempEmail(); // Clear temp
       router.replace("/(tabs)/summary");
     }
   };
@@ -61,7 +80,7 @@ const ConfirmationCodeScreen = () => {
           {/* Subtitle */}
           <Text style={styles.subtitle}>
             A 4-digit code was sent to{"\n"}
-            <Text style={styles.subtitleBold}>Phone number 097-xxx-x991</Text>
+            <Text style={styles.subtitleBold}>{email || "Loading..."}</Text>
           </Text>
 
           {/* Code boxes */}

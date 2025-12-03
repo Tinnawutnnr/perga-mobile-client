@@ -1,39 +1,63 @@
-import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
+import { useAuth } from "../context/auth-context";
 
 const LoginScreen = () => {
-  const [phone, setPhone] = useState("");
+  const { saveTempEmail } = useAuth();
+  const [email, setemail] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
 
+  // Email validation
+  const isValidEmail = (email: string) => {
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    return emailRegex.test(email);
+  };
+
+  const hasEmailError = email.length > 0 && !isValidEmail(email);
+  const hasPasswordError = password.length > 0 && password.length < 8;
+
   const handleLogin = () => {
-    console.log("Login:", { phone, password });
+    if (!isValidEmail(email)) {
+      //add modal later
+      console.log("Please enter a valid email address");
+      return;
+    }
+    
+    if (password.length < 8) {
+      //add modal later
+      console.log("Password must be at least 8 characters");
+      return;
+    }
+
+    console.log("Login:", { email, password });
+    saveTempEmail(email);
     router.push("/confirmation-code");
   };
 
   const handleForgotPassword = () => {
-    console.log("Forgot password");
+    router.push("/forgot-password");
   };
 
   const handleRegister = () => {
-    console.log("Register");
+    router.push("/register")
   };
 
   const handleGoogleLogin = () => {
     console.log("Login with Google");
+    saveTempEmail("google-account");
     router.push("/confirmation-code");
   };
 
@@ -63,12 +87,13 @@ const LoginScreen = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Welcome!</Text>
 
-            {/* Phone input */}
+            {/* email input */}
             <PrimaryInput
-              value={phone}
-              onChangeText={setPhone}
-              placeholder="Phone number"
-              keyboardType="phone-pad"
+              value={email}
+              onChangeText={setemail}
+              placeholder="name@email.com"
+              keyboardType="email-address"
+              hasError={hasEmailError}
             />
 
             {/* Password input */}
@@ -77,8 +102,9 @@ const LoginScreen = () => {
               onChangeText={setPassword}
               placeholder="Password"
               secureTextEntry={securePassword}
-              rightText="Show"
+              rightIcon={securePassword ? "eye" : "eye-off"}
               onPressRight={() => setSecurePassword((prev) => !prev)}
+              hasError={hasPasswordError}
             />
 
             {/* Forgot password */}
@@ -107,14 +133,14 @@ const LoginScreen = () => {
             </View>
 
             {/* Divider */}
-            <View style={styles.dividerRow}>
+            {/* <View style={styles.dividerRow}>
               <View style={styles.dividerLine} />
               <Text style={styles.dividerText}>Or continue with</Text>
               <View style={styles.dividerLine} />
-            </View>
+            </View> */}
 
             {/* Google button */}
-            <View style={styles.socialWrapper}>
+            {/* <View style={styles.socialWrapper}>
               <TouchableOpacity
                 style={styles.googleButton}
                 onPress={handleGoogleLogin}
@@ -122,7 +148,7 @@ const LoginScreen = () => {
               >
                 <Ionicons name="logo-google" size={24} color="#FFFFFF" />
               </TouchableOpacity>
-            </View>
+            </View> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
