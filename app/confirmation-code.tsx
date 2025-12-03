@@ -15,7 +15,7 @@ import { useAuth } from "../context/auth-context";
 const CODE_LENGTH = 4;
 
 const ConfirmationCodeScreen = () => {
-  const { getTempEmail, clearTempEmail } = useAuth();
+  const { tempEmail, clearTempEmail } = useAuth();
   const [email, setEmail] = useState<string>('');
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [focusedIndex, setFocusedIndex] = useState(0);
@@ -23,11 +23,9 @@ const ConfirmationCodeScreen = () => {
   useEffect(() => {
     // wait for component mount
     const timer = setTimeout(() => {
-      const savedEmail = getTempEmail();
-      if (savedEmail) {
-        setEmail(savedEmail);
+      if (tempEmail) {
+        setEmail(tempEmail);
       } else {
-        
         router.replace("/login");
       }
     }, 100); 

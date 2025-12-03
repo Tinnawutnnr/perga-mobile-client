@@ -3,7 +3,6 @@ import React, { createContext, useContext, useState } from 'react';
 interface AuthContextType {
   tempEmail: string | null;
   saveTempEmail: (email: string) => void;
-  getTempEmail: () => string | null;
   clearTempEmail: () => void;
 }
 
@@ -16,10 +15,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
     setTempEmail(email);
   };
 
-  const getTempEmail = (): string | null => {
-    return tempEmail;
-  };
-
   const clearTempEmail = () => {
     setTempEmail(null);
   };
@@ -29,7 +24,6 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
       value={{
         tempEmail,
         saveTempEmail,
-        getTempEmail,
         clearTempEmail,
       }}
     >
