@@ -47,7 +47,7 @@ const LoginScreen = () => {
   };
 
   const handleRegister = () => {
-    router.push("/register")
+    router.push("/register");
   };
 
   const handleGoogleLogin = () => {
