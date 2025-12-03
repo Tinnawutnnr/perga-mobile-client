@@ -1,12 +1,12 @@
 import { Ionicons } from "@expo/vector-icons";
 import React, { useState } from "react";
 import {
-    Image,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Switch,
-    TouchableOpacity,
+  Image,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
 } from "react-native";
 import { ThemedText } from "../../components/themed-text";
 import { ThemedView } from "../../components/themed-view";
@@ -35,32 +35,32 @@ const ProfileScreen = () => {
   const menuItems = [
     {
       icon: "person-outline" as const,
-      title: "ข้อมูลส่วนตัว",
-      subtitle: "จัดการข้อมูลของคุณ",
+      title: "My Info",
+      subtitle: "Edit your details",
       onPress: () => console.log("Personal Info"),
     },
     {
       icon: "medical-outline" as const,
-      title: "บันทึกสุขภาพ",
-      subtitle: "ตรวจสอบประวัติสุขภาพ",
+      title: "Health Records",
+      subtitle: "View your health data",
       onPress: () => console.log("Health Profile"),
     },
     {
       icon: "shield-checkmark-outline" as const,
-      title: "ความเป็นส่วนตัว",
-      subtitle: "ควบคุมความปลอดภัย",
+      title: "Privacy",
+      subtitle: "Your data protection",
       onPress: () => console.log("Privacy"),
     },
     {
       icon: "help-circle-outline" as const,
-      title: "ช่วยเหลือ",
-      subtitle: "รับความช่วยเหลือ",
+      title: "Help",
+      subtitle: "Get support",
       onPress: () => console.log("Help"),
     },
     {
       icon: "information-circle-outline" as const,
-      title: "เกี่ยวกับแอป",
-      subtitle: "เวอร์ชันและข้อมูลแอป",
+      title: "About App",
+      subtitle: "Version and app info",
       onPress: () => console.log("About"),
     },
   ];
@@ -68,21 +68,21 @@ const ProfileScreen = () => {
   const settingsItems = [
     {
       icon: "notifications-outline" as const,
-      title: "การแจ้งเตือน",
+      title: "Notifications",
       value: notificationsEnabled,
       onToggle: setNotificationsEnabled,
       type: 'switch' as const,
     },
     {
       icon: "moon-outline" as const,
-      title: "โหมดมืด",
+      title: "Dark Mode",
       value: colorScheme === 'dark',
       onToggle: handleDarkModeToggle,
       type: 'toggle' as const,
     },
     {
       icon: "location-outline" as const,
-      title: "บริการตำแหน่ง",
+      title: "Location",
       value: locationEnabled,
       onToggle: setLocationEnabled,
       type: 'switch' as const,
@@ -94,7 +94,7 @@ const ProfileScreen = () => {
       <ScrollView style={[styles.container, { backgroundColor }]} showsVerticalScrollIndicator={false}>
         {/* Header */}
         <ThemedView style={styles.header}>
-          <ThemedText type="title" style={styles.headerTitle}>โปรไฟล์</ThemedText>
+          <ThemedText type="title" style={styles.headerTitle}>Profile</ThemedText>
           <TouchableOpacity style={[styles.editButton, { backgroundColor: cardColor }]}>
             <Ionicons name="pencil" size={20} color={tintColor} />
           </TouchableOpacity>
@@ -125,23 +125,23 @@ const ProfileScreen = () => {
           <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
             <Ionicons name="footsteps" size={24} color={tintColor} />
             <ThemedText style={styles.statValue}>2,847</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>ก้าววันนี้</ThemedText>
+            <ThemedText type="muted" style={styles.statLabel}>Steps Today</ThemedText>
           </ThemedView>
           <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
             <Ionicons name="time" size={24} color="#FF8C1A" />
-            <ThemedText style={styles.statValue}>45 นาที</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>เวลาใช้งาน</ThemedText>
+            <ThemedText style={styles.statValue}>45 Min</ThemedText>
+            <ThemedText type="muted" style={styles.statLabel}>Active Time</ThemedText>
           </ThemedView>
           <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
             <Ionicons name="trophy" size={24} color="#FFD700" />
             <ThemedText style={styles.statValue}>12</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>ความสำเร็จ</ThemedText>
+            <ThemedText type="muted" style={styles.statLabel}>Achievements</ThemedText>
           </ThemedView>
         </ThemedView>
 
         {/* Menu Section */}
         <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>บัญชี</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Account</ThemedText>
           {menuItems.map((item, index) => (
             <TouchableOpacity key={index} style={[styles.menuItem, { borderBottomColor: borderColor }]} onPress={item.onPress}>
               <ThemedView style={styles.menuIconContainer}>
@@ -158,7 +158,7 @@ const ProfileScreen = () => {
 
         {/* Settings Section */}
         <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>การตั้งค่า</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>Settings</ThemedText>
           {settingsItems.map((item, index) => (
             <ThemedView key={index} style={[styles.settingItem, { borderBottomColor: borderColor }]}>
               <ThemedView style={styles.menuIconContainer}>
@@ -180,7 +180,7 @@ const ProfileScreen = () => {
         {/* Logout Button */}
         <TouchableOpacity style={[styles.logoutButton, { backgroundColor: cardColor, borderColor }]}>
           <Ionicons name="log-out-outline" size={20} color="#FF4444" />
-          <ThemedText style={styles.logoutText}>ออกจากระบบ</ThemedText>
+          <ThemedText style={styles.logoutText}>Log Out</ThemedText>
         </TouchableOpacity>
 
         {/* App Version */}
