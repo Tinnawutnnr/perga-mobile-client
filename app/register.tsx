@@ -32,6 +32,15 @@ const RegisterScreen = () => {
   const hasPasswordError = password.length > 0 && !isValidPassword(password);
   const hasConfirmPasswordError = confirmPassword.length > 0 && !doPasswordsMatch(password, confirmPassword);
 
+  // Check if form is valid for submission
+  const isFormValid = agreeToTerms && 
+                     fullName && 
+                     email && 
+                     password && 
+                     confirmPassword && 
+                     isValidPassword(password) && 
+                     isValidEmail(email);
+
   const handleRegister = () => {
     if (!isValidEmail(email)) {
       console.log("Please enter a valid email address");
@@ -166,12 +175,11 @@ const RegisterScreen = () => {
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                (!agreeToTerms || !fullName || !email || !password || !confirmPassword || !isValidPassword(password) || !isValidEmail(email)) && 
-                styles.registerButtonDisabled
+                !isFormValid && styles.registerButtonDisabled
               ]}
               onPress={handleRegister}
               activeOpacity={0.8}
-              disabled={!agreeToTerms || !fullName || !email || !password || !confirmPassword || !isValidPassword(password) || !isValidEmail(email)}
+              disabled={!isFormValid}
             >
               <Text style={styles.registerButtonText}>Create Account</Text>
             </TouchableOpacity>
