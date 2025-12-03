@@ -57,7 +57,7 @@ const LoginScreen = () => {
 
   const handleGoogleLogin = () => {
     console.log("Login with Google");
-    saveTempEmail("google-account");
+    // TODO: Implement Google OAuth flow and retrieve user's email before saving
     router.push("/confirmation-code");
   };
 
