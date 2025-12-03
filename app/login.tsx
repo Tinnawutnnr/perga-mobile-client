@@ -16,7 +16,7 @@ import { useAuth } from "../context/auth-context";
 
 const LoginScreen = () => {
   const { saveTempEmail } = useAuth();
-  const [email, setemail] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
 
