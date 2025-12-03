@@ -14,6 +14,7 @@ import {
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
+import { doPasswordsMatch, isValidEmail, isValidPassword } from "../utils/validation";
 
 const RegisterScreen = () => {
   const { saveTempEmail } = useAuth();
@@ -25,28 +26,22 @@ const RegisterScreen = () => {
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
 
-  // Email validation helper
-  const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
-
   // Check if form fields have errors
   const hasFullNameError = fullName.length > 0 && fullName.trim().length === 0;
   const hasEmailError = email.length > 0 && !isValidEmail(email);
-  const hasPasswordError = password.length > 0 && password.length < 8;
-  const hasConfirmPasswordError = confirmPassword.length > 0 && password !== confirmPassword;
+  const hasPasswordError = password.length > 0 && !isValidPassword(password);
+  const hasConfirmPasswordError = confirmPassword.length > 0 && !doPasswordsMatch(password, confirmPassword);
 
   const handleRegister = () => {
     if (!isValidEmail(email)) {
       console.log("Please enter a valid email address");
       return;
     }
-    if (password.length < 8) {
+    if (!isValidPassword(password)) {
       console.log("Password must be at least 8 characters");
       return;
     }
-    if (password !== confirmPassword) {
+    if (!doPasswordsMatch(password, confirmPassword)) {
       console.log("Passwords don't match");
       return;
     }
@@ -172,12 +167,12 @@ const RegisterScreen = () => {
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                (!agreeToTerms || !fullName || !email || !password || !confirmPassword || password.length < 8 || !isValidEmail(email)) && 
+                (!agreeToTerms || !fullName || !email || !password || !confirmPassword || !isValidPassword(password) || !isValidEmail(email)) && 
                 styles.registerButtonDisabled
               ]}
               onPress={handleRegister}
               activeOpacity={0.8}
-              disabled={!agreeToTerms || !fullName || !email || !password || !confirmPassword || password.length < 8 || !isValidEmail(email)}
+              disabled={!agreeToTerms || !fullName || !email || !password || !confirmPassword || !isValidPassword(password) || !isValidEmail(email)}
             >
               <Text style={styles.registerButtonText}>Create Account</Text>
             </TouchableOpacity>

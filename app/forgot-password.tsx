@@ -15,17 +15,12 @@ import {
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
+import { isValidEmail } from "../utils/validation";
 
 const ForgotPasswordScreen = () => {
   const { saveTempEmail } = useAuth();
   const [email, setEmail] = useState("");
   const [showSuccessModal, setShowSuccessModal] = useState(false);
-
-  // Email validation helper
-  const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
 
   const hasEmailError = email.length > 0 && !isValidEmail(email);
 

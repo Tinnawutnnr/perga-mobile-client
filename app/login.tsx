@@ -13,18 +13,13 @@ import {
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
+import { isValidEmail } from "../utils/validation";
 
 const LoginScreen = () => {
   const { saveTempEmail } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
-
-  // Email validation
-  const isValidEmail = (email: string) => {
-    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
-    return emailRegex.test(email);
-  };
 
   const hasEmailError = email.length > 0 && !isValidEmail(email);
   const hasPasswordError = password.length > 0 && password.length < 8;
@@ -90,7 +85,7 @@ const LoginScreen = () => {
             {/* email input */}
             <PrimaryInput
               value={email}
-              onChangeText={setemail}
+              onChangeText={setEmail}
               placeholder="name@email.com"
               keyboardType="email-address"
               hasError={hasEmailError}
