@@ -1,4 +1,4 @@
-// components/PrimaryInput.tsx
+// components/primary-input.tsx
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import {
@@ -9,6 +9,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { useThemeColor } from "../hooks/use-theme-color";
 
 interface PrimaryInputProps {
   value: string;
@@ -33,12 +34,29 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
   onPressRight,
   hasError = false,
 }) => {
+
+  const backgroundColor = useThemeColor({}, 'background');
+  const borderColor = useThemeColor({}, 'border');
+  const textColor = useThemeColor({}, 'text');
+  const placeholderColor = useThemeColor({ light: '#B0B0B0', dark: '#666666' }, 'tabIconDefault');
+  const iconColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'tabIconDefault');
+
   return (
-    <View style={[styles.inputWrapper, hasError && styles.inputWrapperError]}>
+    <View style={[
+      styles.inputWrapper,
+      {
+        backgroundColor: backgroundColor,
+        borderColor: hasError ? '#FF4444' : borderColor,
+      }
+    ]}>
       <TextInput
-        style={[styles.input, (rightText || rightIcon) && { paddingRight: 48 }]}
+        style={[
+          styles.input,
+          { color: textColor },
+          (rightText || rightIcon) && { paddingRight: 48 }
+        ]}
         placeholder={placeholder}
-        placeholderTextColor="#B0B0B0"
+        placeholderTextColor={placeholderColor}
         value={value}
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
@@ -52,14 +70,14 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
         >
           {rightIcon ? (
             rightIcon === "eye" ? (
-              <Ionicons name="eye" size={20} color="#666666" />
+              <Ionicons name="eye" size={20} color={iconColor} />
             ) : rightIcon === "eye-off" ? (
-              <Ionicons name="eye-off" size={20} color="#666666" />
+              <Ionicons name="eye-off" size={20} color={iconColor} />
             ) : (
-              <Text style={styles.rightText}>{rightIcon}</Text>
+              <Text style={[styles.rightText, { color: iconColor }]}>{rightIcon}</Text>
             )
           ) : (
-            <Text style={styles.rightText}>{rightText}</Text>
+            <Text style={[styles.rightText, { color: iconColor }]}>{rightText}</Text>
           )}
         </TouchableOpacity>
       )}
@@ -74,19 +92,12 @@ const styles = StyleSheet.create({
     marginBottom: 16,
     borderRadius: 16,
     borderWidth: 2,
-    borderColor: "#E5E5E5",
-    backgroundColor: "#FFFFFF",
     paddingHorizontal: 16,
     justifyContent: "center",
     height: 56,
   },
-  inputWrapperError: {
-    borderColor: "#FF4444",
-    borderWidth: 2,
-  },
   input: {
     fontSize: 16,
-    color: "#000000",
   },
   rightButton: {
     position: "absolute",
@@ -97,7 +108,6 @@ const styles = StyleSheet.create({
   },
   rightText: {
     fontSize: 14,
-    color: "#666666",
     fontWeight: "500",
   },
 });

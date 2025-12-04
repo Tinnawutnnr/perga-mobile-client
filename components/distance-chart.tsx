@@ -16,7 +16,6 @@ const DistanceChart: React.FC<DistanceChartProps> = ({ data, maxValue = 2.0 }) =
   const borderColor = useThemeColor({}, 'border');
   const textColor = useThemeColor({}, 'text');
   const accentColor = useThemeColor({}, "accent");
-  const mutedColor = useThemeColor({}, "muted"); 
 
   return (
     <ThemedView
