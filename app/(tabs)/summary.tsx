@@ -122,7 +122,6 @@ const SummaryScreen = () => {
   const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const tintColor = useThemeColor({}, 'tint');
-  const iconColor = useThemeColor({}, 'icon');
   const mutedColor = useThemeColor({}, 'muted');
 
   const selectedMonth = monthlyData[selectedMonthIndex];
