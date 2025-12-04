@@ -1,8 +1,9 @@
 import React, { useEffect, useRef } from "react";
 import {
-    StyleSheet,
-    TextInput
+  StyleSheet,
+  TextInput
 } from "react-native";
+import { useThemeColor } from "../hooks/use-theme-color";
 
 interface CodeInputProps {
   value: string;
@@ -23,6 +24,12 @@ const CodeInput: React.FC<CodeInputProps> = ({
 }) => {
   const inputRef = useRef<TextInput>(null);
 
+  // Theme colors
+  const backgroundColor = useThemeColor({}, 'background');
+  const borderColor = useThemeColor({}, 'border');
+  const tintColor = useThemeColor({}, 'tint');
+  const textColor = useThemeColor({}, 'text');
+
   useEffect(() => {
     if (isFocused && inputRef.current) {
       inputRef.current.focus();
@@ -34,7 +41,7 @@ const CodeInput: React.FC<CodeInputProps> = ({
   };
 
   const handleChange = (text: string) => {
-    // รับแค่ตัวสุดท้าย
+    // Accept only the last character
     const lastChar = text.slice(-1);
     onChangeText(lastChar);
   };
@@ -42,7 +49,14 @@ const CodeInput: React.FC<CodeInputProps> = ({
   return (
     <TextInput
       ref={inputRef}
-      style={[styles.input, value !== "" && styles.inputFilled]}
+      style={[
+        styles.input,
+        {
+          borderColor: isFocused || value !== "" ? tintColor : borderColor,
+          backgroundColor: backgroundColor,
+          color: textColor,
+        }
+      ]}
       value={value}
       onChangeText={handleChange}
       onKeyPress={handleKeyPress}
@@ -64,13 +78,7 @@ const styles = StyleSheet.create({
     height: 56,
     borderRadius: 14,
     borderWidth: 1.5,
-    borderColor: "#E5E5E5",
     fontSize: 20,
-    color: "#000000",
-    backgroundColor: "#FFFFFF",
     textAlign: "center",
-  },
-  inputFilled: {
-    borderColor: "#4F7D81",
   },
 });

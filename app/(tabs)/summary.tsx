@@ -115,7 +115,7 @@ const monthlyData = [
 ];
 
 const SummaryScreen = () => {
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(10); // November as defualt
+  const [selectedMonthIndex, setSelectedMonthIndex] = useState(10); // November as default
 
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
