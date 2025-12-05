@@ -141,11 +141,11 @@ const ProfileScreen = () => {
             <ThemedText style={styles.statValue}>45 Min</ThemedText>
             <ThemedText type="muted" style={styles.statLabel}>Active Time</ThemedText>
           </ThemedView>
-          <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
+          {/* <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
             <Ionicons name="trophy" size={24} color="#FFD700" />
             <ThemedText style={styles.statValue}>12</ThemedText>
             <ThemedText type="muted" style={styles.statLabel}>Achievements</ThemedText>
-          </ThemedView>
+          </ThemedView> */}
         </ThemedView>
 
         {/* Menu Section */}
