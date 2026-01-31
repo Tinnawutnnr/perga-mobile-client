@@ -50,15 +50,15 @@ const ProfileScreen = () => {
     },
     {
       icon: "medical-outline" as const,
-      title: "Health Records",
-      subtitle: "View your health data",
+      title: "Historical Report",
+      subtitle: "View your historical data",
       onPress: () => console.log("Health Profile"),
     },
     {
-      icon: "shield-checkmark-outline" as const,
-      title: "Privacy",
-      subtitle: "Your data protection",
-      onPress: () => console.log("Privacy"),
+      icon: "bluetooth-outline" as const,
+      title: "BLE Connection",
+      subtitle: "Manage device connections",
+      onPress: () => router.push("/ble-connection"),
     },
     {
       icon: "help-circle-outline" as const,
