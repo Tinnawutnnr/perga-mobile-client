@@ -143,54 +143,82 @@ const BLEConnectionScreen = () => {
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
-      <ScrollView style={[styles.container, { backgroundColor }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={[styles.container, { backgroundColor }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <ThemedView style={styles.header}>
-          <ThemedText type="title" style={styles.headerTitle}>BLE Connection</ThemedText>
-          <TouchableOpacity 
-            style={[styles.scanButton, { backgroundColor: isScanning ? mutedColor : tintColor }]}
+          <ThemedText type="title" style={styles.headerTitle}>
+            BLE Connection
+          </ThemedText>
+          <TouchableOpacity
+            style={[
+              styles.scanButton,
+              { backgroundColor: isScanning ? mutedColor : tintColor },
+            ]}
             onPress={handleScan}
             disabled={isScanning}
             activeOpacity={0.8}
           >
-            <Ionicons 
-              name={isScanning ? "refresh" : "bluetooth"} 
-              size={20} 
-              color="#FFFFFF" 
+            <Ionicons
+              name={isScanning ? "refresh" : "bluetooth"}
+              size={20}
+              color="#FFFFFF"
             />
           </TouchableOpacity>
         </ThemedView>
 
         {/* Connection Status */}
-        <ThemedView style={[styles.statusCard, { backgroundColor: cardColor, borderColor }]}>
+        <ThemedView
+          style={[
+            styles.statusCard,
+            { backgroundColor: cardColor, borderColor },
+          ]}
+        >
           <ThemedView style={styles.statusHeader}>
             <Ionicons name="bluetooth" size={24} color={tintColor} />
             <ThemedText style={styles.statusTitle}>Bluetooth Status</ThemedText>
           </ThemedView>
           <ThemedView style={styles.statusContent}>
-            <ThemedView style={[styles.statusIndicator, { backgroundColor: '#4CAF50' }]} />
-            <ThemedText style={styles.statusDescription}>Bluetooth is enabled and ready</ThemedText>
+            <ThemedView
+              style={[styles.statusIndicator, { backgroundColor: mutedColor }]}
+            />
+            {/* add state for later use if ble is on set to '#4CAF50' */}
+            <ThemedText style={styles.statusDescription}>
+              Bluetooth status depends on your device settings. Ensure Bluetooth
+              is enabled to scan for devices.
+            </ThemedText>
           </ThemedView>
         </ThemedView>
 
         {/* Connected Devices */}
         <ThemedView style={styles.section}>
           <ThemedView style={styles.sectionHeader}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>Connected Devices</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Connected Devices
+            </ThemedText>
             <ThemedView style={[styles.badge, { backgroundColor: tintColor }]}>
               <ThemedText style={styles.badgeText}>
-                {devices.filter(d => d.isConnected).length}
+                {devices.filter((d) => d.isConnected).length}
               </ThemedText>
             </ThemedView>
           </ThemedView>
-          {devices.filter(device => device.isConnected).length === 0 ? (
-            <ThemedView style={[styles.emptyState, { backgroundColor: cardColor, borderColor }]}>
+          {devices.filter((device) => device.isConnected).length === 0 ? (
+            <ThemedView
+              style={[
+                styles.emptyState,
+                { backgroundColor: cardColor, borderColor },
+              ]}
+            >
               <Ionicons name="bluetooth-outline" size={48} color={mutedColor} />
-              <ThemedText type="muted" style={styles.emptyText}>No connected devices</ThemedText>
+              <ThemedText type="muted" style={styles.emptyText}>
+                No connected devices
+              </ThemedText>
             </ThemedView>
           ) : (
             <FlatList
-              data={devices.filter(device => device.isConnected)}
+              data={devices.filter((device) => device.isConnected)}
               renderItem={renderDevice}
               keyExtractor={(item) => item.id}
               scrollEnabled={false}
@@ -201,15 +229,22 @@ const BLEConnectionScreen = () => {
         {/* Available Devices */}
         <ThemedView style={styles.section}>
           <ThemedView style={styles.sectionHeader}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>Available Devices</ThemedText>
+            <ThemedText type="subtitle" style={styles.sectionTitle}>
+              Available Devices
+            </ThemedText>
             <TouchableOpacity onPress={handleScan} disabled={isScanning}>
-              <ThemedText style={[styles.scanText, { color: isScanning ? mutedColor : tintColor }]}>
-                {isScanning ? 'Scanning...' : 'Scan'}
+              <ThemedText
+                style={[
+                  styles.scanText,
+                  { color: isScanning ? mutedColor : tintColor },
+                ]}
+              >
+                {isScanning ? "Scanning..." : "Scan"}
               </ThemedText>
             </TouchableOpacity>
           </ThemedView>
           <FlatList
-            data={devices.filter(device => !device.isConnected)}
+            data={devices.filter((device) => !device.isConnected)}
             renderItem={renderDevice}
             keyExtractor={(item) => item.id}
             scrollEnabled={false}
@@ -217,12 +252,21 @@ const BLEConnectionScreen = () => {
         </ThemedView>
 
         {/* Help Section */}
-        <ThemedView style={[styles.helpCard, { backgroundColor: cardColor, borderColor }]}>
-          <Ionicons name="information-circle-outline" size={24} color={tintColor} />
+        <ThemedView
+          style={[styles.helpCard, { backgroundColor: cardColor, borderColor }]}
+        >
+          <Ionicons
+            name="information-circle-outline"
+            size={24}
+            color={tintColor}
+          />
           <ThemedView style={styles.helpContent}>
-            <ThemedText style={styles.helpTitle}>Having trouble connecting?</ThemedText>
+            <ThemedText style={styles.helpTitle}>
+              Having trouble connecting?
+            </ThemedText>
             <ThemedText type="muted" style={styles.helpText}>
-              Make sure Bluetooth is enabled and your device is discoverable. Try restarting Bluetooth if connection fails.
+              Make sure Bluetooth is enabled and your device is discoverable.
+              Try restarting Bluetooth if connection fails.
             </ThemedText>
           </ThemedView>
         </ThemedView>
