@@ -54,8 +54,8 @@ const BLEConnectionScreen = () => {
   const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const tintColor = useThemeColor({}, 'tint');
-  const iconColor = useThemeColor({}, 'icon');
   const mutedColor = useThemeColor({}, 'muted');
+  const iconColor = useThemeColor({}, "icon");
 
   const handleScan = () => {
     setIsScanning(true);
