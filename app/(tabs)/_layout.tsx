@@ -30,25 +30,12 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
-        name="summary"
+        name="home"
         options={{
-          title: "Summary",
+          title: "Home",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "heart" : "heart-outline"}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      />
-      <Tabs.Screen
-        name="ble-connection"
-        options={{
-          title: "Device",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "bluetooth" : "bluetooth-outline"}
               size={24}
               color={color}
             />
@@ -80,6 +67,26 @@ export default function TabLayout() {
             />
           ),
         }}
+      />
+      <Tabs.Screen
+        name="ble-connection"
+        options={{
+          title: "Device",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "bluetooth" : "bluetooth-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      {/* use for test /test */}
+      <Tabs.Screen
+      name="test"
+      options={{
+        href:null,
+      }}
       />
     </Tabs>
   );

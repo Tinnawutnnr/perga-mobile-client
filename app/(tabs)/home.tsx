@@ -13,6 +13,10 @@ import DistanceChart from "../../components/distance-chart";
 import { ThemedText } from "../../components/themed-text";
 import { ThemedView } from "../../components/themed-view";
 import { useThemeColor } from "../../hooks/use-theme-color";
+import { MetricBox } from "../../components/metric-box";
+import { MetricGroup } from "../../components/metric-group";
+import { useColorScheme } from "../../hooks/use-color-scheme";
+import { Colors } from "../../constants/theme";
 
 // Mock data with daily distances and anomalies
 const monthlyData = [
@@ -116,13 +120,14 @@ const monthlyData = [
 
 const SummaryScreen = () => {
   const [selectedMonthIndex, setSelectedMonthIndex] = useState(10); // November as default
-
+  const colorScheme = useColorScheme();
   // Theme colors
   const backgroundColor = useThemeColor({}, 'background');
   const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
   const tintColor = useThemeColor({}, 'tint');
   const mutedColor = useThemeColor({}, 'muted');
+  const iconColor = Colors[colorScheme ?? "light"].icon;
 
   const selectedMonth = monthlyData[selectedMonthIndex];
   const totalAnomalies = monthlyData.reduce((sum, month) => sum + month.anomaly, 0);
@@ -216,6 +221,54 @@ const SummaryScreen = () => {
         {/* Charts */}
         <DistanceChart data={selectedMonth.dailyDistances} maxValue={2.0} />
         <AnomalyChart data={selectedMonth.dailyAnomalies} maxValue={4} />
+        <MetricGroup title="Sleep Metrics">
+                  <MetricBox
+                    label="Sleep Duration"
+                    value="7:31"
+                    subValue=""
+                    status="Optimal"
+                    statusColor="success"
+                    icon={<Ionicons name="time-outline" size={24} color={iconColor} />}
+                  />
+        
+                  <MetricBox
+                    label="Sleep Regularity"
+                    value="63%"
+                    subValue=""
+                    status="Fair"
+                    statusColor="warning"
+                    icon={<Ionicons name="moon-outline" size={24} color={iconColor} />}
+                  />
+        
+                  <MetricBox
+                    label="Deep"
+                    value="0:57"
+                    subValue="(13%)"
+                    status="Normal"
+                    statusColor="success"
+                    icon={<Ionicons name="body-outline" size={24} color={iconColor} />}
+                  />
+        
+                  <MetricBox
+                    label="REM Sleep"
+                    value="1:15"
+                    subValue="(16%)"
+                    status="Normal"
+                    statusColor="success"
+                    icon={<Ionicons name="eye-outline" size={24} color={iconColor} />}
+                  />
+        
+                  <MetricBox
+                    label="Awake"
+                    value="0:14"
+                    subValue="(2 times)"
+                    status="Normal"
+                    statusColor="success"
+                    icon={
+                      <Ionicons name="eye-off-outline" size={24} color={iconColor} />
+                    }
+                  />
+                </MetricGroup>
       </ScrollView>
     </SafeAreaView>
   );
