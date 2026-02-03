@@ -50,15 +50,15 @@ const ProfileScreen = () => {
     },
     {
       icon: "medical-outline" as const,
-      title: "Health Records",
-      subtitle: "View your health data",
+      title: "Historical Report",
+      subtitle: "View your historical data",
       onPress: () => console.log("Health Profile"),
     },
     {
-      icon: "shield-checkmark-outline" as const,
-      title: "Privacy",
-      subtitle: "Your data protection",
-      onPress: () => console.log("Privacy"),
+      icon: "bluetooth-outline" as const,
+      title: "BLE Connection",
+      subtitle: "Manage device connections",
+      onPress: () => router.push("/ble-connection"),
     },
     {
       icon: "help-circle-outline" as const,
@@ -141,11 +141,11 @@ const ProfileScreen = () => {
             <ThemedText style={styles.statValue}>45 Min</ThemedText>
             <ThemedText type="muted" style={styles.statLabel}>Active Time</ThemedText>
           </ThemedView>
-          <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
+          {/* <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
             <Ionicons name="trophy" size={24} color="#FFD700" />
             <ThemedText style={styles.statValue}>12</ThemedText>
             <ThemedText type="muted" style={styles.statLabel}>Achievements</ThemedText>
-          </ThemedView>
+          </ThemedView> */}
         </ThemedView>
 
         {/* Menu Section */}

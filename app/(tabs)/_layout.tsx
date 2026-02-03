@@ -3,10 +3,8 @@ import { Tabs } from "expo-router";
 import { useThemeColor } from "../../hooks/use-theme-color";
 
 export default function TabLayout() {
-  const backgroundColor = useThemeColor({}, 'background');
   const cardColor = useThemeColor({}, 'card');
   const borderColor = useThemeColor({}, 'border');
-  const tintColor = useThemeColor({}, 'tint');
   const tabIconDefault = useThemeColor({}, 'tabIconDefault');
   const tabIconSelected = useThemeColor({}, 'tabIconSelected');
 
@@ -27,7 +25,7 @@ export default function TabLayout() {
         tabBarInactiveTintColor: tabIconDefault,
         tabBarLabelStyle: {
           fontSize: 12,
-          fontWeight: '500',
+          fontWeight: "500",
         },
       }}
     >
@@ -38,6 +36,32 @@ export default function TabLayout() {
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
               name={focused ? "heart" : "heart-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="ble-connection"
+        options={{
+          title: "Device",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "bluetooth" : "bluetooth-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+      <Tabs.Screen
+        name="notification"
+        options={{
+          title: "Notification",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "notifications" : "notifications-outline"}
               size={24}
               color={color}
             />
