@@ -66,11 +66,20 @@ const BLEConnectionScreen = () => {
   };
 
   const handleConnect = (deviceId: string) => {
-    setDevices(prev => prev.map(device => 
-      device.id === deviceId 
-        ? { ...device, isConnected: !device.isConnected }
-        : device
-    ));
+        const device = devices.find((d) => d.id === deviceId);
+        if (!device) {
+          return;
+        }
+        const newIsConnected = !device.isConnected;
+        setDevices((prev) =>
+          prev.map((d) =>
+            d.id === deviceId ? { ...d, isConnected: newIsConnected } : d,
+          ),
+        );
+        Alert.alert(
+          newIsConnected ? "Device Connected" : "Device Disconnected",
+          `${device.name} is now ${newIsConnected ? "connected" : "disconnected"}.`,
+        );
   };
 
   const getDeviceIcon = (type: string) => {
