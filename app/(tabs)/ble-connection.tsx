@@ -26,14 +26,14 @@ const MOCK_BLUETOOTH_DEVICES: BluetoothDevice[] = [
     id: "1",
     name: "device 1",
     isConnected: true,
-    rssi: -45,
+    rssi: -10,
     type: "sensor",
   },
   {
     id: "2",
     name: "device 2",
     isConnected: false,
-    rssi: -72,
+    rssi: -33,
     type: "sensor",
   },
   {
@@ -91,10 +91,11 @@ const BLEConnectionScreen = () => {
   };
 
   const getSignalStrength = (rssi?: number) => {
-    if (!rssi) return 'cellular-outline';
-    if (rssi > -50) return 'cellular';
-    if (rssi > -70) return 'cellular-outline';
-    return 'cellular-outline';
+    if (rssi === undefined || rssi < -90) return "cellular-outline";
+    if (rssi > -30) return "cellular";
+    if (rssi > -50) return "cellular-sharp";
+    if (rssi > -70) return "cellular-outline";
+    return "cellular-outline";
   };
 
   const renderDevice = ({ item }: { item: BluetoothDevice }) => (
