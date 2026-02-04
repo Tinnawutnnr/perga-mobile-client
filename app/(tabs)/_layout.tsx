@@ -3,10 +3,10 @@ import { Tabs } from "expo-router";
 import { useThemeColor } from "../../hooks/use-theme-color";
 
 export default function TabLayout() {
-  const cardColor = useThemeColor({}, 'card');
-  const borderColor = useThemeColor({}, 'border');
-  const tabIconDefault = useThemeColor({}, 'tabIconDefault');
-  const tabIconSelected = useThemeColor({}, 'tabIconSelected');
+  const cardColor = useThemeColor({}, "card");
+  const borderColor = useThemeColor({}, "border");
+  const tabIconDefault = useThemeColor({}, "tabIconDefault");
+  const tabIconSelected = useThemeColor({}, "tabIconSelected");
 
   return (
     <Tabs
@@ -55,7 +55,7 @@ export default function TabLayout() {
           ),
         }}
       />
-      <Tabs.Screen
+      {/* <Tabs.Screen
         name="profile"
         options={{
           title: "Profile",
@@ -67,14 +67,22 @@ export default function TabLayout() {
             />
           ),
         }}
+      /> */}
+
+      <Tabs.Screen
+        name="profile"
+        options={{
+          href: null,
+        }}
       />
+
       <Tabs.Screen
         name="ble-connection"
         options={{
           title: "Device",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "bluetooth" : "bluetooth-outline"}
+              name={focused ? "watch" : "watch"}
               size={24}
               color={color}
             />
@@ -83,10 +91,10 @@ export default function TabLayout() {
       />
       {/* use for test /test */}
       <Tabs.Screen
-      name="test"
-      options={{
-        href:null,
-      }}
+        name="test"
+        options={{
+          href: null,
+        }}
       />
     </Tabs>
   );
