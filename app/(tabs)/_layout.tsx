@@ -96,6 +96,13 @@ export default function TabLayout() {
           href: null,
         }}
       />
+
+      <Tabs.Screen
+        name="metric-detail"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }

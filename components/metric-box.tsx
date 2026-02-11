@@ -1,5 +1,11 @@
 import React from "react";
-import { StyleSheet, View, ViewStyle } from "react-native";
+import {
+  StyleSheet,
+  TouchableOpacity,
+  View,
+  ViewStyle,
+  type GestureResponderEvent,
+} from "react-native";
 import { Colors } from "../constants/theme";
 import { useColorScheme } from "../hooks/use-color-scheme";
 import { ThemedText } from "./themed-text";
@@ -31,6 +37,7 @@ export interface MetricBoxProps {
    * Icon component to display on the left
    */
   icon?: React.ReactNode;
+  onPress?: (event: GestureResponderEvent) => void;
 
   style?: ViewStyle;
 }
@@ -42,6 +49,7 @@ export function MetricBox({
   status,
   statusColor = Colors.light.success, // Default to success if not provided
   icon,
+  onPress,
   style,
 }: MetricBoxProps) {
   const colorScheme = useColorScheme() ?? "light";
@@ -53,47 +61,57 @@ export function MetricBox({
       ? themeColors[statusColor as keyof typeof themeColors]
       : statusColor;
 
+  const isPressable = Boolean(onPress);
+
   return (
     <ThemedView
       style={[styles.container, style]}
       lightColor={Colors.light.card}
       darkColor={Colors.dark.card}
     >
-      <View style={styles.leftContainer}>
-        {icon && <View style={styles.iconContainer}>{icon}</View>}
-        <ThemedText type="defaultSemiBold" style={styles.label}>
-          {label}
-        </ThemedText>
-      </View>
-
-      <View style={styles.rightContainer}>
-        <View style={styles.valueRow}>
-          <ThemedText style={styles.value}>{value}</ThemedText>
-          {subValue && (
-            <ThemedText style={styles.subValue}>{subValue}</ThemedText>
-          )}
-          <View
-            style={[
-              styles.statusIndicator,
-              { backgroundColor: String(resolvedStatusColor) },
-            ]}
-          />
+      <TouchableOpacity
+        style={styles.content}
+        disabled={!isPressable}
+        onPress={onPress}
+        activeOpacity={0.7}
+      >
+        <View style={styles.leftContainer}>
+          {icon && <View style={styles.iconContainer}>{icon}</View>}
+          <ThemedText type="defaultSemiBold" style={styles.label}>
+            {label}
+          </ThemedText>
         </View>
-        <ThemedText style={styles.statusText}>{status}</ThemedText>
-      </View>
+
+        <View style={styles.rightContainer}>
+          <View style={styles.valueRow}>
+            <ThemedText style={styles.value}>{value}</ThemedText>
+            {subValue && (
+              <ThemedText style={styles.subValue}>{subValue}</ThemedText>
+            )}
+            <View
+              style={[
+                styles.statusIndicator,
+                { backgroundColor: String(resolvedStatusColor) },
+              ]}
+            />
+          </View>
+          <ThemedText style={styles.statusText}>{status}</ThemedText>
+        </View>
+      </TouchableOpacity>
     </ThemedView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
+    borderRadius: 12, // Rounded corners as per design
+    marginBottom: 12,
+  },
+  content: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
     padding: 16,
-    borderRadius: 12, // Rounded corners as per design
-    marginBottom: 12,
-    // Add shadow/elevation if needed, though design looks flat/dark card
   },
   leftContainer: {
     flexDirection: "row",

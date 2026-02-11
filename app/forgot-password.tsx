@@ -79,7 +79,7 @@ const ForgotPasswordScreen = () => {
 
             <Text style={styles.title}>Forgot Password?</Text>
             <Text style={styles.subtitle}>
-              Enter your email address and we'll send you a verification code to reset your password
+              Enter your email address and we&apos;ll send you a verification code to reset your password
             </Text>
 
             {/* Email input */}
@@ -129,7 +129,7 @@ const ForgotPasswordScreen = () => {
               
               <Text style={styles.modalTitle}>Code Sent!</Text>
               <Text style={styles.modalMessage}>
-                We've sent a verification code to {email}. Please check your email and enter the code on the next screen.
+                We&apos;ve sent a verification code to {email}. Please check your email and enter the code on the next screen.
               </Text>
 
               <TouchableOpacity

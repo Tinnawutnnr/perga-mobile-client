@@ -12,11 +12,9 @@ import {
   View,
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
-import { useAuth } from "../context/auth-context";
 import { isValidEmail } from "../utils/validation";
 
 const LoginScreen = () => {
-  const { saveTempEmail } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
@@ -37,7 +35,8 @@ const LoginScreen = () => {
     //   return;
     // }
 
-    console.log("Login:", { email, password });
+    // console.log("Login:", { email, password });
+    console.log("Login");
     // saveTempEmail(email);
     // router.push("/confirmation-code");
     router.replace("/(tabs)/home");
@@ -49,11 +48,6 @@ const LoginScreen = () => {
 
   const handleRegister = () => {
     router.push("/register");
-  };
-
-  const handleGoogleLogin = () => {
-    console.log("Login with Google");
-    // TODO: Integrate Google OAuth
   };
 
   return (

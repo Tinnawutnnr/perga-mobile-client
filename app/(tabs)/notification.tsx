@@ -82,7 +82,6 @@ const NotificationScreen = () => {
   const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const tintColor = useThemeColor({}, "tint");
-  const iconColor = useThemeColor({}, "icon");
   const mutedColor = useThemeColor({}, "muted");
 
   const handleMarkAllRead = () => {
@@ -321,7 +320,7 @@ const NotificationScreen = () => {
               No Notifications
             </ThemedText>
             <ThemedText type="muted" style={styles.emptyText}>
-              You're all caught up! New anomaly alerts will appear here.
+              You&apos;re all caught up! New anomaly alerts will appear here.
             </ThemedText>
           </ThemedView>
         )}

@@ -1,6 +1,6 @@
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   SafeAreaView,
   ScrollView,
@@ -195,26 +195,21 @@ const monthlyData = [
 ];
 
 const SummaryScreen = () => {
-  const [selectedMonthIndex, setSelectedMonthIndex] = useState(10); // November as default
+  const selectedMonthIndex = 10; // November as default
   const colorScheme = useColorScheme();
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
-  const borderColor = useThemeColor({}, "border");
   const tintColor = useThemeColor({}, "tint");
-  const mutedColor = useThemeColor({}, "muted");
   const iconColor = Colors[colorScheme ?? "light"].icon;
 
   const selectedMonth = monthlyData[selectedMonthIndex];
-  const totalAnomalies = monthlyData.reduce(
-    (sum, month) => sum + month.anomaly,
-    0,
-  );
-  const totalDistance = monthlyData.reduce(
-    (sum, month) => sum + month.distance,
-    0,
-  );
-  const avgDistance = totalDistance / monthlyData.length;
+  const openMetricDetail = (label: string) => {
+    router.push({
+      pathname: "/(tabs)/metric-detail",
+      params: { label },
+    });
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
@@ -372,6 +367,7 @@ const SummaryScreen = () => {
             status="Optimal"
             statusColor="success"
             icon={<Ionicons name="timer-outline" size={24} color={iconColor} />}
+            onPress={() => openMetricDetail("Cadence")}
           />
 
           <MetricBox
@@ -381,6 +377,7 @@ const SummaryScreen = () => {
             status={selectedMonth.distance > 20 ? "Goal Hit" : "Keep Going"}
             statusColor={selectedMonth.distance > 20 ? "success" : "warning"}
             icon={<Ionicons name="walk-outline" size={24} color={iconColor} />}
+            onPress={() => openMetricDetail("Total Steps")}
           />
 
           <MetricBox
@@ -390,6 +387,7 @@ const SummaryScreen = () => {
             status="Good Burn"
             statusColor="success"
             icon={<Ionicons name="flame-outline" size={24} color={iconColor} />}
+            onPress={() => openMetricDetail("Calories")}
           />
 
           <MetricBox
@@ -405,6 +403,7 @@ const SummaryScreen = () => {
                 color={iconColor}
               />
             }
+            onPress={() => openMetricDetail("Swing Speed")}
           />
 
           <MetricBox
@@ -416,6 +415,7 @@ const SummaryScreen = () => {
             icon={
               <Ionicons name="footsteps-outline" size={24} color={iconColor} />
             }
+            onPress={() => openMetricDetail("Heel Impact")}
           />
 
           <MetricBox
@@ -427,6 +427,7 @@ const SummaryScreen = () => {
             icon={
               <Ionicons name="hourglass-outline" size={24} color={iconColor} />
             }
+            onPress={() => openMetricDetail("Step Duration")}
           />
 
           <MetricBox
@@ -438,6 +439,7 @@ const SummaryScreen = () => {
             icon={
               <Ionicons name="analytics-outline" size={24} color={iconColor} />
             }
+            onPress={() => openMetricDetail("Stability")}
           />
         </MetricGroup>
       </ScrollView>
