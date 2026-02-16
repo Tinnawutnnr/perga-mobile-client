@@ -47,15 +47,13 @@ export function MetricBox({
   value,
   subValue,
   status,
-  statusColor = Colors.light.success, // Default to success if not provided
+  statusColor = Colors.light.success,
   icon,
   onPress,
   style,
 }: MetricBoxProps) {
   const colorScheme = useColorScheme() ?? "light";
   const themeColors = Colors[colorScheme];
-
-  // Resolve status color if it's one of the theme keys, otherwise use as is
   const resolvedStatusColor =
     statusColor in themeColors
       ? themeColors[statusColor as keyof typeof themeColors]
@@ -104,7 +102,7 @@ export function MetricBox({
 
 const styles = StyleSheet.create({
   container: {
-    borderRadius: 12, // Rounded corners as per design
+    borderRadius: 12,
     marginBottom: 12,
   },
   content: {
@@ -135,26 +133,26 @@ const styles = StyleSheet.create({
     marginBottom: 4,
   },
   value: {
-    fontSize: 24, // Large value text
+    fontSize: 24,
     fontWeight: "600",
     lineHeight: 28,
   },
   subValue: {
     fontSize: 14,
     marginLeft: 6,
-    opacity: 0.7, // Muted look
-    marginBottom: 2, // Alignment adjustment
+    opacity: 0.7,
+    marginBottom: 2,
   },
   statusIndicator: {
     width: 8,
     height: 8,
-    borderRadius: 2, // Slight rounding for the square
+    borderRadius: 2,
     marginLeft: 8,
     marginBottom: 2,
   },
   statusText: {
     fontSize: 12,
     textTransform: "uppercase",
-    opacity: 0.6, // Dimmer text for status
+    opacity: 0.6,
   },
 });

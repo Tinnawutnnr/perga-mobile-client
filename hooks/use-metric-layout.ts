@@ -22,7 +22,6 @@ export const useMetricLayout = () => {
     bodySize: clamp(15 * scale, 13, 16),
     goalSize: clamp(18 * scale, 15, 20),
     labelSize: clamp(14 * scale, 12, 15),
-    // helper to replicate inline clamp(size * scale, min, max) usages
     scaledClamp: (value: number, min: number, max: number, round = false) => {
       const v = round ? Math.round(value * scale) : value * scale;
       return clamp(v, min, max);

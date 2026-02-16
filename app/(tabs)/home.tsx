@@ -11,26 +11,18 @@ import { MetricBox } from "@/components/metric-box";
 import { MetricGroup } from "@/components/metric-group";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { Colors } from "@/constants/theme";
-import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { mockdata } from "@/data/mockGaitData";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { useMetrics } from "@/hooks/use-metrics";
 
 const SummaryScreen = () => {
-  const colorScheme = useColorScheme();
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
-  const iconColor = Colors[colorScheme ?? "light"].icon;
+  const iconColor = useThemeColor({}, "icon");
 
-  const data = mockdata;
-  const openMetricDetail = (label: string) => {
-    router.push({
-      pathname: "/(tabs)/metric-detail",
-      params: { label },
-    });
-  };
+  const metrics = useMetrics(mockdata);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
@@ -52,87 +44,24 @@ const SummaryScreen = () => {
 
         {/* Charts */}
         <MetricGroup title="Gait Metrics">
-          <MetricBox
-            label="Cadence"
-            value={data.cadence.toString()}
-            subValue="steps/min"
-            status="Optimal"
-            statusColor="success"
-            icon={<Ionicons name="timer-outline" size={24} color={iconColor} />}
-            onPress={() => openMetricDetail("Cadence")}
-          />
-
-          <MetricBox
-            label="Total Steps"
-            value={`${Math.floor(data.distance * 1312).toLocaleString()}`}
-            subValue="steps"
-            status={data.distance > 20 ? "Goal Hit" : "Keep Going"}
-            statusColor={data.distance > 20 ? "success" : "warning"}
-            icon={<Ionicons name="walk-outline" size={24} color={iconColor} />}
-            onPress={() => openMetricDetail("Total Steps")}
-          />
-
-          <MetricBox
-            label="Calories"
-            value={`${Math.floor(data.distance * 65)}`}
-            subValue="kcal"
-            status="Good Burn"
-            statusColor="success"
-            icon={<Ionicons name="flame-outline" size={24} color={iconColor} />}
-            onPress={() => openMetricDetail("Calories")}
-          />
-
-          <MetricBox
-            label="Swing Speed"
-            value={data.swingSpeed.toString()}
-            subValue="deg/s"
-            status="Strong"
-            statusColor="success"
-            icon={
-              <Ionicons
-                name="speedometer-outline"
-                size={24}
-                color={iconColor}
-              />
-            }
-            onPress={() => openMetricDetail("Swing Speed")}
-          />
-
-          <MetricBox
-            label="Heel Impact"
-            value={data.heelImpact.toString()}
-            subValue="g"
-            status="Normal"
-            statusColor="success"
-            icon={
-              <Ionicons name="footsteps-outline" size={24} color={iconColor} />
-            }
-            onPress={() => openMetricDetail("Heel Impact")}
-          />
-
-          <MetricBox
-            label="Step Duration"
-            value={data.stepDuration.toString()}
-            subValue="s"
-            status="Normal"
-            statusColor="success"
-            icon={
-              <Ionicons name="hourglass-outline" size={24} color={iconColor} />
-            }
-            onPress={() => openMetricDetail("Step Duration")}
-          />
-
-          <MetricBox
-            label="Stability"
-            value={data.stability + "%"}
-            subValue="(CV)"
-            status="Stable"
-            statusColor="success"
-            icon={
-              <Ionicons name="analytics-outline" size={24} color={iconColor} />
-            }
-            onPress={() => openMetricDetail("Stability")}
-          />
+          {metrics.map((item, index) => (
+            <MetricBox
+              key={index}
+              label={item.label}
+              value={item.value}
+              subValue={item.subValue}
+              status={item.status}
+              statusColor={item.statusColor || "success"}
+              icon={
+                <Ionicons 
+                  name={item.iconName} 
+                  size={24} 
+                  color={iconColor} 
+                />
+              }
+              onPress={item.onPress}
+            />
+          ))}
         </MetricGroup>
       </ScrollView>
     </SafeAreaView>
