@@ -1,7 +1,7 @@
 export const mockdata = {
-  distance: 15,
-  cadence: 118,
-  swingSpeed: 300,
+  distance: 6,
+  cadence: 90,
+  swingSpeed: 100,
   heelImpact: 2.5,
   stepDuration: 1.1,
   stability: 98,
