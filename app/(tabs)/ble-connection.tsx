@@ -46,18 +46,18 @@ const BLEConnectionScreen = () => {
         onPress={() => isConnected ? disconnectDevice() : connectToDevice(item.rawDevice)}
         activeOpacity={0.7}
       >
-        <ThemedView style={styles.deviceInfo}>
-          <ThemedView style={styles.deviceHeader}>
+        <ThemedView transparent style={styles.deviceInfo}>
+          <ThemedView transparent style={styles.deviceHeader}>
             <Ionicons 
               name="hardware-chip-outline" 
               size={24} 
               color={isConnected ? tintColor : iconColor} 
             />
-            <ThemedView style={styles.deviceDetails}>
+            <ThemedView transparent style={styles.deviceDetails}>
               <ThemedText style={styles.deviceName}>{item.name || "Unknown Device"}</ThemedText>
               <ThemedText type="muted" style={styles.deviceId}>ID: {item.id}</ThemedText>
             </ThemedView>
-            <ThemedView style={styles.deviceStatus}>
+            <ThemedView transparent style={styles.deviceStatus}>
               <Ionicons 
                 name={getSignalStrength(item.rssi) as any} 
                 size={16} 
@@ -68,7 +68,7 @@ const BLEConnectionScreen = () => {
               </ThemedText>
             </ThemedView>
           </ThemedView>
-          <ThemedView style={styles.connectionStatus}>
+          <ThemedView transparent style={styles.connectionStatus}>
             <ThemedView style={[
               styles.statusIndicator, 
               { backgroundColor: isConnected ? '#4CAF50' : '#FF9800' }
@@ -103,7 +103,7 @@ const BLEConnectionScreen = () => {
 
         {/* Status Card */}
         <ThemedView style={[styles.statusCard, { backgroundColor: cardColor, borderColor }]}>
-          <ThemedView style={styles.statusHeader}>
+          <ThemedView transparent style={styles.statusHeader}>
             <Ionicons name="bluetooth" size={24} color={tintColor} />
             <ThemedText style={styles.statusTitle}>Bluetooth Status</ThemedText>
           </ThemedView>

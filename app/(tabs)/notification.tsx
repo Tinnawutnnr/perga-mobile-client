@@ -175,14 +175,14 @@ const NotificationScreen = () => {
       onPress={() => handleNotificationPress(item.id)}
       activeOpacity={0.7}
     >
-      <ThemedView style={styles.notificationContent}>
-        <ThemedView style={styles.notificationHeader}>
+      <ThemedView transparent style={styles.notificationContent}>
+        <ThemedView transparent style={styles.notificationHeader}>
           <Ionicons
             name={getSeverityIcon(item.type) as any}
             size={20}
             color={getSeverityColor(item.severity)}
           />
-          <ThemedView style={styles.headerContent}>
+          <ThemedView transparent style={styles.headerContent}>
             <ThemedText
               style={[
                 styles.notificationTitle,
