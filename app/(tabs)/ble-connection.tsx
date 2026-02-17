@@ -13,6 +13,7 @@ import { ThemedView } from "../../components/themed-view";
 import { useThemeColor } from "../../hooks/use-theme-color";
 import { useBLE } from "@/hooks/use-ble";
 import { BluetoothDeviceDisplay } from "@/types/ble-type";
+import BleNotAvailablePage from "./ble-unavailable";
 
 const BLEConnectionScreen = () => {
   const { 
@@ -21,7 +22,8 @@ const BLEConnectionScreen = () => {
     connectedDevice, 
     scanForDevices, 
     connectToDevice, 
-    disconnectDevice 
+    disconnectDevice,
+    isWeb
   } = useBLE();
 
   const backgroundColor = useThemeColor({}, 'background');
@@ -84,6 +86,9 @@ const BLEConnectionScreen = () => {
       </TouchableOpacity>
     );
   };
+  if (isWeb) {
+      return <BleNotAvailablePage />;
+    }
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>

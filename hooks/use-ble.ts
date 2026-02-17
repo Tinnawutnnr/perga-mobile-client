@@ -14,8 +14,10 @@ if (!SERVICE_UUID || !CHARACTERISTIC_UUID) {
   throw new Error("BLE UUIDs are missing config!");
 }
 
+const isWeb = Platform.OS === 'web'
+
 // create maneger
-const manager = new BleManager();
+const manager = !isWeb ? new BleManager() : null;
 
 export const useBLE = () => {
   const [isScanning, setIsScanning] = useState(false);
@@ -28,6 +30,7 @@ export const useBLE = () => {
   const dataAccumulator = useRef<number[]>([]);
 
   useEffect(() => {
+    if (isWeb || !manager) return;
     const subscription = manager.onStateChange((state) => {
       if (state === 'PoweredOn') {
       }
@@ -67,6 +70,7 @@ export const useBLE = () => {
       return;
     }
 
+    if (!manager) return;
     setIsScanning(true);
     setFoundDevices([]);
 
@@ -104,7 +108,7 @@ export const useBLE = () => {
 
   const connectToDevice = async (device: Device) => {
     try {
-      manager.stopDeviceScan();
+      if (manager) manager.stopDeviceScan();
       setIsScanning(false);
 
       const connected = await device.connect();
@@ -223,5 +227,6 @@ export const useBLE = () => {
     scanForDevices,
     connectToDevice,
     disconnectDevice,
+    isWeb,
   };
 };

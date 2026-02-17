@@ -103,6 +103,14 @@ export default function TabLayout() {
           href: null,
         }}
       />
+
+      <Tabs.Screen
+        name="ble-unavailable"
+        options={{
+          href: null,
+        }}
+      />
+
     </Tabs>
   );
 }
