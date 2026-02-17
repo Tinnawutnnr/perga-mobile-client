@@ -1,10 +1,11 @@
-// hooks/use-ble.ts
 import { useState, useEffect, useRef} from "react";
 import { PermissionsAndroid, Platform, Alert } from "react-native";
 import { BleManager, Device} from "react-native-ble-plx";
 import { Buffer } from "buffer";
 import * as ExpoDevice from "expo-device";
 import { BluetoothDeviceDisplay, GaitSensorData } from "@/types/ble-type";
+import 'react-native-get-random-values';
+import { v4 as uuidv4 } from 'uuid';
 
 const SERVICE_UUID = process.env.EXPO_PUBLIC_BLE_SERVICE_UUID;
 const CHARACTERISTIC_UUID = process.env.EXPO_PUBLIC_BLE_CHARACTERISTIC_UUID;
@@ -20,7 +21,10 @@ export const useBLE = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [foundDevices, setFoundDevices] = useState<BluetoothDeviceDisplay[]>([]);
+
+  const [userId] = useState("user_test");
   
+  const currentSessionId = useRef<string | null>(null);
   const dataAccumulator = useRef<number[]>([]);
 
   useEffect(() => {
@@ -105,6 +109,9 @@ export const useBLE = () => {
 
       const connected = await device.connect();
       setConnectedDevice(connected);
+
+      currentSessionId.current = uuidv4();
+      console.log(`Session Started: ${currentSessionId.current} for User: ${userId}`);
       
       await connected.discoverAllServicesAndCharacteristics();
       Alert.alert("Connected", `Connected to ${device.name}`);
@@ -113,6 +120,7 @@ export const useBLE = () => {
 
     } catch (e) {
       console.log("Connection Error", e);
+      currentSessionId.current = null;
       Alert.alert("Error", "Connection failed");
     }
   };
@@ -121,6 +129,8 @@ export const useBLE = () => {
     if (connectedDevice) {
       await connectedDevice.cancelConnection();
       setConnectedDevice(null);
+      currentSessionId.current = null;
+      console.log("Session Ended");
     }
   };
 
@@ -158,6 +168,7 @@ export const useBLE = () => {
   };
 
   const handleOneSecondData = (data: number[]) => {
+    if (!currentSessionId.current) return;
     const now = Date.now();
     const intervalMs = 10; // 100Hz
     
@@ -175,9 +186,35 @@ export const useBLE = () => {
         gyro_z: parseFloat(val.toFixed(4)),
       };
     });
-    console.log(finalizedData)
-    // backend side
+    
+    const payload = {
+      userId: userId,
+      sessionId: currentSessionId.current,
+      data: finalizedData
+    };
+
+    console.log("Sending Batch to Server...", payload.sessionId);
+    console.log(payload)
+    // sendToBackend(payload);
   };
+
+//   const sendToBackend = async (payload: any) => {
+//     try {
+//       const API_URL = process.env.EXPO_PUBLIC_API_URL;
+      
+//       const response = await fetch(`${API_URL}/gait/batch`, {
+//         method: 'POST',
+//         headers: { 'Content-Type': 'application/json' },
+//         body: JSON.stringify(payload),
+//       });
+
+//       if (!response.ok) {
+//         console.warn(response.status);
+//       }
+//     } catch (error) {
+//       console.error("Internal Server Error:", error);
+//     }
+//   };
 
   return {
     isScanning,
