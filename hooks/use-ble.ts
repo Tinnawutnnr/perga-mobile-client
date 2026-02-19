@@ -37,7 +37,8 @@ export const useBLE = () => {
     }, true);
     return () => {
       subscription.remove();
-      manager.stopDeviceScan(); // Cleanup
+      manager.stopDeviceScan(); // Cleanup Scan
+      manager.destroy(); // Fully release BLE resources
     };
   }, []);
 
