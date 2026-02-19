@@ -34,5 +34,5 @@ export interface MetricDetailData {
   compareBars: number[];
   articleTitle: string;
   articleBody: string;
-  iconName:IconName;
+  iconName: IconName;
 };
