@@ -9,7 +9,16 @@
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
     "ios": {
-      "supportsTablet": true
+      "supportsTablet": true,
+      "bundleIdentifier": "com.tnnr.pgadmobileapp",
+      "infoPlist": {
+        "ITSAppUsesNonExemptEncryption": false,
+        "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to find and connect to supported devices.",
+        "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with peripheral devices.",
+        "UIBackgroundModes": [
+          "bluetooth-central"
+        ]
+      }
     },
     "android": {
       "adaptiveIcon": {
@@ -19,7 +28,13 @@
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
       "edgeToEdgeEnabled": true,
-      "predictiveBackGestureEnabled": false
+      "predictiveBackGestureEnabled": false,
+      "permissions": [
+        "android.permission.BLUETOOTH",
+        "android.permission.BLUETOOTH_ADMIN",
+        "android.permission.BLUETOOTH_CONNECT"
+      ],
+      "package": "com.tnnr.pgadmobileapp"
     },
     "web": {
       "output": "static",
@@ -38,11 +53,28 @@
             "backgroundColor": "#000000"
           }
         }
+      ],
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": false,
+          "modes": [
+            "central"
+          ],
+          "bluetoothAlwaysPermission": "Allow pgad-mobile-app to connect to bluetooth devices"
+        }
       ]
     ],
     "experiments": {
       "typedRoutes": true,
       "reactCompiler": true
-    }
+    },
+    "extra": {
+      "router": {},
+      "eas": {
+        "projectId": "ca864b81-e973-480c-b352-0a0ebb6fd936"
+      }
+    },
+    "owner": "tnnr"
   }
 }

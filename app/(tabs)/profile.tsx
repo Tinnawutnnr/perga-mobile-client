@@ -102,7 +102,7 @@ const ProfileScreen = () => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView style={[styles.container, { backgroundColor }]} showsVerticalScrollIndicator={false}>
         {/* Header */}
-        <ThemedView style={styles.header}>
+        <ThemedView transparent style={styles.header}>
           <ThemedText type="title" style={styles.headerTitle}>Profile</ThemedText>
           <TouchableOpacity style={[styles.editButton, { backgroundColor: cardColor }]}>
             <Ionicons name="pencil" size={20} color={tintColor} />
@@ -111,7 +111,7 @@ const ProfileScreen = () => {
 
         {/* User Info Card */}
         <ThemedView style={[styles.userCard, { backgroundColor: cardColor, borderColor }]}>
-          <ThemedView style={styles.avatarContainer}>
+          <ThemedView transparent style={styles.avatarContainer}>
             <Image
               source={{
                 uri: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg",
@@ -122,30 +122,11 @@ const ProfileScreen = () => {
               <Ionicons name="camera" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </ThemedView>
-          <ThemedView style={styles.userInfo}>
+          <ThemedView transparent style={styles.userInfo}>
             <ThemedText style={styles.userName}>jane doe</ThemedText>
             <ThemedText type="muted" style={styles.userEmail}>jane.doe@email.com</ThemedText>
             <ThemedText type="muted" style={styles.userPhone}>+66 89-123-4567</ThemedText>
           </ThemedView>
-        </ThemedView>
-
-        {/* Stats Cards */}
-        <ThemedView style={styles.statsContainer}>
-          <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
-            <Ionicons name="footsteps" size={24} color={tintColor} />
-            <ThemedText style={styles.statValue}>2,847</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>Steps Today</ThemedText>
-          </ThemedView>
-          <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
-            <Ionicons name="time" size={24} color="#FF8C1A" />
-            <ThemedText style={styles.statValue}>45 Min</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>Active Time</ThemedText>
-          </ThemedView>
-          {/* <ThemedView style={[styles.statCard, { backgroundColor: cardColor, borderColor }]}>
-            <Ionicons name="trophy" size={24} color="#FFD700" />
-            <ThemedText style={styles.statValue}>12</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>Achievements</ThemedText>
-          </ThemedView> */}
         </ThemedView>
 
         {/* Menu Section */}

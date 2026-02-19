@@ -12,11 +12,9 @@ import {
   View,
 } from "react-native";
 import PrimaryInput from "../components/primary-input";
-import { useAuth } from "../context/auth-context";
 import { isValidEmail } from "../utils/validation";
 
 const LoginScreen = () => {
-  const { saveTempEmail } = useAuth();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
@@ -25,21 +23,23 @@ const LoginScreen = () => {
   const hasPasswordError = password.length > 0 && password.length < 8;
 
   const handleLogin = () => {
-    if (!isValidEmail(email)) {
-      //add modal later
-      console.log("Please enter a valid email address");
-      return;
-    }
+    // if (!isValidEmail(email)) {
+    //   //add modal later
+    //   console.log("Please enter a valid email address");
+    //   return;
+    // }
     
-    if (password.length < 8) {
-      //add modal later
-      console.log("Password must be at least 8 characters");
-      return;
-    }
+    // if (password.length < 8) {
+    //   //add modal later
+    //   console.log("Password must be at least 8 characters");
+    //   return;
+    // }
 
-    console.log("Login:", { email, password });
-    saveTempEmail(email);
-    router.push("/confirmation-code");
+    // console.log("Login:", { email, password });
+    console.log("Login");
+    // saveTempEmail(email);
+    // router.push("/confirmation-code");
+    router.replace("/(tabs)/home");
   };
 
   const handleForgotPassword = () => {
@@ -48,11 +48,6 @@ const LoginScreen = () => {
 
   const handleRegister = () => {
     router.push("/register");
-  };
-
-  const handleGoogleLogin = () => {
-    console.log("Login with Google");
-    // TODO: Integrate Google OAuth
   };
 
   return (

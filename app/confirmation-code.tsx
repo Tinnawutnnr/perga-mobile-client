@@ -81,7 +81,7 @@ const ConfirmationCodeScreen = () => {
     if (finalCode.length === 4) {
       console.log("Confirm code:", finalCode);
       clearTempEmail(); // Clear temp
-      router.replace("/(tabs)/summary");
+      router.replace("/(tabs)/home");
     }
   };
 
