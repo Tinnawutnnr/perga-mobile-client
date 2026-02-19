@@ -16,7 +16,7 @@ if (!SERVICE_UUID || !CHARACTERISTIC_UUID) {
 
 const isWeb = Platform.OS === 'web'
 
-// create maneger
+// create manager
 const manager = !isWeb ? new BleManager() : null;
 
 export const useBLE = () => {
