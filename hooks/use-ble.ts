@@ -15,6 +15,7 @@ if (!SERVICE_UUID || !CHARACTERISTIC_UUID) {
 }
 
 const isWeb = Platform.OS === 'web'
+const scanDuration = 10000
 
 // create manager
 const manager = !isWeb ? new BleManager() : null;
@@ -28,6 +29,7 @@ export const useBLE = () => {
   
   const currentSessionId = useRef<string | null>(null);
   const dataAccumulator = useRef<number[]>([]);
+  const monitorSubscription = useRef<any>(null);
 
   useEffect(() => {
     if (isWeb || !manager) return;
@@ -64,7 +66,7 @@ export const useBLE = () => {
     return true;
   };
 
-  const scanForDevices = async (scanDurantion = 10000) => {
+const scanForDevices = async () => {
     const permission = await requestPermissions();
     if (!permission) {
       Alert.alert("Permission Denied", "Bluetooth permissions are required.");
@@ -104,8 +106,8 @@ export const useBLE = () => {
     setTimeout(() => {
       manager.stopDeviceScan();
       setIsScanning(false);
-      console.log(`Scan stopped automatically after ${scanDurantion} ms`);
-    }, scanDurantion);
+      console.log(`Scan stopped automatically after ${scanDuration} ms`);
+    }, scanDuration);
   };
 
   const connectToDevice = async (device: Device) => {
@@ -133,6 +135,11 @@ export const useBLE = () => {
 
   const disconnectDevice = async () => {
     if (connectedDevice) {
+      // Cancel the monitoring subscription
+      if (monitorSubscription.current) {
+        monitorSubscription.current.remove();
+        monitorSubscription.current = null;
+      }
       await connectedDevice.cancelConnection();
       setConnectedDevice(null);
       currentSessionId.current = null;
@@ -141,7 +148,7 @@ export const useBLE = () => {
   };
 
   const startStreaming = async (device: Device) => {
-    device.monitorCharacteristicForService(
+    monitorSubscription.current = device.monitorCharacteristicForService(
       SERVICE_UUID,
       CHARACTERISTIC_UUID,
       (error, characteristic) => {
