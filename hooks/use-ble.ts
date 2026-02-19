@@ -10,8 +10,8 @@ import { v4 as uuidv4 } from 'uuid';
 const SERVICE_UUID = process.env.EXPO_PUBLIC_BLE_SERVICE_UUID;
 const CHARACTERISTIC_UUID = process.env.EXPO_PUBLIC_BLE_CHARACTERISTIC_UUID;
 
-if (!SERVICE_UUID || !CHARACTERISTIC_UUID) {
-  throw new Error("BLE UUIDs are missing config!");
+if (!SERVICE_UUID || !CHARACTERISTIC_UUID || SERVICE_UUID.trim() === "" || CHARACTERISTIC_UUID.trim() === "") {
+  throw new Error("BLE UUIDs are missing or empty in config!");
 }
 
 const isWeb = Platform.OS === 'web'
