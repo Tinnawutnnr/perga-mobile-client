@@ -185,17 +185,22 @@ const scanForDevices = async () => {
     const now = Date.now();
     const intervalMs = 10; // 100Hz
     
-    const formatToUTC7 = (ms: number) => {
-      // shift by +7 hours then produce ISO-like string with +07:00 offset
-      const shifted = new Date(ms + 7 * 60 * 60 * 1000);
-      return shifted.toISOString().replace("Z", "+07:00");
+    const formatWithLocalOffset = (ms: number) => {
+      const date = new Date(ms);
+      // Build ISO-like string with the device's local timezone offset (±HH:MM)
+      const isoWithoutZ = date.toISOString().slice(0, -1); // remove trailing 'Z'
+      const offsetMinutes = date.getTimezoneOffset(); // minutes behind UTC
+      const absMinutes = Math.abs(offsetMinutes);
+      const sign = offsetMinutes <= 0 ? "+" : "-";
+      const hours = String(Math.floor(absMinutes / 60)).padStart(2, "0");
+      const minutes = String(absMinutes % 60).padStart(2, "0");
+      return `${isoWithoutZ}${sign}${hours}:${minutes}`;
     };
-
     const finalizedData: GaitSensorData[] = data.map((val, index) => {
       // Logic now - 990ms
       const offset = (data.length - 1 - index) * intervalMs;
       return {
-        timestamp: formatToUTC7(now - offset),
+        timestamp: formatWithLocalOffset(now - offset),
         gyro_z: parseFloat(val.toFixed(4)),
       };
     });
