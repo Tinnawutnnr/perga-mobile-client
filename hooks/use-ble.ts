@@ -24,7 +24,7 @@ export const useBLE = () => {
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
   const [foundDevices, setFoundDevices] = useState<BluetoothDeviceDisplay[]>([]);
 
-  const [userId] = useState("user_test");
+  const [userId] = useState("user_test"); // for future backend integration
   
   const currentSessionId = useRef<string | null>(null);
   const dataAccumulator = useRef<number[]>([]);
