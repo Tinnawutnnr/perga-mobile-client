@@ -64,7 +64,7 @@ export const useBLE = () => {
     return true;
   };
 
-  const scanForDevices = async () => {
+  const scanForDevices = async (scanDurantion = 10000) => {
     const permission = await requestPermissions();
     if (!permission) {
       Alert.alert("Permission Denied", "Bluetooth permissions are required.");
@@ -104,7 +104,8 @@ export const useBLE = () => {
     setTimeout(() => {
       manager.stopDeviceScan();
       setIsScanning(false);
-    }, 5000);
+      console.log(`Scan stopped automatically after ${scanDurantion} ms`);
+    }, scanDurantion);
   };
 
   const connectToDevice = async (device: Device) => {
