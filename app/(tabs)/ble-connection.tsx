@@ -1,11 +1,12 @@
 // screens/BLEConnectionScreen.tsx
-import React from "react";
+import React, { useEffect } from "react";
 import {
   FlatList,
   SafeAreaView,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
+  View
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { ThemedText } from "../../components/themed-text";
@@ -14,6 +15,7 @@ import { useThemeColor } from "../../hooks/use-theme-color";
 import { useBLE } from "@/hooks/use-ble";
 import { BluetoothDeviceDisplay } from "@/types/ble-type";
 import BleNotAvailablePage from "./ble-unavailable";
+import { useMqtt } from "@/hooks/use-mqtt";
 
 const BLEConnectionScreen = () => {
   const { 
@@ -108,13 +110,37 @@ const BLEConnectionScreen = () => {
 
         {/* Status Card */}
         <ThemedView style={[styles.statusCard, { backgroundColor: cardColor, borderColor }]}>
-          <ThemedView transparent style={styles.statusHeader}>
-            <Ionicons name="bluetooth" size={24} color={tintColor} />
-            <ThemedText style={styles.statusTitle}>Bluetooth Status</ThemedText>
+          {/* ส่วนของ Bluetooth */}
+          <ThemedView transparent style={styles.statusRow}>
+            <View style={styles.statusIconContainer}>
+              <Ionicons name="bluetooth" size={24} color={tintColor} />
+            </View>
+            <View style={styles.statusTextContainer}>
+              <ThemedText style={styles.statusTitle}>Bluetooth (Sensor)</ThemedText>
+              <ThemedText style={styles.statusDescription}>
+                 {isScanning ? "Scanning..." : (connectedDevice ? "Connected" : "Ready to scan")}
+              </ThemedText>
+            </View>
           </ThemedView>
-          <ThemedText style={styles.statusDescription}>
-             {isScanning ? "Scanning for devices..." : "Ready to scan."}
-          </ThemedText>
+
+
+          <View style={[styles.divider, { backgroundColor: borderColor }]} />
+
+          {/* <ThemedView transparent style={styles.statusRow}>
+            <View style={styles.statusIconContainer}>
+              <Ionicons 
+                name="cloud" 
+                size={24} 
+                color={isMqttConnected ? '#4CAF50' : '#FF9800'} 
+              />
+            </View>
+            <View style={styles.statusTextContainer}>
+              <ThemedText style={styles.statusTitle}>Cloud (HiveMQ)</ThemedText>
+              <ThemedText style={[styles.statusDescription, { color: isMqttConnected ? '#4CAF50' : '#FF9800' }]}>
+                 {isMqttConnected ? "Connected & Ready" : "Connecting..."}
+              </ThemedText>
+            </View>
+          </ThemedView> */}
         </ThemedView>
 
         {/* Device List */}
@@ -157,9 +183,13 @@ const styles = StyleSheet.create({
     headerTitle: { fontSize: 28, fontWeight: "700" },
     scanButton: { width: 40, height: 40, borderRadius: 20, justifyContent: "center", alignItems: "center" },
     statusCard: { borderRadius: 16, padding: 20, marginBottom: 24, borderWidth: 1 },
+    statusRow: { flexDirection: "row", alignItems: "center" },
+    statusIconContainer: { width: 40, alignItems: "flex-start" },
+    statusTextContainer: { flex: 1 },
+    statusTitle: { fontSize: 16, fontWeight: "600" },
+    statusDescription: { fontSize: 14, color: '#4CAF50', marginTop: 2 },
+    divider: { height: 1, marginVertical: 16, opacity: 0.5 },
     statusHeader: { flexDirection: "row", alignItems: "center", marginBottom: 12 },
-    statusTitle: { fontSize: 18, fontWeight: "600", marginLeft: 12 },
-    statusDescription: { fontSize: 14, color: '#4CAF50' },
     section: { marginBottom: 24 },
     sectionHeader: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 12 },
     sectionTitle: { fontSize: 18, fontWeight: "600" },
