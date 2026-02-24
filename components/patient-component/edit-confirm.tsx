@@ -9,8 +9,8 @@ import {
     TouchableOpacity,
     View,
 } from "react-native";
-import { Patient } from "@/data/mockPatient";
-import PrimaryInput from "@/components/primary-input";
+import { Patient } from "../../data/mockPatient";
+import PrimaryInput from "../primary-input";
 
 type Props = {
   visible: boolean;
@@ -52,7 +52,7 @@ const EditPatientModal = ({ visible, patient, onConfirm, onCancel }: Props) => {
     Number(age) >= 0;
 
   return (
-    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
+    <Modal visible={visible} transparent animationType="slide">
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}

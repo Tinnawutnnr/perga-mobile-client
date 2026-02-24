@@ -8,7 +8,7 @@ import {
     TouchableWithoutFeedback,
     View,
 } from "react-native";
-import { Patient } from "@/data/mockPatient";
+import { Patient } from "../../data/mockPatient";
 
 type Props = {
   patient: Patient;
@@ -109,12 +109,7 @@ const PatientCard = ({
       </View>
 
       {/* Modal dropdown — renders outside card bounds */}
-      <Modal
-        visible={menuVisible}
-        transparent
-        animationType="fade"
-        onRequestClose={() => setMenuVisible(false)}
-      >
+      <Modal visible={menuVisible} transparent animationType="fade">
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View style={styles.modalOverlay}>
             <View

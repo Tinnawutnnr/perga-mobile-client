@@ -7,10 +7,10 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
-import EditPatientModal from "@/components/patient-component/edit-confirm";
-import PatientCard from "@/components/patient-component/patient-card";
-import { usePatientSelection } from "@/hooks/use-patients";
+import DeleteConfirmModal from "../../components/patient-component/delete-confirm";
+import EditPatientModal from "../../components/patient-component/edit-confirm";
+import PatientCard from "../../components/patient-component/patient-card";
+import { usePatientSelection } from "../../hooks/use-patients";
 
 const PatientSelectionScreen = () => {
   const {

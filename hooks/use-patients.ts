@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { mockPatients, Patient } from "@/data/mockPatient";
+import { mockPatients, Patient } from "../data/mockPatient";
 
 export const usePatientSelection = () => {
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
@@ -11,7 +11,7 @@ export const usePatientSelection = () => {
   const handleSelect = (id: number) => setSelectedId(id);
 
   const handleConfirm = () => {
-    if (selectedId === null) return;
+    if (!selectedId) return;
     router.replace("/(tabs)/home");
   };
 
