@@ -1,6 +1,6 @@
 import { router } from "expo-router";
 import { useState } from "react";
-import { mockPatients, Patient } from "../data/mockPatient";
+import { mockPatients, Patient } from "@/data/mockPatient";
 
 export const usePatientSelection = () => {
   const [patients, setPatients] = useState<Patient[]>(mockPatients);
