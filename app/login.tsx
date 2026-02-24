@@ -28,7 +28,7 @@ const LoginScreen = () => {
     //   console.log("Please enter a valid email address");
     //   return;
     // }
-    
+
     // if (password.length < 8) {
     //   //add modal later
     //   console.log("Password must be at least 8 characters");
@@ -39,7 +39,7 @@ const LoginScreen = () => {
     console.log("Login");
     // saveTempEmail(email);
     // router.push("/confirmation-code");
-    router.replace("/(tabs)/home");
+    router.replace("/patient-selection");
   };
 
   const handleForgotPassword = () => {

@@ -111,6 +111,12 @@ export default function TabLayout() {
         }}
       />
 
+      <Tabs.Screen
+        name="patient-selection"
+        options={{
+          href: null,
+        }}
+      />
     </Tabs>
   );
 }
