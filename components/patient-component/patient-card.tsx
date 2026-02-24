@@ -109,7 +109,12 @@ const PatientCard = ({
       </View>
 
       {/* Modal dropdown — renders outside card bounds */}
-      <Modal visible={menuVisible} transparent animationType="fade">
+      <Modal
+        visible={menuVisible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setMenuVisible(false)}
+      >
         <TouchableWithoutFeedback onPress={() => setMenuVisible(false)}>
           <View style={styles.modalOverlay}>
             <View
