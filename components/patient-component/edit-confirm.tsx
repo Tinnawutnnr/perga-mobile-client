@@ -52,7 +52,7 @@ const EditPatientModal = ({ visible, patient, onConfirm, onCancel }: Props) => {
     Number(age) >= 0;
 
   return (
-    <Modal visible={visible} transparent animationType="slide">
+    <Modal visible={visible} transparent animationType="slide" onRequestClose={onCancel}>
       <KeyboardAvoidingView
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
