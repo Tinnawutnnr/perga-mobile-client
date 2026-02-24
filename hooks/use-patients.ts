@@ -11,7 +11,7 @@ export const usePatientSelection = () => {
   const handleSelect = (id: number) => setSelectedId(id);
 
   const handleConfirm = () => {
-    if (!selectedId) return;
+    if (selectedId === null) return;
     router.replace("/(tabs)/home");
   };
 
