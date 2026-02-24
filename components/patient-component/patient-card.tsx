@@ -8,7 +8,7 @@ import {
     TouchableWithoutFeedback,
     View,
 } from "react-native";
-import { Patient } from "../../data/mockPatient";
+import { Patient } from "@/data/mockPatient";
 
 type Props = {
   patient: Patient;
