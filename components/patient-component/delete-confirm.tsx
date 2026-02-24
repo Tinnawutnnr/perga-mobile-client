@@ -16,7 +16,7 @@ const DeleteConfirmModal = ({
   onCancel,
 }: Props) => {
   return (
-    <Modal visible={visible} transparent animationType="fade">
+    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
       <View style={styles.overlay}>
         <View style={styles.container}>
           <View style={styles.iconWrapper}>
