@@ -5,20 +5,20 @@ import { Alert, PermissionsAndroid, Platform } from "react-native";
 import { BleManager, Device } from "react-native-ble-plx";
 import { create } from "zustand";
 
-// ─── Constants ───────────────────────────────────────────────────────────────
+const IS_WEB = Platform.OS === "web";
 const SERVICE_UUID = process.env.EXPO_PUBLIC_BLE_SERVICE_UUID;
 const CHARACTERISTIC_UUID = process.env.EXPO_PUBLIC_BLE_CHARACTERISTIC_UUID;
-
 if (
-  !SERVICE_UUID ||
-  !CHARACTERISTIC_UUID ||
-  SERVICE_UUID.trim() === "" ||
-  CHARACTERISTIC_UUID.trim() === ""
+  !IS_WEB &&
+  (
+    !SERVICE_UUID ||
+    !CHARACTERISTIC_UUID ||
+    SERVICE_UUID.trim() === "" ||
+    CHARACTERISTIC_UUID.trim() === ""
+  )
 ) {
   throw new Error("BLE UUIDs are missing or empty in config!");
 }
-
-const IS_WEB = Platform.OS === "web";
 const SCAN_DURATION_MS = 10_000;
 const BATCH_SIZE = 100;
 const SAMPLE_INTERVAL_MS = 10; // for split 10 ms between samples
