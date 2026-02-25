@@ -81,6 +81,8 @@ export const useMqtt = (): UseMqttReturn => {
           clearTimeout(timer);
           console.error("[MQTT] Error:", err.message);
           setIsConnected(false);
+          client.end(true);
+          clientRef.current = null;
           reject(err);
         });
 
