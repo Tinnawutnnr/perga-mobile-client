@@ -82,7 +82,7 @@ const ActivityScreen = () => {
 
       try {
         await connectMqtt();
-        await startStreaming();
+        startStreaming();
         setIsRecording(true);
       } catch (error) {
         console.error("Failed to start activity:", error);
