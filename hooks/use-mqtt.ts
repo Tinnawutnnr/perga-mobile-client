@@ -36,7 +36,7 @@ export const useMqtt = (): UseMqttReturn => {
         "[MQTT] EXPO_PUBLIC_MQTT_BROKER_URL is empty. " +
           "Set it in .env.local and restart with `npx expo start --clear`.",
       );
-      return;
+      throw new Error("MQTT broker URL is not configured");
     }
 
     if (clientRef.current) {
