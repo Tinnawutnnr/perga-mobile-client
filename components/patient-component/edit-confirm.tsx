@@ -10,7 +10,7 @@ import {
     View,
 } from "react-native";
 import { Patient } from "@/data/mockPatient";
-import PrimaryInput from "@/primary-input";
+import PrimaryInput from "@/components/primary-input";
 
 type Props = {
   visible: boolean;
