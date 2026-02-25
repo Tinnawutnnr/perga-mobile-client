@@ -2,6 +2,9 @@ import { Stack } from "expo-router";
 import { AuthProvider } from "../context/auth-context";
 import { ThemeProvider } from "../context/theme-context";
 
+// ensures the BLE singleton (BleManager) is created
+import "@/store/ble-store";
+
 export default function RootLayout() {
   return (
     <AuthProvider>

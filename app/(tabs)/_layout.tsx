@@ -42,6 +42,21 @@ export default function TabLayout() {
           ),
         }}
       />
+
+      <Tabs.Screen
+        name="activity"
+        options={{
+          title: "Activity",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "fitness" : "fitness-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
       <Tabs.Screen
         name="notification"
         options={{
@@ -55,19 +70,6 @@ export default function TabLayout() {
           ),
         }}
       />
-      {/* <Tabs.Screen
-        name="profile"
-        options={{
-          title: "Profile",
-          tabBarIcon: ({ color, focused }) => (
-            <Ionicons
-              name={focused ? "person" : "person-outline"}
-              size={24}
-              color={color}
-            />
-          ),
-        }}
-      /> */}
 
       <Tabs.Screen
         name="profile"
