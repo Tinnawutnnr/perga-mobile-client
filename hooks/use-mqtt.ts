@@ -55,7 +55,6 @@ export const useMqtt = (): UseMqttReturn => {
           clientId: `pgad_mobile_${Math.random().toString(16).substring(2, 8)}`,
           reconnectPeriod: 5000,
           connectTimeout: CONNECT_TIMEOUT_MS,
-          rejectUnauthorized: false,
         };
 
         const client = mqttConnect(MQTT_BROKER_URL, options);
