@@ -2,6 +2,7 @@ import CreatePatientModal from "@/components/patient-component/create-patient";
 import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
 import EditPatientModal from "@/components/patient-component/edit-confirm";
 import PatientCard from "@/components/patient-component/patient-card";
+import { useThemeContext } from "@/context/theme-context";
 import { usePatientSelection } from "@/hooks/use-patients";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -15,6 +16,16 @@ import {
 } from "react-native";
 
 const PatientSelectionScreen = () => {
+  const { colorScheme } = useThemeContext();
+  const isDark = colorScheme === "dark";
+
+  const colors = {
+    background: isDark ? "#121212" : "#FFFFFF",
+    text: isDark ? "#FFFFFF" : "#000000",
+    subtitle: isDark ? "#AAAAAA" : "#808080",
+    card: isDark ? "#1E1E1E" : "#FFFFFF",
+  };
+
   const {
     patients,
     selectedId,
@@ -32,17 +43,24 @@ const PatientSelectionScreen = () => {
   } = usePatientSelection();
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView
+      style={[styles.safeArea, { backgroundColor: colors.background }]}
+    >
       <ScrollView
-        contentContainerStyle={styles.scrollContent}
+        contentContainerStyle={[
+          styles.scrollContent,
+          { backgroundColor: colors.background },
+        ]}
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.contentContainer}>
           {/* Header row */}
           <View style={styles.headerRow}>
             <View>
-              <Text style={styles.title}>Select Patient</Text>
-              <Text style={styles.subtitle}>
+              <Text style={[styles.title, { color: colors.text }]}>
+                Select Patient
+              </Text>
+              <Text style={[styles.subtitle, { color: colors.subtitle }]}>
                 Choose a patient to continue monitoring
               </Text>
             </View>
@@ -114,11 +132,9 @@ export default PatientSelectionScreen;
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: "#FFFFFF",
   },
   scrollContent: {
     flexGrow: 1,
-    backgroundColor: "#FFFFFF",
   },
   contentContainer: {
     paddingHorizontal: 24,
@@ -134,12 +150,10 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#000000",
     marginBottom: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: "#808080",
   },
   addButton: {
     width: 44,
@@ -159,7 +173,7 @@ const styles = StyleSheet.create({
     marginTop: 12,
   },
   confirmButtonDisabled: {
-    backgroundColor: "#B0C8CA",
+    opacity: 0.4,
   },
   confirmButtonText: {
     color: "#FFFFFF",

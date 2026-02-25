@@ -1,3 +1,4 @@
+import { useThemeContext } from "@/context/theme-context";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
@@ -15,28 +16,49 @@ const DeleteConfirmModal = ({
   onConfirm,
   onCancel,
 }: Props) => {
+  const { colorScheme } = useThemeContext();
+  const isDark = colorScheme === "dark";
+
+  const colors = {
+    container: isDark ? "#1E1E1E" : "#FFFFFF",
+    title: isDark ? "#FFFFFF" : "#000000",
+    message: isDark ? "#AAAAAA" : "#808080",
+    bold: isDark ? "#FFFFFF" : "#000000",
+    cancelBorder: isDark ? "#3A3A3A" : "#E5E5E5",
+    cancelText: isDark ? "#AAAAAA" : "#808080",
+  };
+
   return (
     <Modal visible={visible} transparent animationType="fade">
       <View style={styles.overlay}>
-        <View style={styles.container}>
+        <View style={[styles.container, { backgroundColor: colors.container }]}>
           <View style={styles.iconWrapper}>
             <Text style={styles.icon}>
               <Ionicons name="trash-outline" size={24} color="#EF4444" />
             </Text>
           </View>
-          <Text style={styles.title}>Delete Patient</Text>
-          <Text style={styles.message}>
+          <Text style={[styles.title, { color: colors.title }]}>
+            Delete Patient
+          </Text>
+          <Text style={[styles.message, { color: colors.message }]}>
             Are you sure you want to delete{" "}
-            <Text style={styles.bold}>{patientName}</Text>? This action cannot
-            be undone.
+            <Text style={[styles.bold, { color: colors.bold }]}>
+              {patientName}
+            </Text>
+            ? This action cannot be undone.
           </Text>
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[
+                styles.cancelButton,
+                { borderColor: colors.cancelBorder },
+              ]}
               onPress={onCancel}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: colors.cancelText }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={styles.deleteButton}
@@ -63,7 +85,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: 32,
   },
   container: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
     padding: 24,
     width: "100%",
@@ -84,19 +105,16 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 18,
     fontWeight: "700",
-    color: "#000000",
     marginBottom: 8,
   },
   message: {
     fontSize: 14,
-    color: "#808080",
     textAlign: "center",
     lineHeight: 20,
     marginBottom: 24,
   },
   bold: {
     fontWeight: "600",
-    color: "#000000",
   },
   buttonRow: {
     flexDirection: "row",
@@ -115,7 +133,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#808080",
   },
   deleteButton: {
     flex: 1,

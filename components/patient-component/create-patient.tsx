@@ -1,14 +1,15 @@
+import { useThemeContext } from "@/context/theme-context";
 import { Patient } from "@/types/patient";
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import PrimaryInput from "../primary-input";
 
@@ -19,6 +20,18 @@ type Props = {
 };
 
 const CreatePatientModal = ({ visible, onConfirm, onCancel }: Props) => {
+  const { colorScheme } = useThemeContext();
+  const isDark = colorScheme === "dark";
+
+  const colors = {
+    container: isDark ? "#1E1E1E" : "#FFFFFF",
+    handle: isDark ? "#3A3A3A" : "#E5E5E5",
+    title: isDark ? "#FFFFFF" : "#000000",
+    label: isDark ? "#AAAAAA" : "#808080",
+    cancelBorder: isDark ? "#3A3A3A" : "#E5E5E5",
+    cancelText: isDark ? "#AAAAAA" : "#808080",
+  };
+
   const [fullname, setFullname] = useState("");
   const [height, setHeight] = useState("");
   const [weight, setWeight] = useState("");
@@ -50,32 +63,40 @@ const CreatePatientModal = ({ visible, onConfirm, onCancel }: Props) => {
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.container}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Add Patient</Text>
+        <View style={[styles.container, { backgroundColor: colors.container }]}>
+          <View style={[styles.handle, { backgroundColor: colors.handle }]} />
+          <Text style={[styles.title, { color: colors.title }]}>
+            Add Patient
+          </Text>
 
           <ScrollView showsVerticalScrollIndicator={false}>
-            <Text style={styles.label}>Full Name</Text>
+            <Text style={[styles.label, { color: colors.label }]}>
+              Full Name
+            </Text>
             <PrimaryInput
               value={fullname}
               onChangeText={setFullname}
               placeholder="Full name"
             />
-            <Text style={styles.label}>Age</Text>
+            <Text style={[styles.label, { color: colors.label }]}>Age</Text>
             <PrimaryInput
               value={age}
               onChangeText={setAge}
               placeholder="Age"
               keyboardType="numeric"
             />
-            <Text style={styles.label}>Height (cm)</Text>
+            <Text style={[styles.label, { color: colors.label }]}>
+              Height (cm)
+            </Text>
             <PrimaryInput
               value={height}
               onChangeText={setHeight}
               placeholder="Height in cm"
               keyboardType="numeric"
             />
-            <Text style={styles.label}>Weight (kg)</Text>
+            <Text style={[styles.label, { color: colors.label }]}>
+              Weight (kg)
+            </Text>
             <PrimaryInput
               value={weight}
               onChangeText={setWeight}
@@ -86,11 +107,16 @@ const CreatePatientModal = ({ visible, onConfirm, onCancel }: Props) => {
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[
+                styles.cancelButton,
+                { borderColor: colors.cancelBorder },
+              ]}
               onPress={onCancel}
               activeOpacity={0.8}
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <Text style={[styles.cancelText, { color: colors.cancelText }]}>
+                Cancel
+              </Text>
             </TouchableOpacity>
             <TouchableOpacity
               style={[styles.saveButton, !isValid && styles.saveButtonDisabled]}
@@ -116,7 +142,6 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
   },
   container: {
-    backgroundColor: "#FFFFFF",
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
     padding: 24,
@@ -127,20 +152,17 @@ const styles = StyleSheet.create({
     width: 40,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#E5E5E5",
     alignSelf: "center",
     marginBottom: 20,
   },
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000000",
     marginBottom: 20,
   },
   label: {
     fontSize: 13,
     fontWeight: "500",
-    color: "#808080",
     marginBottom: 4,
     marginTop: 4,
   },
@@ -161,7 +183,6 @@ const styles = StyleSheet.create({
   cancelText: {
     fontSize: 16,
     fontWeight: "600",
-    color: "#808080",
   },
   saveButton: {
     flex: 1,

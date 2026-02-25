@@ -1,14 +1,15 @@
+import { useThemeContext } from "@/context/theme-context";
+import { Patient } from "@/types/patient";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
 import {
-    Modal,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    TouchableWithoutFeedback,
-    View,
+  Modal,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  TouchableWithoutFeedback,
+  View,
 } from "react-native";
-import { Patient } from "../../data/mockPatient";
 
 type Props = {
   patient: Patient;
@@ -25,6 +26,25 @@ const PatientCard = ({
   onEdit,
   onDelete,
 }: Props) => {
+  const { colorScheme } = useThemeContext();
+  const isDark = colorScheme === "dark";
+
+  const colors = {
+    card: isDark ? "#1E1E1E" : "#FFFFFF",
+    cardBorder: isDark ? "#2E2E2E" : "#E5E5E5",
+    avatar: isDark ? "#2E2E2E" : "#E5E5E5",
+    avatarText: isDark ? "#AAAAAA" : "#808080",
+    name: isDark ? "#FFFFFF" : "#000000",
+    infoRow: isDark ? "#2A2A2A" : "#F9F9F9",
+    infoDivider: isDark ? "#3A3A3A" : "#E5E5E5",
+    infoLabel: isDark ? "#AAAAAA" : "#808080",
+    infoValue: isDark ? "#FFFFFF" : "#000000",
+    menuBg: isDark ? "#2A2A2A" : "#FFFFFF",
+    menuDivider: isDark ? "#3A3A3A" : "#F0F0F0",
+    menuText: isDark ? "#FFFFFF" : "#000000",
+    dotIcon: isDark ? "#AAAAAA" : "#808080",
+  };
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const dotButtonRef = useRef<View>(null);
@@ -38,20 +58,40 @@ const PatientCard = ({
 
   return (
     <TouchableOpacity
-      style={[styles.card, isSelected && styles.cardSelected]}
+      style={[
+        styles.card,
+        { backgroundColor: colors.card, borderColor: colors.cardBorder },
+        isSelected && styles.cardSelected,
+      ]}
       onPress={() => onPress(patient.id)}
       activeOpacity={0.8}
     >
       <View style={styles.headerRow}>
-        <View style={[styles.avatar, isSelected && styles.avatarSelected]}>
+        <View
+          style={[
+            styles.avatar,
+            { backgroundColor: colors.avatar },
+            isSelected && styles.avatarSelected,
+          ]}
+        >
           <Text
-            style={[styles.avatarText, isSelected && styles.avatarTextSelected]}
+            style={[
+              styles.avatarText,
+              { color: colors.avatarText },
+              isSelected && styles.avatarTextSelected,
+            ]}
           >
             {patient.fullname.charAt(0).toUpperCase()}
           </Text>
         </View>
 
-        <Text style={[styles.name, isSelected && styles.nameSelected]}>
+        <Text
+          style={[
+            styles.name,
+            { color: colors.name },
+            isSelected && styles.nameSelected,
+          ]}
+        >
           {patient.fullname}
         </Text>
 
@@ -62,46 +102,74 @@ const PatientCard = ({
           onPress={handleDotPress}
           hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
         >
-          <Ionicons name="ellipsis-vertical" size={20} color="#808080" />
+          <Ionicons name="ellipsis-vertical" size={20} color={colors.dotIcon} />
         </TouchableOpacity>
       </View>
 
       {/* Info row */}
-      <View style={styles.infoRow}>
+      <View style={[styles.infoRow, { backgroundColor: colors.infoRow }]}>
         <View style={styles.infoItem}>
           <Text
-            style={[styles.infoLabel, isSelected && styles.infoLabelSelected]}
+            style={[
+              styles.infoLabel,
+              { color: colors.infoLabel },
+              isSelected && styles.infoLabelSelected,
+            ]}
           >
             Age
           </Text>
           <Text
-            style={[styles.infoValue, isSelected && styles.infoValueSelected]}
+            style={[
+              styles.infoValue,
+              { color: colors.infoValue },
+              isSelected && styles.infoValueSelected,
+            ]}
           >
             {patient.age} yrs
           </Text>
         </View>
-        <View style={styles.infoDivider} />
+        <View
+          style={[styles.infoDivider, { backgroundColor: colors.infoDivider }]}
+        />
         <View style={styles.infoItem}>
           <Text
-            style={[styles.infoLabel, isSelected && styles.infoLabelSelected]}
+            style={[
+              styles.infoLabel,
+              { color: colors.infoLabel },
+              isSelected && styles.infoLabelSelected,
+            ]}
           >
             Height
           </Text>
           <Text
-            style={[styles.infoValue, isSelected && styles.infoValueSelected]}
+            style={[
+              styles.infoValue,
+              { color: colors.infoValue },
+              isSelected && styles.infoValueSelected,
+            ]}
           >
             {patient.height} cm
           </Text>
         </View>
-        <View style={styles.infoDivider} />
+        <View
+          style={[styles.infoDivider, { backgroundColor: colors.infoDivider }]}
+        />
         <View style={styles.infoItem}>
           <Text
-            style={[styles.infoLabel, isSelected && styles.infoLabelSelected]}
+            style={[
+              styles.infoLabel,
+              { color: colors.infoLabel },
+              isSelected && styles.infoLabelSelected,
+            ]}
           >
             Weight
           </Text>
           <Text
-            style={[styles.infoValue, isSelected && styles.infoValueSelected]}
+            style={[
+              styles.infoValue,
+              { color: colors.infoValue },
+              isSelected && styles.infoValueSelected,
+            ]}
           >
             {patient.weight} kg
           </Text>
@@ -115,7 +183,11 @@ const PatientCard = ({
             <View
               style={[
                 styles.menuContainer,
-                { top: menuPosition.y + 24, left: menuPosition.x - 120 },
+                {
+                  top: menuPosition.y + 24,
+                  left: menuPosition.x - 120,
+                  backgroundColor: colors.menuBg,
+                },
               ]}
             >
               <TouchableOpacity
@@ -125,11 +197,22 @@ const PatientCard = ({
                   onEdit(patient);
                 }}
               >
-                <Ionicons name="create-outline" size={18} color="#000000" />
-                <Text style={styles.menuText}>Edit</Text>
+                <Ionicons
+                  name="create-outline"
+                  size={18}
+                  color={colors.menuText}
+                />
+                <Text style={[styles.menuText, { color: colors.menuText }]}>
+                  Edit
+                </Text>
               </TouchableOpacity>
 
-              <View style={styles.menuDivider} />
+              <View
+                style={[
+                  styles.menuDivider,
+                  { backgroundColor: colors.menuDivider },
+                ]}
+              />
 
               <TouchableOpacity
                 style={styles.menuItem}
@@ -167,7 +250,7 @@ const styles = StyleSheet.create({
   },
   cardSelected: {
     borderColor: "#4F7D81",
-    backgroundColor: "#EAF3F4",
+    backgroundColor: "#000000",
   },
   headerRow: {
     flexDirection: "row",
@@ -212,7 +295,6 @@ const styles = StyleSheet.create({
   },
   menuContainer: {
     position: "absolute",
-    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     width: 150,
     paddingVertical: 4,

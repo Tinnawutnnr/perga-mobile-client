@@ -1,5 +1,7 @@
 import { patientApi } from "@/api/patient-api";
-import { Patient } from "@/data/mockPatient";
+import { secureStore } from "@/storage/patient-storage";
+import { Patient } from "@/types/patient";
+import { STORAGE_KEYS } from "@/types/secure-store";
 import { router } from "expo-router";
 import { useEffect, useState } from "react";
 
@@ -29,11 +31,15 @@ export const usePatientSelection = () => {
     fetchPatients();
   }, []);
 
-  const handleSelect = (id: number) => setSelectedId(id);
+  const handleSelect = (id: number) => {
+    setSelectedId(id);
+    //console.log(id);
+  };
 
-  const handleConfirm = () => {
+  const handleConfirm = async () => {
     if (!selectedId) return;
-    router.replace("/(tabs)/home");
+    await secureStore.set(STORAGE_KEYS.PATIENT_ID, String(selectedId));
+    router.push("/(tabs)/home");
   };
 
   const handleEditConfirm = async (updated: Patient) => {

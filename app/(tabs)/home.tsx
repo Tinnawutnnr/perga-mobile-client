@@ -1,3 +1,10 @@
+import { MetricBox } from "@/components/metric-box";
+import { MetricGroup } from "@/components/metric-group";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { mockdata } from "@/data/mockGaitData";
+import { useMetrics } from "@/hooks/use-metrics";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React from "react";
@@ -7,13 +14,6 @@ import {
   StyleSheet,
   TouchableOpacity,
 } from "react-native";
-import { MetricBox } from "@/components/metric-box";
-import { MetricGroup } from "@/components/metric-group";
-import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
-import { mockdata } from "@/data/mockGaitData";
-import { useThemeColor } from "@/hooks/use-theme-color";
-import { useMetrics } from "@/hooks/use-metrics";
 
 const SummaryScreen = () => {
   // Theme colors
@@ -21,6 +21,21 @@ const SummaryScreen = () => {
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
   const iconColor = useThemeColor({}, "icon");
+  {
+    /* For checking secure store */
+  }
+  // const [patientId, setPatientId] = useState<string | null>(null);
+
+  // useFocusEffect(
+  //   useCallback(() => {
+  //     const loadPatientId = async () => {
+  //       const id = await secureStore.get(STORAGE_KEYS.PATIENT_ID);
+  //       console.log("patientId:", id);
+  //       setPatientId(id);
+  //     };
+  //     loadPatientId();
+  //   }, []),
+  // );
 
   const metrics = useMetrics(mockdata);
 
@@ -53,11 +68,7 @@ const SummaryScreen = () => {
               status={item.status}
               statusColor={item.statusColor || "success"}
               icon={
-                <Ionicons 
-                  name={item.iconName} 
-                  size={24} 
-                  color={iconColor} 
-                />
+                <Ionicons name={item.iconName} size={24} color={iconColor} />
               }
               onPress={item.onPress}
             />
