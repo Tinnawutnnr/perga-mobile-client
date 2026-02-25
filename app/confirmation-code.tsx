@@ -16,7 +16,7 @@ const CODE_LENGTH = 4;
 
 const ConfirmationCodeScreen = () => {
   const { tempEmail, clearTempEmail } = useAuth();
-  const [email, setEmail] = useState<string>('');
+  const [email, setEmail] = useState<string>("");
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [focusedIndex, setFocusedIndex] = useState(0);
 
@@ -28,29 +28,28 @@ const ConfirmationCodeScreen = () => {
   //     } else {
   //       router.replace("/login");
   //     }
-  //   }, 100); 
+  //   }, 100);
 
   //   return () => clearTimeout(timer);
   // }, []);
 
   useEffect(() => {
     if (Platform.OS === "web") {
-      // if website platform component stable
+      // Web platform: wait for component to stabilise
       const timer = setTimeout(() => {
         if (!tempEmail) {
           router.replace("/login");
+        } else {
+          setEmail(tempEmail);
         }
       }, 100);
       return () => clearTimeout(timer);
-    } else {
-      
-      // others
-      if (!tempEmail) {
-        router.replace("/login");
-      }
     }
 
-    if (tempEmail) {
+    // Native platforms
+    if (!tempEmail) {
+      router.replace("/login");
+    } else {
       setEmail(tempEmail);
     }
   }, [tempEmail]);
