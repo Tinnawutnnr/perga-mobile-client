@@ -54,7 +54,7 @@ const RegisterScreen = () => {
       const res = await authApi.register({ username, password, role });
       saveToken(res.access_token);
       saveTempUsername(username);
-      router.push({ pathname: "/register-con", params: { role } });
+      router.push({ pathname: "/create-profile", params: { role } });
     } catch (error) {
       console.error("Registration failed:", error);
     } finally {

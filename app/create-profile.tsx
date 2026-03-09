@@ -1,26 +1,26 @@
 import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import {
-    KeyboardAvoidingView,
-    Platform,
-    SafeAreaView,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  KeyboardAvoidingView,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { profileApi } from "../api/profile";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
 import {
-    isValidAge,
-    isValidHeight,
-    isValidName,
-    isValidWeight,
+  isValidAge,
+  isValidHeight,
+  isValidName,
+  isValidWeight,
 } from "../utils/validation";
 
-const RegisterConScreen = () => {
+const CreateProfileScreen = () => {
   const { role } = useLocalSearchParams<{ role: string }>();
   const { token } = useAuth();
   const isPatient = role === "patient";
@@ -145,7 +145,7 @@ const RegisterConScreen = () => {
   );
 };
 
-export default RegisterConScreen;
+export default CreateProfileScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
