@@ -1,0 +1,47 @@
+const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
+const API_PREFIX = "/api/v1";
+
+const parseResponse = async (response: Response) => {
+  const text = await response.text();
+  try {
+    return JSON.parse(text);
+  } catch {
+    return { message: text };
+  }
+};
+
+const handleResponse = async <T>(response: Response): Promise<T> => {
+  const data = await parseResponse(response);
+  if (!response.ok) {
+    console.log(
+      "[apiClient] Error response:",
+      response.status,
+      JSON.stringify(data),
+    );
+    throw new Error(data?.message ?? data?.detail ?? "Request failed");
+  }
+  return data as T;
+};
+
+const url = (path: string) => `${BASE_URL}${API_PREFIX}${path}`;
+
+export const apiClient = {
+  post: <T>(path: string, body: unknown, token?: string): Promise<T> => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return fetch(url(path), {
+      method: "POST",
+      headers,
+      body: JSON.stringify(body),
+    }).then((res) => handleResponse<T>(res));
+  },
+
+  postForm: <T>(path: string, body: Record<string, string>): Promise<T> =>
+    fetch(url(path), {
+      method: "POST",
+      headers: { "Content-Type": "application/x-www-form-urlencoded" },
+      body: new URLSearchParams(body).toString(),
+    }).then((res) => handleResponse<T>(res)),
+};

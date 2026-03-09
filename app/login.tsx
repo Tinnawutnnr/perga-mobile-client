@@ -11,35 +11,31 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
-import { isValidEmail } from "../utils/validation";
+import { isValidPassword, isValidUsername } from "../utils/validation";
 
 const LoginScreen = () => {
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
 
-  const hasEmailError = email.length > 0 && !isValidEmail(email);
-  const hasPasswordError = password.length > 0 && password.length < 8;
+  const hasUsernameError = username.length > 0 && !isValidUsername(username);
+  const hasPasswordError = password.length > 0 && !isValidPassword(password);
 
-  const handleLogin = () => {
-    // if (!isValidEmail(email)) {
-    //   //add modal later
-    //   console.log("Please enter a valid email address");
-    //   return;
-    // }
+  const isFormValid = isValidUsername(username) && isValidPassword(password);
 
-    // if (password.length < 8) {
-    //   //add modal later
-    //   console.log("Password must be at least 8 characters");
-    //   return;
-    // }
-
-    // console.log("Login:", { email, password });
-    console.log("Login");
-    // saveTempEmail(email);
-    // router.push("/confirmation-code");
-    router.replace("/patient-selection");
+  const handleLogin = async () => {
+    setIsLoading(true);
+    try {
+      await authApi.login({ username, password });
+      router.replace("/(tabs)/home");
+    } catch (error) {
+      console.error("Login failed:", error);
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   const handleForgotPassword = () => {
@@ -76,13 +72,13 @@ const LoginScreen = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Welcome!</Text>
 
-            {/* email input */}
+            {/* Username input */}
             <PrimaryInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="name@email.com"
-              keyboardType="email-address"
-              hasError={hasEmailError}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Username"
+              keyboardType="default"
+              hasError={hasUsernameError}
             />
 
             {/* Password input */}
@@ -106,11 +102,17 @@ const LoginScreen = () => {
 
             {/* Login button */}
             <TouchableOpacity
-              style={styles.loginButton}
+              style={[
+                styles.loginButton,
+                (!isFormValid || isLoading) && styles.loginButtonDisabled,
+              ]}
               onPress={handleLogin}
               activeOpacity={0.8}
+              disabled={!isFormValid || isLoading}
             >
-              <Text style={styles.loginButtonText}>Login</Text>
+              <Text style={styles.loginButtonText}>
+                {isLoading ? "Logging in..." : "Login"}
+              </Text>
             </TouchableOpacity>
 
             {/* Register text */}
@@ -120,24 +122,6 @@ const LoginScreen = () => {
                 <Text style={styles.registerLink}>Register now</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Divider */}
-            {/* <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View> */}
-
-            {/* Google button */}
-            {/* <View style={styles.socialWrapper}>
-              <TouchableOpacity
-                style={styles.googleButton}
-                onPress={handleGoogleLogin}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="logo-google" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -193,6 +177,9 @@ const styles = StyleSheet.create({
     alignItems: "center",
     marginBottom: 16,
   },
+  loginButtonDisabled: {
+    backgroundColor: "#C4C4C4",
+  },
   loginButtonText: {
     color: "#FFFFFF",
     fontSize: 16,
@@ -212,31 +199,5 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#477E85",
     fontWeight: "600",
-  },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E5E5E5",
-  },
-  dividerText: {
-    fontSize: 12,
-    color: "#808080",
-    marginHorizontal: 8,
-  },
-  socialWrapper: {
-    alignItems: "center",
-  },
-  googleButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#000000",
-    justifyContent: "center",
-    alignItems: "center",
   },
 });

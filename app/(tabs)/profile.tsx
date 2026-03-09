@@ -19,17 +19,17 @@ import { useThemeColor } from "../../hooks/use-theme-color";
 const ProfileScreen = () => {
   const colorScheme = useColorScheme();
   const { toggleColorScheme } = useThemeContext();
-  const { clearTempEmail } = useAuth();
+  const { clearTempUsername } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
 
   // Theme colors
-  const backgroundColor = useThemeColor({}, 'background');
-  const cardColor = useThemeColor({}, 'card');
-  const borderColor = useThemeColor({}, 'border');
-  const tintColor = useThemeColor({}, 'tint');
-  const iconColor = useThemeColor({}, 'icon');
-  const mutedColor = useThemeColor({}, 'muted');
+  const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
+  const borderColor = useThemeColor({}, "border");
+  const tintColor = useThemeColor({}, "tint");
+  const iconColor = useThemeColor({}, "icon");
+  const mutedColor = useThemeColor({}, "muted");
 
   const handleDarkModeToggle = () => {
     toggleColorScheme();
@@ -37,7 +37,7 @@ const ProfileScreen = () => {
 
   const handleLogout = () => {
     // Clear any stored auth data
-    clearTempEmail();
+    clearTempUsername();
     router.replace("/login");
   };
 
@@ -80,37 +80,46 @@ const ProfileScreen = () => {
       title: "Notifications",
       value: notificationsEnabled,
       onToggle: setNotificationsEnabled,
-      type: 'switch' as const,
+      type: "switch" as const,
     },
     {
       icon: "moon-outline" as const,
       title: "Dark Mode",
-      value: colorScheme === 'dark',
+      value: colorScheme === "dark",
       onToggle: handleDarkModeToggle,
-      type: 'toggle' as const,
+      type: "toggle" as const,
     },
     {
       icon: "location-outline" as const,
       title: "Location",
       value: locationEnabled,
       onToggle: setLocationEnabled,
-      type: 'switch' as const,
+      type: "switch" as const,
     },
   ];
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
-      <ScrollView style={[styles.container, { backgroundColor }]} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={[styles.container, { backgroundColor }]}
+        showsVerticalScrollIndicator={false}
+      >
         {/* Header */}
         <ThemedView transparent style={styles.header}>
-          <ThemedText type="title" style={styles.headerTitle}>Profile</ThemedText>
-          <TouchableOpacity style={[styles.editButton, { backgroundColor: cardColor }]}>
+          <ThemedText type="title" style={styles.headerTitle}>
+            Profile
+          </ThemedText>
+          <TouchableOpacity
+            style={[styles.editButton, { backgroundColor: cardColor }]}
+          >
             <Ionicons name="pencil" size={20} color={tintColor} />
           </TouchableOpacity>
         </ThemedView>
 
         {/* User Info Card */}
-        <ThemedView style={[styles.userCard, { backgroundColor: cardColor, borderColor }]}>
+        <ThemedView
+          style={[styles.userCard, { backgroundColor: cardColor, borderColor }]}
+        >
           <ThemedView transparent style={styles.avatarContainer}>
             <Image
               source={{
@@ -118,28 +127,42 @@ const ProfileScreen = () => {
               }}
               style={styles.avatar}
             />
-            <TouchableOpacity style={[styles.cameraButton, { backgroundColor: tintColor }]}>
+            <TouchableOpacity
+              style={[styles.cameraButton, { backgroundColor: tintColor }]}
+            >
               <Ionicons name="camera" size={16} color="#FFFFFF" />
             </TouchableOpacity>
           </ThemedView>
           <ThemedView transparent style={styles.userInfo}>
             <ThemedText style={styles.userName}>jane doe</ThemedText>
-            <ThemedText type="muted" style={styles.userEmail}>jane.doe@email.com</ThemedText>
-            <ThemedText type="muted" style={styles.userPhone}>+66 89-123-4567</ThemedText>
+            <ThemedText type="muted" style={styles.userEmail}>
+              jane.doe@email.com
+            </ThemedText>
+            <ThemedText type="muted" style={styles.userPhone}>
+              +66 89-123-4567
+            </ThemedText>
           </ThemedView>
         </ThemedView>
 
         {/* Menu Section */}
         <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Account</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Account
+          </ThemedText>
           {menuItems.map((item, index) => (
-            <TouchableOpacity key={index} style={[styles.menuItem, { borderBottomColor: borderColor }]} onPress={item.onPress}>
+            <TouchableOpacity
+              key={index}
+              style={[styles.menuItem, { borderBottomColor: borderColor }]}
+              onPress={item.onPress}
+            >
               <ThemedView style={styles.menuIconContainer}>
                 <Ionicons name={item.icon} size={22} color={iconColor} />
               </ThemedView>
               <ThemedView style={styles.menuContent}>
                 <ThemedText style={styles.menuTitle}>{item.title}</ThemedText>
-                <ThemedText type="muted" style={styles.menuSubtitle}>{item.subtitle}</ThemedText>
+                <ThemedText type="muted" style={styles.menuSubtitle}>
+                  {item.subtitle}
+                </ThemedText>
               </ThemedView>
               <Ionicons name="chevron-forward" size={20} color={mutedColor} />
             </TouchableOpacity>
@@ -148,9 +171,14 @@ const ProfileScreen = () => {
 
         {/* Settings Section */}
         <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>Settings</ThemedText>
+          <ThemedText type="subtitle" style={styles.sectionTitle}>
+            Settings
+          </ThemedText>
           {settingsItems.map((item, index) => (
-            <ThemedView key={index} style={[styles.settingItem, { borderBottomColor: borderColor }]}>
+            <ThemedView
+              key={index}
+              style={[styles.settingItem, { borderBottomColor: borderColor }]}
+            >
               <ThemedView style={styles.menuIconContainer}>
                 <Ionicons name={item.icon} size={22} color={iconColor} />
               </ThemedView>
@@ -159,7 +187,9 @@ const ProfileScreen = () => {
               </ThemedView>
               <Switch
                 value={item.value}
-                onValueChange={item.type === 'toggle' ? () => item.onToggle() : item.onToggle}
+                onValueChange={
+                  item.type === "toggle" ? () => item.onToggle() : item.onToggle
+                }
                 trackColor={{ false: borderColor, true: tintColor }}
                 thumbColor={item.value ? "#FFFFFF" : "#f4f3f4"}
               />
@@ -168,8 +198,11 @@ const ProfileScreen = () => {
         </ThemedView>
 
         {/* Logout Button */}
-        <TouchableOpacity 
-          style={[styles.logoutButton, { backgroundColor: cardColor, borderColor }]}
+        <TouchableOpacity
+          style={[
+            styles.logoutButton,
+            { backgroundColor: cardColor, borderColor },
+          ]}
           onPress={handleLogout}
           activeOpacity={0.8}
         >
@@ -178,7 +211,9 @@ const ProfileScreen = () => {
         </TouchableOpacity>
 
         {/* App Version */}
-        <ThemedText type="muted" style={styles.versionText}>Version 1.0.0</ThemedText>
+        <ThemedText type="muted" style={styles.versionText}>
+          Version 1.0.0
+        </ThemedText>
       </ScrollView>
     </SafeAreaView>
   );
