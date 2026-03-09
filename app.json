@@ -15,12 +15,11 @@
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to find and connect to supported devices.",
         "NSBluetoothPeripheralUsageDescription": "This app uses Bluetooth to communicate with peripheral devices.",
-        "UIBackgroundModes": [
-          "bluetooth-central"
-        ]
+        "UIBackgroundModes": ["bluetooth-central"]
       }
     },
     "android": {
+      "usesCleartextTraffic": true,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/images/android-icon-foreground.png",
@@ -58,9 +57,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": false,
-          "modes": [
-            "central"
-          ],
+          "modes": ["central"],
           "bluetoothAlwaysPermission": "Allow pgad-mobile-app to connect to bluetooth devices"
         }
       ]

@@ -12,56 +12,54 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
-import { doPasswordsMatch, isValidEmail, isValidPassword } from "../utils/validation";
+import {
+  doPasswordsMatch,
+  isValidPassword,
+  isValidUsername,
+} from "../utils/validation";
 
 const RegisterScreen = () => {
-  const { saveTempEmail } = useAuth();
-  const [fullName, setFullName] = useState("");
-  const [email, setEmail] = useState("");
+  const [username, setUsername] = useState("");
+  const [role, setRole] = useState("caretaker");
   const [password, setPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
   const [agreeToTerms, setAgreeToTerms] = useState(false);
+  const [isLoading, setIsLoading] = useState(false);
+  const { saveTempUsername, saveToken } = useAuth();
 
-  // Check if form fields have errors
-  const hasFullNameError = fullName.length > 0 && fullName.trim().length === 0;
-  const hasEmailError = email.length > 0 && !isValidEmail(email);
+  const hasUsernameError = username.length > 0 && !isValidUsername(username);
   const hasPasswordError = password.length > 0 && !isValidPassword(password);
-  const hasConfirmPasswordError = confirmPassword.length > 0 && !doPasswordsMatch(password, confirmPassword);
+  const hasConfirmPasswordError =
+    confirmPassword.length > 0 && !doPasswordsMatch(password, confirmPassword);
 
-  // Check if form is valid for submission
-  const isFormValid = agreeToTerms && 
-                     fullName && 
-                     email && 
-                     password && 
-                     confirmPassword && 
-                     isValidPassword(password) && 
-                     isValidEmail(email);
+  const isFormValid =
+    agreeToTerms &&
+    isValidUsername(username) &&
+    role.trim().length > 0 &&
+    isValidPassword(password) &&
+    doPasswordsMatch(password, confirmPassword);
 
-  const handleRegister = () => {
-    if (!isValidEmail(email)) {
-      console.log("Please enter a valid email address");
-      return;
+  const handleRegister = async () => {
+    if (!isValidPassword(password)) return;
+    if (!doPasswordsMatch(password, confirmPassword)) return;
+    if (!agreeToTerms) return;
+
+    setIsLoading(true);
+    try {
+      const res = await authApi.register({ username, password, role });
+      saveToken(res.access_token);
+      saveTempUsername(username);
+      router.push({ pathname: "/create-profile", params: { role } });
+    } catch (error) {
+      console.error("Registration failed:", error);
+    } finally {
+      setIsLoading(false);
     }
-    if (!isValidPassword(password)) {
-      console.log("Password must be at least 8 characters");
-      return;
-    }
-    if (!doPasswordsMatch(password, confirmPassword)) {
-      console.log("Passwords don't match");
-      return;
-    }
-    if (!agreeToTerms) {
-      console.log("Must agree to terms");
-      return;
-    }
-    console.log("Register:", { fullName, email, password });
-    // redirect to confirmation
-    saveTempEmail(email);
-    router.push("/confirmation-code");
   };
 
   const handleLogin = () => {
@@ -103,22 +101,39 @@ const RegisterScreen = () => {
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Sign up to get started</Text>
 
-            {/* Full name input */}
-            <PrimaryInput
-              value={fullName}
-              onChangeText={setFullName}
-              placeholder="Full Name"
-              keyboardType="default"
-              hasError={hasFullNameError}
-            />
+            {/* Role input */}
+            <View style={styles.roleContainer}>
+              <Text style={styles.roleLabel}>Role</Text>
+              <View style={styles.roleToggle}>
+                {["caretaker", "patient"].map((option) => (
+                  <TouchableOpacity
+                    key={option}
+                    style={[
+                      styles.roleOption,
+                      role === option && styles.roleOptionSelected,
+                    ]}
+                    onPress={() => setRole(option)}
+                    activeOpacity={0.8}
+                  >
+                    <Text
+                      style={[
+                        styles.roleOptionText,
+                        role === option && styles.roleOptionTextSelected,
+                      ]}
+                    >
+                      {option}
+                    </Text>
+                  </TouchableOpacity>
+                ))}
+              </View>
+            </View>
 
-            {/* Email input */}
             <PrimaryInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="name@email.com"
-              keyboardType="email-address"
-              hasError={hasEmailError}
+              value={username}
+              onChangeText={setUsername}
+              placeholder="Username (3–20 characters)"
+              keyboardType="default"
+              hasError={hasUsernameError}
             />
 
             {/* Password input */}
@@ -144,12 +159,17 @@ const RegisterScreen = () => {
             />
 
             {/* Terms and conditions checkbox */}
-            <TouchableOpacity 
+            <TouchableOpacity
               style={styles.checkboxRow}
               onPress={() => setAgreeToTerms(!agreeToTerms)}
               activeOpacity={0.8}
             >
-              <View style={[styles.checkbox, agreeToTerms && styles.checkboxChecked]}>
+              <View
+                style={[
+                  styles.checkbox,
+                  agreeToTerms && styles.checkboxChecked,
+                ]}
+              >
                 {agreeToTerms && (
                   <Ionicons name="checkmark" size={16} color="#FFFFFF" />
                 )}
@@ -170,13 +190,15 @@ const RegisterScreen = () => {
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                !isFormValid && styles.registerButtonDisabled
+                (!isFormValid || isLoading) && styles.registerButtonDisabled,
               ]}
               onPress={handleRegister}
               activeOpacity={0.8}
-              disabled={!isFormValid}
+              disabled={!isFormValid || isLoading}
             >
-              <Text style={styles.registerButtonText}>Create Account</Text>
+              <Text style={styles.registerButtonText}>
+                {isLoading ? "Creating Account..." : "Create Account"}
+              </Text>
             </TouchableOpacity>
 
             {/* Login text */}
@@ -186,24 +208,6 @@ const RegisterScreen = () => {
                 <Text style={styles.loginLink}>Sign In</Text>
               </TouchableOpacity>
             </View>
-
-            {/* Divider */}
-            {/* <View style={styles.dividerRow}>
-              <View style={styles.dividerLine} />
-              <Text style={styles.dividerText}>Or continue with</Text>
-              <View style={styles.dividerLine} />
-            </View> */}
-
-            {/* Google button */}
-            {/* <View style={styles.socialWrapper}>
-              <TouchableOpacity
-                style={styles.googleButton}
-                onPress={handleGoogleRegister}
-                activeOpacity={0.8}
-              >
-                <Ionicons name="logo-google" size={24} color="#FFFFFF" />
-              </TouchableOpacity>
-            </View> */}
           </View>
         </ScrollView>
       </KeyboardAvoidingView>
@@ -340,5 +344,38 @@ const styles = StyleSheet.create({
     backgroundColor: "#000000",
     justifyContent: "center",
     alignItems: "center",
+  },
+  roleContainer: {
+    marginBottom: 16,
+  },
+  roleLabel: {
+    fontSize: 14,
+    color: "#808080",
+    marginBottom: 8,
+  },
+  roleToggle: {
+    flexDirection: "row",
+    borderRadius: 12,
+    borderWidth: 1.5,
+    borderColor: "#E5E5E5",
+    overflow: "hidden",
+  },
+  roleOption: {
+    flex: 1,
+    paddingVertical: 14,
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+  },
+  roleOptionSelected: {
+    backgroundColor: "#4F7D81",
+  },
+  roleOptionText: {
+    fontSize: 15,
+    fontWeight: "500",
+    color: "#808080",
+  },
+  roleOptionTextSelected: {
+    color: "#FFFFFF",
+    fontWeight: "600",
   },
 });
