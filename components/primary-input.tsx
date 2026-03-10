@@ -21,6 +21,7 @@ interface PrimaryInputProps {
   rightIcon?: string; // Add rightIcon prop
   onPressRight?: () => void;
   hasError?: boolean;
+  editable?: boolean;
 }
 
 const PrimaryInput: React.FC<PrimaryInputProps> = ({
@@ -33,27 +34,35 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
   rightIcon,
   onPressRight,
   hasError = false,
+  editable = true,
 }) => {
-
-  const backgroundColor = useThemeColor({}, 'background');
-  const borderColor = useThemeColor({}, 'border');
-  const textColor = useThemeColor({}, 'text');
-  const placeholderColor = useThemeColor({ light: '#B0B0B0', dark: '#666666' }, 'tabIconDefault');
-  const iconColor = useThemeColor({ light: '#666666', dark: '#999999' }, 'tabIconDefault');
+  const backgroundColor = useThemeColor({}, "background");
+  const borderColor = useThemeColor({}, "border");
+  const textColor = useThemeColor({}, "text");
+  const placeholderColor = useThemeColor(
+    { light: "#B0B0B0", dark: "#666666" },
+    "tabIconDefault",
+  );
+  const iconColor = useThemeColor(
+    { light: "#666666", dark: "#999999" },
+    "tabIconDefault",
+  );
 
   return (
-    <View style={[
-      styles.inputWrapper,
-      {
-        backgroundColor: backgroundColor,
-        borderColor: hasError ? '#FF4444' : borderColor,
-      }
-    ]}>
+    <View
+      style={[
+        styles.inputWrapper,
+        {
+          backgroundColor: backgroundColor,
+          borderColor: hasError ? "#FF4444" : borderColor,
+        },
+      ]}
+    >
       <TextInput
         style={[
           styles.input,
-          { color: textColor },
-          (rightText || rightIcon) && { paddingRight: 48 }
+          { color: editable ? textColor : placeholderColor },
+          (rightText || rightIcon) && { paddingRight: 48 },
         ]}
         placeholder={placeholder}
         placeholderTextColor={placeholderColor}
@@ -61,6 +70,7 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
         onChangeText={onChangeText}
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
+        editable={editable}
       />
       {(rightText || rightIcon) && (
         <TouchableOpacity
@@ -74,10 +84,14 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
             ) : rightIcon === "eye-off" ? (
               <Ionicons name="eye-off" size={20} color={iconColor} />
             ) : (
-              <Text style={[styles.rightText, { color: iconColor }]}>{rightIcon}</Text>
+              <Text style={[styles.rightText, { color: iconColor }]}>
+                {rightIcon}
+              </Text>
             )
           ) : (
-            <Text style={[styles.rightText, { color: iconColor }]}>{rightText}</Text>
+            <Text style={[styles.rightText, { color: iconColor }]}>
+              {rightText}
+            </Text>
           )}
         </TouchableOpacity>
       )}

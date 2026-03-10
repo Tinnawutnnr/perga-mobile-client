@@ -44,4 +44,30 @@ export const apiClient = {
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(body).toString(),
     }).then((res) => handleResponse<T>(res)),
+
+  get: <T>(path: string, token?: string): Promise<T> => {
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return fetch(url(path), { method: "GET", headers }).then((res) =>
+      handleResponse<T>(res),
+    );
+  },
+  delete: <T>(path: string, token?: string): Promise<T> => {
+    const headers: Record<string, string> = {};
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return fetch(url(path), { method: "DELETE", headers }).then((res) =>
+      handleResponse<T>(res),
+    );
+  },
+  put: <T>(path: string, body: unknown, token?: string): Promise<T> => {
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+    };
+    if (token) headers["Authorization"] = `Bearer ${token}`;
+    return fetch(url(path), {
+      method: "PUT",
+      headers,
+      body: JSON.stringify(body),
+    }).then((res) => handleResponse<T>(res));
+  },
 };

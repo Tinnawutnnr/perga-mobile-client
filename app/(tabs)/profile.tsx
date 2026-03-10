@@ -1,8 +1,10 @@
+import { profileApi } from "@/api/profile";
+import { usePatientStore } from "@/store/patient-store";
+import { patientStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React, { useEffect, useState } from "react";
 import {
-  Image,
   SafeAreaView,
   ScrollView,
   StyleSheet,
@@ -19,9 +21,23 @@ import { useThemeColor } from "../../hooks/use-theme-color";
 const ProfileScreen = () => {
   const colorScheme = useColorScheme();
   const { toggleColorScheme } = useThemeContext();
-  const { clearTempUsername } = useAuth();
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
+  const { setSelectedPatient } = usePatientStore();
+  const { clearTempUsername, role, token, username } = useAuth();
+  const [firstName, setFirstName] = useState("");
+  const [lastName, setLastName] = useState("");
+
+  useEffect(() => {
+    if (!token) return;
+    profileApi
+      .getMe(token)
+      .then((data) => {
+        setFirstName(data.first_name ?? "");
+        setLastName(data.last_name ?? "");
+      })
+      .catch(() => {});
+  }, [token]);
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");
@@ -46,8 +62,22 @@ const ProfileScreen = () => {
       icon: "person-outline" as const,
       title: "My Info",
       subtitle: "Edit your details",
-      onPress: () => console.log("Personal Info"),
+      onPress: () => router.push("/(tabs)/my-info"),
     },
+    ...(role === "caretaker"
+      ? [
+          {
+            icon: "people-outline" as const,
+            title: "Patient Selection",
+            subtitle: "Select Patient",
+            onPress: async () => {
+              setSelectedPatient(null);
+              await patientStorage.clear();
+              router.push("/(tabs)/patient-selection");
+            },
+          },
+        ]
+      : []),
     {
       icon: "medical-outline" as const,
       title: "Historical Report",
@@ -109,11 +139,6 @@ const ProfileScreen = () => {
           <ThemedText type="title" style={styles.headerTitle}>
             Profile
           </ThemedText>
-          <TouchableOpacity
-            style={[styles.editButton, { backgroundColor: cardColor }]}
-          >
-            <Ionicons name="pencil" size={20} color={tintColor} />
-          </TouchableOpacity>
         </ThemedView>
 
         {/* User Info Card */}
@@ -121,25 +146,18 @@ const ProfileScreen = () => {
           style={[styles.userCard, { backgroundColor: cardColor, borderColor }]}
         >
           <ThemedView transparent style={styles.avatarContainer}>
-            <Image
-              source={{
-                uri: "https://images.pexels.com/photos/774909/pexels-photo-774909.jpeg",
-              }}
-              style={styles.avatar}
-            />
-            <TouchableOpacity
-              style={[styles.cameraButton, { backgroundColor: tintColor }]}
-            >
-              <Ionicons name="camera" size={16} color="#FFFFFF" />
-            </TouchableOpacity>
+            <ThemedView style={[styles.avatar, { backgroundColor: tintColor }]}>
+              <ThemedText style={styles.avatarText}>
+                {firstName ? firstName.charAt(0).toUpperCase() : "?"}
+              </ThemedText>
+            </ThemedView>
           </ThemedView>
           <ThemedView transparent style={styles.userInfo}>
-            <ThemedText style={styles.userName}>jane doe</ThemedText>
-            <ThemedText type="muted" style={styles.userEmail}>
-              jane.doe@email.com
+            <ThemedText style={styles.userName}>
+              {firstName || lastName ? `${firstName} ${lastName}`.trim() : "—"}
             </ThemedText>
-            <ThemedText type="muted" style={styles.userPhone}>
-              +66 89-123-4567
+            <ThemedText type="muted" style={styles.userEmail}>
+              @{username ?? ""}
             </ThemedText>
           </ThemedView>
         </ThemedView>
@@ -255,15 +273,6 @@ const styles = StyleSheet.create({
     alignItems: "center",
     borderWidth: 1,
   },
-  avatarContainer: {
-    position: "relative",
-    marginRight: 16,
-  },
-  avatar: {
-    width: 80,
-    height: 80,
-    borderRadius: 40,
-  },
   cameraButton: {
     position: "absolute",
     bottom: 0,
@@ -372,5 +381,20 @@ const styles = StyleSheet.create({
     fontSize: 14,
     textAlign: "center",
     marginBottom: 32,
+  },
+  avatar: {
+    width: 70,
+    height: 70,
+    borderRadius: 40,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  avatarText: {
+    fontSize: 32,
+    fontWeight: "700",
+    color: "#FFFFFF",
+  },
+  avatarContainer: {
+    marginRight: 16,
   },
 });
