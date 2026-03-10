@@ -34,19 +34,40 @@ const MyInfoScreen = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isEditing, setIsEditing] = useState(false);
+  const [original, setOriginal] = useState({
+    firstName: "",
+    lastName: "",
+    age: "",
+    height: "",
+    weight: "",
+  });
 
   useEffect(() => {
-    if (!token) return;
+    if (!token) {
+      setIsLoading(false);
+      return;
+    }
     profileApi
       .getMe(token)
       .then((data) => {
-        setFirstName(data.first_name ?? "");
-        setLastName(data.last_name ?? "");
-        if (isPatient) {
-          setAge(data.age != null ? String(data.age) : "");
-          setHeight(data.height != null ? String(data.height) : "");
-          setWeight(data.weight != null ? String(data.weight) : "");
-        }
+        const fn = data.first_name ?? "";
+        const ln = data.last_name ?? "";
+        const ag = isPatient && data.age != null ? String(data.age) : "";
+        const ht = isPatient && data.height != null ? String(data.height) : "";
+        const wt = isPatient && data.weight != null ? String(data.weight) : "";
+
+        setFirstName(fn);
+        setLastName(ln);
+        setAge(ag);
+        setHeight(ht);
+        setWeight(wt);
+        setOriginal({
+          firstName: fn,
+          lastName: ln,
+          age: ag,
+          height: ht,
+          weight: wt,
+        });
       })
       .catch((err) => console.error("Failed to load profile:", err))
       .finally(() => setIsLoading(false));
@@ -82,6 +103,7 @@ const MyInfoScreen = () => {
         }),
       };
       await profileApi.updateMe(body, token);
+      setOriginal({ firstName, lastName, age, height, weight });
       setIsEditing(false);
     } catch (err) {
       console.error("Failed to update profile:", err);
@@ -183,7 +205,14 @@ const MyInfoScreen = () => {
             {isEditing && (
               <TouchableOpacity
                 style={styles.cancelButton}
-                onPress={() => setIsEditing(false)}
+                onPress={() => {
+                  setFirstName(original.firstName);
+                  setLastName(original.lastName);
+                  setAge(original.age);
+                  setHeight(original.height);
+                  setWeight(original.weight);
+                  setIsEditing(false);
+                }}
                 activeOpacity={0.8}
               >
                 <Text style={styles.cancelText}>Cancel</Text>

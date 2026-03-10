@@ -11,10 +11,4 @@ export type ProfileStatus = {
   role: string;
 };
 
-export type MyProfile = {
-  first_name: string;
-  last_name: string;
-  age?: number;
-  height?: number;
-  weight?: number;
-};
+export type MyProfile = CreateProfileRequest;
