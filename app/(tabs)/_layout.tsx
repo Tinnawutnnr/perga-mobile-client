@@ -117,7 +117,12 @@ export default function TabLayout() {
         name="patient-selection"
         options={{
           href: null,
+          tabBarStyle: { display: "none" },
         }}
+      />
+      <Tabs.Screen
+        name="my-info"
+        options={{ href: null, tabBarStyle: { display: "none" } }}
       />
     </Tabs>
   );
