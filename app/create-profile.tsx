@@ -22,7 +22,7 @@ import {
 
 const CreateProfileScreen = () => {
   const { role } = useLocalSearchParams<{ role: string }>();
-  const { token } = useAuth();
+  const { token, clearToken, clearTempUsername } = useAuth();
   const isPatient = role === "patient";
 
   const [firstName, setFirstName] = useState("");
@@ -45,7 +45,6 @@ const CreateProfileScreen = () => {
       (isValidAge(age) && isValidHeight(height) && isValidWeight(weight)));
 
   const handleContinue = async () => {
-    console.log("[register-con] token value:", token);
     if (!token) return;
     setIsLoading(true);
     try {
@@ -59,7 +58,9 @@ const CreateProfileScreen = () => {
         }),
       };
       await profileApi.createProfile(body, token);
-      router.push("/confirmation-code");
+      clearTempUsername();
+      await clearToken();
+      router.replace("/login");
     } catch (error) {
       console.error("Profile creation failed:", error);
     } finally {
