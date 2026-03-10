@@ -12,7 +12,9 @@ import {
   View,
 } from "react-native";
 import { authApi } from "../api/auth";
+import { profileApi } from "../api/profile";
 import PrimaryInput from "../components/primary-input";
+import { useAuth } from "../context/auth-context";
 import { isValidPassword, isValidUsername } from "../utils/validation";
 
 const LoginScreen = () => {
@@ -20,6 +22,7 @@ const LoginScreen = () => {
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
+  const { saveToken, saveRole, saveUsername } = useAuth();
 
   const hasUsernameError = username.length > 0 && !isValidUsername(username);
   const hasPasswordError = password.length > 0 && !isValidPassword(password);
@@ -29,8 +32,16 @@ const LoginScreen = () => {
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      await authApi.login({ username, password });
-      router.replace("/(tabs)/home");
+      const res = await authApi.login({ username, password });
+      await saveToken(res.access_token);
+      const status = await profileApi.getStatus(res.access_token);
+      await saveRole(status.role);
+      await saveUsername(username);
+      if (status.role === "caretaker") {
+        router.replace("/(tabs)/patient-selection");
+      } else {
+        router.replace("/(tabs)/home");
+      }
     } catch (error) {
       console.error("Login failed:", error);
     } finally {
@@ -87,7 +98,7 @@ const LoginScreen = () => {
               onChangeText={setPassword}
               placeholder="Password"
               secureTextEntry={securePassword}
-              rightIcon={securePassword ? "eye" : "eye-off"}
+              rightIcon={securePassword ? "eye-off" : "eye"}
               onPressRight={() => setSecurePassword((prev) => !prev)}
               hasError={hasPasswordError}
             />
