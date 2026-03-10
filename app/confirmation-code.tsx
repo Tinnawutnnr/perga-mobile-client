@@ -15,8 +15,8 @@ import { useAuth } from "../context/auth-context";
 const CODE_LENGTH = 4;
 
 const ConfirmationCodeScreen = () => {
-  const { tempEmail, clearTempEmail } = useAuth();
-  const [email, setEmail] = useState<string>("");
+  const { tempUsername, clearTempUsername, clearToken } = useAuth();
+  const [displayName, setDisplayName] = useState<string>("");
   const [code, setCode] = useState(Array(CODE_LENGTH).fill(""));
   const [focusedIndex, setFocusedIndex] = useState(0);
 
@@ -37,22 +37,22 @@ const ConfirmationCodeScreen = () => {
     if (Platform.OS === "web") {
       // Web platform: wait for component to stabilise
       const timer = setTimeout(() => {
-        if (!tempEmail) {
+        if (!tempUsername) {
           router.replace("/login");
         } else {
-          setEmail(tempEmail);
+          setDisplayName(tempUsername);
         }
       }, 100);
       return () => clearTimeout(timer);
     }
 
     // Native platforms
-    if (!tempEmail) {
+    if (!tempUsername) {
       router.replace("/login");
     } else {
-      setEmail(tempEmail);
+      setDisplayName(tempUsername);
     }
-  }, [tempEmail]);
+  }, [tempUsername]);
 
   const handleChange = (text: string, index: number) => {
     const newCode = [...code];
@@ -75,12 +75,14 @@ const ConfirmationCodeScreen = () => {
     // TODO: call API resend
   };
 
-  const handleContinue = () => {
+  const handleContinue = async () => {
     const finalCode = code.join("");
     if (finalCode.length === 4) {
       console.log("Confirm code:", finalCode);
-      clearTempEmail(); // Clear temp
-      router.replace("/(tabs)/home");
+      // TODO: call API to verify code
+      clearTempUsername();
+      await clearToken(); // Registration token is no longer needed — user must log in
+      router.replace("/login");
     }
   };
 
@@ -99,7 +101,9 @@ const ConfirmationCodeScreen = () => {
           {/* Subtitle */}
           <Text style={styles.subtitle}>
             A 4-digit code was sent to{"\n"}
-            <Text style={styles.subtitleBold}>{email || "Loading..."}</Text>
+            <Text style={styles.subtitleBold}>
+              {displayName || "Loading..."}
+            </Text>
           </Text>
 
           {/* Code boxes */}
