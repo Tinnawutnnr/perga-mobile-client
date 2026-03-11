@@ -35,4 +35,20 @@ export interface MetricDetailData {
   articleTitle: string;
   articleBody: string;
   iconName: IconName;
-};
+}
+
+export interface DailyAverage {
+  daily_report_id: string;
+  patient_id: number;
+  report_date: string; // "YYYY-MM-DD"
+  total_windows_analyzed: number;
+  total_steps: number;
+  total_calories: number;
+  total_distance_m: number;
+  avg_max_gyr_ms: number; // swing speed
+  avg_val_gyr_hs: number; // heel impact
+  avg_swing_time: number;
+  avg_stance_time: number;
+  avg_stride_cv: number; // stride variability (lower = more stable)
+  anomaly_count: number;
+}

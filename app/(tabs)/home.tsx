@@ -1,38 +1,78 @@
-import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  TouchableOpacity,
-} from "react-native";
+import CompareCard from "@/components/home/CompareCard";
+import SummaryBanner from "@/components/home/SummaryBanner";
 import { MetricBox } from "@/components/metric-box";
 import { MetricGroup } from "@/components/metric-group";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
 import { mockdata } from "@/data/mockGaitData";
-import { useThemeColor } from "@/hooks/use-theme-color";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { Ionicons } from "@expo/vector-icons";
+import DateTimePicker, {
+  DateTimePickerEvent,
+} from "@react-native-community/datetimepicker";
+import { router } from "expo-router";
+import React, { useState } from "react";
+import {
+  ActivityIndicator,
+  Platform,
+  SafeAreaView,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
+const formatDate = (d: Date) =>
+  d.toLocaleDateString("en-GB", {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+  });
+const toISODate = (d: Date) => d.toISOString().split("T")[0];
+
+// ─── Main screen ──────────────────────────────────────────────────────────────
 const SummaryScreen = () => {
-  // Theme colors
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
   const iconColor = useThemeColor({}, "icon");
+  const mutedColor = useThemeColor({}, "muted");
+  const scheme = useColorScheme() ?? "light";
 
-  const metrics = useMetrics(mockdata);
+  const [fallDate, setFallDate] = useState<Date | null>(null);
+  const [showPicker, setShowPicker] = useState(false);
+
+  const fallDateStr = fallDate ? toISODate(fallDate) : undefined;
+  const { latestGaitData, comparison, loading, error } =
+    useHomeData(fallDateStr);
+
+  const gaitData = latestGaitData ?? mockdata;
+  const metrics = useMetrics(gaitData);
+
+  const onDateChange = (event: DateTimePickerEvent, date?: Date) => {
+    setShowPicker(Platform.OS === "ios");
+    if (event.type === "set" && date) setFallDate(date);
+  };
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView
         style={[styles.container, { backgroundColor }]}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{ paddingBottom: 32 }}
       >
         {/* Header */}
         <ThemedView style={styles.headerRow}>
-          <ThemedText style={styles.title}>Home</ThemedText>
+          <View>
+            <ThemedText style={styles.title}>Overview</ThemedText>
+            <ThemedText type="muted" style={styles.subtitle}>
+              Gait analysis dashboard
+            </ThemedText>
+          </View>
           <TouchableOpacity
             style={[styles.avatar, { backgroundColor: cardColor }]}
             onPress={() => router.push("/profile")}
@@ -42,8 +82,17 @@ const SummaryScreen = () => {
           </TouchableOpacity>
         </ThemedView>
 
-        {/* Charts */}
-        <MetricGroup title="Gait Metrics">
+        {loading && (
+          <ActivityIndicator color={tintColor} style={{ marginBottom: 16 }} />
+        )}
+        {error && (
+          <ThemedText style={{ color: Colors[scheme].error, marginBottom: 8 }}>
+            {error}
+          </ThemedText>
+        )}
+
+        {/* Overall Metrics */}
+        <MetricGroup title="Today's Gait Metrics">
           {metrics.map((item, index) => (
             <MetricBox
               key={index}
@@ -53,16 +102,76 @@ const SummaryScreen = () => {
               status={item.status}
               statusColor={item.statusColor || "success"}
               icon={
-                <Ionicons 
-                  name={item.iconName} 
-                  size={24} 
-                  color={iconColor} 
-                />
+                <Ionicons name={item.iconName} size={24} color={iconColor} />
               }
               onPress={item.onPress}
             />
           ))}
         </MetricGroup>
+
+        {/* Before / After Fall */}
+        <ThemedText style={styles.sectionTitle}>
+          Before vs After Fall
+        </ThemedText>
+        <ThemedText type="muted" style={styles.sectionDesc}>
+          Compares the 7-day average before and after the selected fall date.
+        </ThemedText>
+
+        {/* Date picker button */}
+        <TouchableOpacity
+          style={[styles.dateButton, { backgroundColor: cardColor }]}
+          onPress={() => setShowPicker(true)}
+          activeOpacity={0.8}
+        >
+          <View
+            style={[styles.dateIconWrap, { backgroundColor: tintColor + "22" }]}
+          >
+            <Ionicons name="calendar-outline" size={18} color={tintColor} />
+          </View>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={{ fontSize: 11, opacity: 0.5 }}>
+              Fall date
+            </ThemedText>
+            <ThemedText
+              style={{ fontSize: 14, fontWeight: "600", color: tintColor }}
+            >
+              {fallDate ? formatDate(fallDate) : "Tap to select"}
+            </ThemedText>
+          </View>
+          <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+        </TouchableOpacity>
+
+        {showPicker && (
+          <DateTimePicker
+            value={fallDate ?? new Date()}
+            mode="date"
+            display={Platform.OS === "ios" ? "inline" : "default"}
+            onChange={onDateChange}
+            maximumDate={new Date()}
+          />
+        )}
+
+        {/* Summary banner + cards */}
+        {fallDate && comparison.length > 0 && (
+          <View style={{ marginTop: 16 }}>
+            <SummaryBanner comparison={comparison} />
+            {comparison.map((item) => (
+              <CompareCard key={item.label} item={item} />
+            ))}
+          </View>
+        )}
+
+        {fallDate && comparison.length === 0 && !loading && (
+          <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
+            <Ionicons name="bar-chart-outline" size={32} color={mutedColor} />
+            <ThemedText
+              style={{ color: mutedColor, marginTop: 8, textAlign: "center" }}
+            >
+              Not enough data around this date.{"\n"}At least 1 day on each side
+              is needed.
+            </ThemedText>
+          </View>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -71,29 +180,43 @@ const SummaryScreen = () => {
 export default SummaryScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-    paddingTop: 8,
-  },
+  safeArea: { flex: 1 },
+  container: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    marginBottom: 20,
+    marginBottom: 24,
   },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
+  title: { fontSize: 28, fontWeight: "700" },
+  subtitle: { fontSize: 13, marginTop: 2 },
+  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
+  sectionDesc: { fontSize: 12, marginBottom: 12 },
   avatar: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
+  },
+  dateButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 14,
+    padding: 14,
+    gap: 12,
+  },
+  dateIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  emptyState: {
+    borderRadius: 16,
+    padding: 32,
+    alignItems: "center",
+    marginTop: 16,
   },
 });

@@ -41,7 +41,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Swing Speed",
       value: data.swingSpeed.toString(),
-      subValue: "deg/s",
+      subValue: "°/s",
       // Foot swing: low values may indicate a shuffling gait
       status: data.swingSpeed < 200 ? "Low Lift" : "Active Swing",
       statusColor: data.swingSpeed < 200 ? "warning" : "success",
@@ -55,7 +55,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Heel Impact",
       value: data.heelImpact.toString(),
-      subValue: "g",
+      subValue: "°/s",
       // Heel strike: avoid high impact to protect joints
       status: data.heelImpact > 2.5 ? "Hard Strike" : "Soft Landing",
       statusColor: data.heelImpact > 2.5 ? "warning" : "success",
@@ -83,7 +83,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Stability",
       value: data.stability + "%",
-      subValue: "(CV)",
+      subValue: "CV",
       // Walking stability: higher percentage (lower CV) is better
       status: data.stability < 80 ? "Unstable" : "Balanced",
       statusColor: data.stability < 80 ? "danger" : "success",
