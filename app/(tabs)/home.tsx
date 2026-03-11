@@ -1,4 +1,5 @@
 import CompareCard from "@/components/home/CompareCard";
+import PeriodToggle from "@/components/home/PeriodToggle";
 import SummaryBanner from "@/components/home/SummaryBanner";
 import { MetricBox } from "@/components/metric-box";
 import { MetricGroup } from "@/components/metric-group";
@@ -7,7 +8,7 @@ import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { mockdata } from "@/data/mockGaitData";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useHomeData } from "@/hooks/use-home-data";
+import { Period, useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
@@ -45,12 +46,22 @@ const SummaryScreen = () => {
 
   const [fallDate, setFallDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
+  const [period, setPeriod] = useState<Period>("daily");
 
   const fallDateStr = fallDate ? toISODate(fallDate) : undefined;
-  const { latestGaitData, comparison, loading, error } =
-    useHomeData(fallDateStr);
+  const { periodGaitData, comparison, loading, error } = useHomeData(
+    fallDateStr,
+    period,
+  );
 
-  const gaitData = latestGaitData ?? mockdata;
+  const gaitData = periodGaitData ?? mockdata;
+
+  const sectionTitle =
+    period === "daily"
+      ? "Today's Gait Metrics"
+      : period === "weekly"
+        ? "Weekly Average"
+        : "Yearly Average";
   const metrics = useMetrics(gaitData);
 
   const onDateChange = (event: DateTimePickerEvent, date?: Date) => {
@@ -91,8 +102,11 @@ const SummaryScreen = () => {
           </ThemedText>
         )}
 
+        {/* Period toggle */}
+        <PeriodToggle value={period} onChange={setPeriod} />
+
         {/* Overall Metrics */}
-        <MetricGroup title="Today's Gait Metrics">
+        <MetricGroup title={sectionTitle}>
           {metrics.map((item, index) => (
             <MetricBox
               key={index}

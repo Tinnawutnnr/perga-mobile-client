@@ -5,6 +5,8 @@ import { usePatientStore } from "@/store/patient-store";
 import { DailyAverage, GaitData } from "@/types/metric";
 import { useEffect, useMemo, useState } from "react";
 
+export type Period = "daily" | "weekly" | "yearly";
+
 const WINDOW_DAYS = 7; // days each side of the fall date
 
 function avgRecords(records: DailyAverage[]): DailyAverage | null {
@@ -57,9 +59,9 @@ function toGaitData(r: DailyAverage): GaitData {
       r.avg_swing_time > 0
         ? Math.round(60 / (r.avg_swing_time + r.avg_stance_time))
         : 0,
-    swingSpeed: r.avg_max_gyr_ms,
-    heelImpact: r.avg_val_gyr_hs,
-    stepDuration: r.avg_swing_time,
+    swingSpeed: Math.round(r.avg_max_gyr_ms),
+    heelImpact: +r.avg_val_gyr_hs.toFixed(2),
+    stepDuration: +r.avg_swing_time.toFixed(2),
     stability: Math.max(0, Math.round((1 - r.avg_stride_cv) * 100)),
   };
 }
@@ -75,6 +77,7 @@ export interface CompareMetric {
 }
 
 export interface HomeData {
+  periodGaitData: GaitData | null;
   latestGaitData: GaitData | null;
   latestRecord: DailyAverage | null;
   comparison: CompareMetric[];
@@ -83,7 +86,10 @@ export interface HomeData {
   refresh: () => void;
 }
 
-export const useHomeData = (fallDate?: string): HomeData => {
+export const useHomeData = (
+  fallDate?: string,
+  period: Period = "daily",
+): HomeData => {
   const { token } = useAuth();
   const { selectedPatient } = usePatientStore();
 
@@ -128,6 +134,28 @@ export const useHomeData = (fallDate?: string): HomeData => {
     () => (latestRecord ? toGaitData(latestRecord) : null),
     [latestRecord],
   );
+
+  const periodGaitData = useMemo(() => {
+    if (records.length === 0) return null;
+
+    if (period === "daily") {
+      return latestRecord ? toGaitData(latestRecord) : null;
+    }
+
+    const today = new Date();
+    const cutoff = new Date(today);
+    if (period === "weekly") cutoff.setDate(today.getDate() - 7);
+    else cutoff.setFullYear(today.getFullYear() - 1);
+
+    const cutoffStr = cutoff.toISOString().split("T")[0];
+    const windowRecords = records.filter((r) => r.report_date >= cutoffStr);
+
+    if (windowRecords.length === 0)
+      return latestRecord ? toGaitData(latestRecord) : null;
+
+    const avg = avgRecords(windowRecords);
+    return avg ? toGaitData(avg) : null;
+  }, [records, period, latestRecord]);
 
   const comparison = useMemo<CompareMetric[]>(() => {
     if (!fallDate || records.length === 0) return [];
@@ -210,5 +238,13 @@ export const useHomeData = (fallDate?: string): HomeData => {
     ];
   }, [records, fallDate]);
 
-  return { latestGaitData, latestRecord, comparison, loading, error, refresh };
+  return {
+    periodGaitData,
+    latestGaitData,
+    latestRecord,
+    comparison,
+    loading,
+    error,
+    refresh,
+  };
 };
