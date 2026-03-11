@@ -43,7 +43,7 @@ const SummaryScreen = () => {
   const mutedColor = useThemeColor({}, "muted");
   const scheme = useColorScheme() ?? "light";
 
-  const [fallDate, setFallDate] = useState<Date | null>(new Date("2026-02-15"));
+  const [fallDate, setFallDate] = useState<Date | null>(null);
   const [showPicker, setShowPicker] = useState(false);
 
   const fallDateStr = fallDate ? toISODate(fallDate) : undefined;
