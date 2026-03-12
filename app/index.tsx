@@ -1,4 +1,7 @@
+import { caretakerApi } from "@/api/caretaker";
 import { useAuth } from "@/context/auth-context";
+import { usePatientStore } from "@/store/patient-store";
+import { patientStorage } from "@/utils/token-storage";
 import type { Router } from "expo-router";
 import { router, useFocusEffect } from "expo-router";
 import { useCallback } from "react";
@@ -11,7 +14,8 @@ const DEV_REDIRECT: Parameters<Router["replace"]>[0] = "/(tabs)/home";
 // ─────────────────────────────────────────────────────────────────────────────
 
 export default function Index() {
-  const { token, isLoading } = useAuth();
+  const { token, role, isLoading } = useAuth();
+  const { setSelectedPatient } = usePatientStore();
 
   useFocusEffect(
     useCallback(() => {
@@ -21,16 +25,41 @@ export default function Index() {
       }
 
       if (isLoading) return;
-      const timer = setTimeout(() => {
-        if (token) {
-          router.replace("/(tabs)/home");
-        } else {
-          router.replace("/onboarding");
-        }
-      }, 100);
 
+      if (!token) {
+        const timer = setTimeout(() => router.replace("/onboarding"), 100);
+        return () => clearTimeout(timer);
+      }
+
+      if (role === "caretaker") {
+        let cancelled = false;
+        patientStorage.getId().then(async (savedId) => {
+          if (cancelled) return;
+          const savedUsername = await patientStorage.getUsername();
+          if (savedId && savedUsername) {
+            try {
+              const profile = await caretakerApi.getPatient(
+                savedUsername,
+                token,
+              );
+              if (cancelled) return;
+              setSelectedPatient({ ...profile, username: savedUsername });
+              router.replace("/(tabs)/home");
+            } catch {
+              router.replace("/(tabs)/patient-selection");
+            }
+          } else {
+            router.replace("/(tabs)/patient-selection");
+          }
+        });
+        return () => {
+          cancelled = true;
+        };
+      }
+
+      const timer = setTimeout(() => router.replace("/(tabs)/home"), 100);
       return () => clearTimeout(timer);
-    }, [token, isLoading]),
+    }, [token, role, isLoading, setSelectedPatient]),
   );
 
   return (
