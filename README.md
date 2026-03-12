@@ -14,17 +14,17 @@ The **Personalized Gait Anomaly Detection (PGAD) Mobile App** is a cross-platfor
 
 The mobile app operates as the primary user interface within the PGAD IoT-cloud pipeline:
 
-* **BLE Edge Interface (ESP32-C3 + BNO085):** Connects directly to wearable IMU sensors using `react-native-ble-plx`, receiving serialized kinematic frames and relaying them upstream to the cloud backend.
-* **Real-Time Telemetry (MQTT):** Subscribes to live gait metric topics via `precompiled-mqtt`, rendering sensor streams with low latency for immediate clinical feedback.
-* **REST API Integration:** Communicates with the PGAD FastAPI backend for authentication, patient profile management, and historical metric retrieval using short-lived JWTs stored in `expo-secure-store`.
-* **State Management (Zustand):** Maintains BLE device state, patient session context, and UI state through lightweight, atomic Zustand stores.
-* **File-Based Routing (Expo Router):** Implements a structured navigation hierarchy with protected routes, tab layouts, and deep-linking support via `expo-router`.
+- **BLE Edge Interface (ESP32-C3 + BNO085):** Connects directly to wearable IMU sensors using `react-native-ble-plx`, receiving serialized kinematic frames and relaying them upstream to the cloud backend.
+- **Real-Time Telemetry (MQTT):** Subscribes to live gait metric topics via `precompiled-mqtt`, rendering sensor streams with low latency for immediate clinical feedback.
+- **REST API Integration:** Communicates with the PGAD FastAPI backend for authentication, patient profile management, and historical metric retrieval using short-lived JWTs stored in `expo-secure-store`.
+- **State Management (Zustand):** Maintains BLE device state, patient session context, and UI state through lightweight, atomic Zustand stores.
+- **File-Based Routing (Expo Router):** Implements a structured navigation hierarchy with protected routes, tab layouts, and deep-linking support via `expo-router`.
 
 ## 🛡️ Security & Access Control
 
-* **Role-Based Access:** Enforces strict `Caretaker` / `Patient` domain separation at the API boundary, with all token management handled via secure storage — never plain AsyncStorage.
-* **BLE Permissions:** Declares `NSBluetoothAlwaysUsageDescription` and `bluetooth-central` background mode on iOS; runtime Bluetooth and location permissions are requested on Android.
-* **New Architecture Enabled:** The app runs on React Native's New Architecture (`newArchEnabled: true`) with Reanimated 4 and Worklets for GPU-accelerated animations without bridge overhead.
+- **Role-Based Access:** Enforces strict `Caretaker` / `Patient` domain separation at the API boundary, with all token management handled via secure storage — never plain AsyncStorage.
+- **BLE Permissions:** Declares `NSBluetoothAlwaysUsageDescription` and `bluetooth-central` background mode on iOS; runtime Bluetooth and location permissions are requested on Android.
+- **New Architecture Enabled:** The app runs on React Native's New Architecture (`newArchEnabled: true`) with Reanimated 4 and Worklets for GPU-accelerated animations without bridge overhead.
 
 ## 🚀 Local Environment Provisioning
 
@@ -32,10 +32,10 @@ The mobile app operates as the primary user interface within the PGAD IoT-cloud 
 
 Ensure your local development environment meets the following specifications:
 
-* [Node.js 18+](https://nodejs.org) and npm
-* [Expo CLI](https://docs.expo.dev/get-started/installation/) — `npm install -g expo-cli`
-* **iOS:** macOS with Xcode 15+ and CocoaPods (`sudo gem install cocoapods`)
-* **Android:** Android Studio with a configured SDK and emulator, or a physical device with USB debugging enabled
+- [Node.js 18+](https://nodejs.org) and npm
+- [Expo CLI](https://docs.expo.dev/get-started/installation/) — `npm install -g expo-cli`
+- **iOS:** macOS with Xcode 15+ and CocoaPods (`sudo gem install cocoapods`)
+- **Android:** Android Studio with a configured SDK and emulator, or a physical device with USB debugging enabled
 
 ### 1. Install Dependencies
 
@@ -55,6 +55,51 @@ npx expo run:ios
 > To target a specific simulator, append `--device` to select interactively, or pass `--simulator "iPhone 16"`.
 
 ### 3. Android Build
+
+#### Java 17
+
+The Android build requires Java 17. If you have multiple Java versions installed, use [SDKMAN](https://sdkman.io/) to manage and switch between them:
+
+```bash
+# Install SDKMAN (if not already installed)
+curl -s "https://get.sdkman.io" | bash
+source "$HOME/.sdkman/bin/sdkman-init.sh"
+
+# Install and use Java 17
+sdk install java 17.0.18-amzn
+sdk use java 17.0.18-amzn
+```
+
+Alternatively, install via Homebrew:
+
+```bash
+brew install openjdk@17
+sudo ln -sfn $(brew --prefix openjdk@17)/libexec/openjdk.jdk /Library/Java/JavaVirtualMachines/openjdk-17.jdk
+export JAVA_HOME=$(/usr/libexec/java_home -v 17)
+```
+
+Verify with:
+
+````bash
+java -version
+
+#### Environment Variables
+
+Copy the example env file:
+
+```bash
+cp .env.example .env
+````
+
+Then open `.env` and set `EXPO_PUBLIC_API_URL` to your local machine's IP address (based on your Wi-Fi connection):
+
+```
+EXPO_PUBLIC_API_URL=http://<YOUR_WIFI_IP>:8000
+```
+
+You can find your IP with `ifconfig | grep "inet "` (macOS) or `ip addr` (Linux). Or just run `npx expo run:android` and it will show the Wi-Fi IP, then replace it in `.env`.
+
+#### Run
 
 ```bash
 npx expo run:android
@@ -76,7 +121,6 @@ Scan the QR code with **Expo Go** on your device, or press `i` / `a` to open in 
 
 All commits must adhere to our quality gates:
 
-* Execute `npx expo lint` and resolve all ESLint violations prior to staging.
-* TypeScript strict mode is enforced — no `any` escapes without justification.
-* BLE and MQTT logic must remain isolated within `hooks/` and `store/` — do not call native modules directly from screen components.
-
+- Execute `npx expo lint` and resolve all ESLint violations prior to staging.
+- TypeScript strict mode is enforced — no `any` escapes without justification.
+- BLE and MQTT logic must remain isolated within `hooks/` and `store/` — do not call native modules directly from screen components.
