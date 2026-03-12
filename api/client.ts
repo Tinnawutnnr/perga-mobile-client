@@ -1,3 +1,11 @@
+import {
+  patientStorage,
+  roleStorage,
+  tokenStorage,
+  usernameStorage,
+} from "@/utils/token-storage";
+import { router } from "expo-router";
+
 const BASE_URL = process.env.EXPO_PUBLIC_API_URL;
 const API_PREFIX = "/api/v1";
 
@@ -18,6 +26,15 @@ const handleResponse = async <T>(response: Response): Promise<T> => {
       response.status,
       JSON.stringify(data),
     );
+    if (response.status === 401) {
+      await Promise.all([
+        tokenStorage.clear(),
+        roleStorage.clear(),
+        patientStorage.clear(),
+        usernameStorage.clear(),
+      ]);
+      router.replace("/login");
+    }
     throw new Error(data?.message ?? data?.detail ?? "Request failed");
   }
   return data as T;

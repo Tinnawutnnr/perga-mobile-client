@@ -1,6 +1,6 @@
 import CompareCard from "@/components/home/CompareCard";
-import PeriodToggle from "@/components/home/PeriodToggle";
 import SummaryBanner from "@/components/home/SummaryBanner";
+import PeriodToggle from "@/components/home/TimePeriodToggle";
 import { MetricBox } from "@/components/metric-box";
 import { MetricGroup } from "@/components/metric-group";
 import { ThemedText } from "@/components/themed-text";
