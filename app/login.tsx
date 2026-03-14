@@ -117,7 +117,7 @@ const LoginScreen = () => {
                 styles.loginButton,
                 (!isFormValid || isLoading) && styles.loginButtonDisabled,
               ]}
-              onPress={router.replace("/(tabs)/home")}
+              onPress={handleLogin}
               activeOpacity={0.8}
               disabled={!isFormValid || isLoading}
             >
