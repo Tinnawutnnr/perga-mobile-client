@@ -1,4 +1,5 @@
 import ArticleCard from "@/components/metric-detail/ArticleCard";
+import CompareButton from "@/components/metric-detail/CompareButton";
 import ComparisonCard from "@/components/metric-detail/ComparisonCard";
 import HeroCard from "@/components/metric-detail/HeroCard";
 import WeeklyChartCard from "@/components/metric-detail/WeeklyChartCard";
@@ -45,6 +46,7 @@ const MetricDetailScreen = () => {
         <HeroCard data={data} />
         <WeeklyChartCard data={data} maxWeekly={maxWeekly} />
         <ComparisonCard data={data} />
+        <CompareButton label={label} />
         <ArticleCard data={data} />
         <View style={{ height: 20 }} />
       </ScrollView>
