@@ -24,7 +24,7 @@ const ProfileScreen = () => {
   const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [locationEnabled, setLocationEnabled] = useState(true);
   const { setSelectedPatient } = usePatientStore();
-  const { clearTempUsername, role, token, username } = useAuth();
+  const { clearToken, role, token, username } = useAuth();
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
@@ -51,9 +51,10 @@ const ProfileScreen = () => {
     toggleColorScheme();
   };
 
-  const handleLogout = () => {
-    // Clear any stored auth data
-    clearTempUsername();
+  const handleLogout = async () => {
+    // Clear persisted auth/session state so index route won't auto-redirect.
+    await clearToken();
+    setSelectedPatient(null);
     router.replace("/login");
   };
 

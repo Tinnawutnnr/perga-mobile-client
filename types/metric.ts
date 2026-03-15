@@ -52,3 +52,22 @@ export interface DailyAverage {
   avg_stride_cv: number; // stride variability (lower = more stable)
   anomaly_count: number;
 }
+
+export interface WindowReport {
+  window_report_id: string;
+  patient_id: number;
+  timestamp: string;
+  status: string;
+  gait_health: string;
+  anomaly_score: number;
+  max_gyr_ms: number;
+  val_gyr_hs: number;
+  swing_time: number;
+  stance_time: number;
+  stride_time: number;
+  stride_cv: number;
+  n_strides: number;
+  steps: number;
+  calories: number;
+  distance_m: number;
+}

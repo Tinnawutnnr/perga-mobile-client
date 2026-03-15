@@ -1,8 +1,11 @@
 import { Ionicons } from "@expo/vector-icons";
 import { Tabs } from "expo-router";
+import { useAuth } from "../../context/auth-context";
 import { useThemeColor } from "../../hooks/use-theme-color";
 
 export default function TabLayout() {
+  const { role, isLoading } = useAuth();
+  const hideRestrictedTabs = isLoading || role === "caretaker";
   const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const tabIconDefault = useThemeColor({}, "tabIconDefault");
@@ -46,6 +49,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="activity"
         options={{
+          href: hideRestrictedTabs ? null : undefined,
           title: "Activity",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
@@ -81,6 +85,7 @@ export default function TabLayout() {
       <Tabs.Screen
         name="ble-connection"
         options={{
+          href: hideRestrictedTabs ? null : undefined,
           title: "Device",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
