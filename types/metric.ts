@@ -71,3 +71,33 @@ export interface WindowReport {
   calories: number;
   distance_m: number;
 }
+
+// ─── Compare API types ───────────────────────────────────────────────────────
+ 
+export type CompareRange = "day" | "week" | "month" | "year";
+ 
+export interface MetricInfo {
+  name: string;           // e.g. "avg_swing_time"
+  display_name: string;   // e.g. "Average Swing Time"
+  unit: string;           // e.g. "seconds"
+  description: string;    // Thai or English description
+}
+ 
+export interface ComparisonData {
+  patient_current_avg: number;
+  peer_group_avg: number;
+  percentile?: number;    // optional
+  peer_group_label: string; // e.g. "60-65 years old"
+}
+ 
+export interface HistoryEntry {
+  date: string;   // "YYYY-MM-DD"
+  value: number;
+}
+ 
+export interface MetricCompareResponse {
+  status: "success" | "error";
+  metric_info: MetricInfo;
+  comparison: ComparisonData;
+  history: HistoryEntry[];
+}
