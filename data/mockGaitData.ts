@@ -10,7 +10,7 @@ export const mockDailyAverages: DailyAverage[] = [
   // ── Before fall ──────────────────────────────────────────
   {
     daily_report_id: "r01",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-01",
     total_windows_analyzed: 40,
     total_steps: 6100,
@@ -25,7 +25,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r02",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-02",
     total_windows_analyzed: 38,
     total_steps: 5850,
@@ -40,7 +40,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r03",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-03",
     total_windows_analyzed: 42,
     total_steps: 6300,
@@ -55,7 +55,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r04",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-04",
     total_windows_analyzed: 41,
     total_steps: 6050,
@@ -70,7 +70,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r05",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-05",
     total_windows_analyzed: 39,
     total_steps: 5700,
@@ -85,7 +85,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r06",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-06",
     total_windows_analyzed: 43,
     total_steps: 6400,
@@ -100,7 +100,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r07",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-07",
     total_windows_analyzed: 40,
     total_steps: 5900,
@@ -115,7 +115,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r08",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-08",
     total_windows_analyzed: 37,
     total_steps: 5500,
@@ -130,7 +130,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r09",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-09",
     total_windows_analyzed: 41,
     total_steps: 6150,
@@ -145,7 +145,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r10",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-10",
     total_windows_analyzed: 40,
     total_steps: 5950,
@@ -160,7 +160,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r11",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-11",
     total_windows_analyzed: 42,
     total_steps: 6200,
@@ -175,7 +175,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r12",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-12",
     total_windows_analyzed: 38,
     total_steps: 5600,
@@ -190,7 +190,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r13",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-13",
     total_windows_analyzed: 40,
     total_steps: 5980,
@@ -205,7 +205,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r14",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-14",
     total_windows_analyzed: 39,
     total_steps: 5800,
@@ -222,7 +222,7 @@ export const mockDailyAverages: DailyAverage[] = [
   // ── After fall (2026-02-15) ───────────────────────────────
   {
     daily_report_id: "r15",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-15",
     total_windows_analyzed: 20,
     total_steps: 2800,
@@ -237,7 +237,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r16",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-16",
     total_windows_analyzed: 18,
     total_steps: 2400,
@@ -252,7 +252,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r17",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-17",
     total_windows_analyzed: 22,
     total_steps: 3100,
@@ -267,7 +267,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r18",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-18",
     total_windows_analyzed: 19,
     total_steps: 2600,
@@ -282,7 +282,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r19",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-19",
     total_windows_analyzed: 24,
     total_steps: 3300,
@@ -297,7 +297,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r20",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-20",
     total_windows_analyzed: 21,
     total_steps: 2950,
@@ -312,7 +312,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r21",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-21",
     total_windows_analyzed: 23,
     total_steps: 3200,
@@ -329,7 +329,7 @@ export const mockDailyAverages: DailyAverage[] = [
   // ── Recovery phase (late Feb → early Mar): gradual improvement ─────
   {
     daily_report_id: "r22",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-23",
     total_windows_analyzed: 26,
     total_steps: 3600,
@@ -344,7 +344,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r23",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-25",
     total_windows_analyzed: 28,
     total_steps: 3900,
@@ -359,7 +359,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r24",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-02-27",
     total_windows_analyzed: 30,
     total_steps: 4200,
@@ -374,7 +374,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r25",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-01",
     total_windows_analyzed: 32,
     total_steps: 4500,
@@ -389,7 +389,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r26",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-03",
     total_windows_analyzed: 34,
     total_steps: 4800,
@@ -406,7 +406,7 @@ export const mockDailyAverages: DailyAverage[] = [
   // ── Recent week (Mar 5–11): near-recovered, distinctly different ───
   {
     daily_report_id: "r27",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-05",
     total_windows_analyzed: 36,
     total_steps: 5200,
@@ -421,7 +421,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r28",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-06",
     total_windows_analyzed: 37,
     total_steps: 5400,
@@ -436,7 +436,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r29",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-07",
     total_windows_analyzed: 38,
     total_steps: 5500,
@@ -451,7 +451,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r30",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-08",
     total_windows_analyzed: 38,
     total_steps: 5350,
@@ -466,7 +466,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r31",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-09",
     total_windows_analyzed: 39,
     total_steps: 5600,
@@ -481,7 +481,7 @@ export const mockDailyAverages: DailyAverage[] = [
   },
   {
     daily_report_id: "r32",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-10",
     total_windows_analyzed: 40,
     total_steps: 5800,
@@ -497,7 +497,7 @@ export const mockDailyAverages: DailyAverage[] = [
   // Today
   {
     daily_report_id: "r33",
-    patient_id: 0,
+    patient_id: 1,
     report_date: "2026-03-11",
     total_windows_analyzed: 41,
     total_steps: 6000,
