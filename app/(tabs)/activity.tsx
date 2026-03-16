@@ -300,6 +300,29 @@ const ActivityScreen = () => {
           </ThemedText>
         </ThemedView>
 
+        {/* Action Button */}
+        <TouchableOpacity
+          style={[
+            styles.mainButton,
+            { backgroundColor: isRecording ? "#FF5252" : tintColor },
+            !isReady && { backgroundColor: mutedColor },
+          ]}
+          onPress={handleToggleActivity}
+          disabled={!isReady && !isRecording}
+        >
+          <Ionicons
+            name={isRecording ? "stop-circle" : "play-circle"}
+            size={32}
+            color="#FFF"
+            style={{ marginRight: 10 }}
+          />
+          <ThemedText
+            style={{ color: "#FFF", fontSize: 20, fontWeight: "bold" }}
+          >
+            {isRecording ? "Stop Activity" : "Start Tracking"}
+          </ThemedText>
+        </TouchableOpacity>
+
         {/* Duration + Status Card */}
         {isRecording && (
           <ThemedView
@@ -365,29 +388,6 @@ const ActivityScreen = () => {
           />
         )}
 
-        {/* Action Button */}
-        <TouchableOpacity
-          style={[
-            styles.mainButton,
-            { backgroundColor: isRecording ? "#FF5252" : tintColor },
-            !isReady && { backgroundColor: mutedColor },
-          ]}
-          onPress={handleToggleActivity}
-          disabled={!isReady && !isRecording}
-        >
-          <Ionicons
-            name={isRecording ? "stop-circle" : "play-circle"}
-            size={32}
-            color="#FFF"
-            style={{ marginRight: 10 }}
-          />
-          <ThemedText
-            style={{ color: "#FFF", fontSize: 20, fontWeight: "bold" }}
-          >
-            {isRecording ? "Stop Activity" : "Start Tracking"}
-          </ThemedText>
-        </TouchableOpacity>
-
         {!isReady && !isRecording && (
           <ThemedText
             type="muted"
@@ -444,6 +444,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
     marginTop: 10,
+    marginBottom: 30,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
     shadowOpacity: 0.15,
