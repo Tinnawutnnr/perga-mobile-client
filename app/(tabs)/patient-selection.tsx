@@ -4,6 +4,7 @@ import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
 import PatientCard from "@/components/patient-component/patient-card";
 import { usePatientSelection } from "@/hooks/use-patients";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
@@ -16,6 +17,7 @@ import {
 } from "react-native";
 
 const PatientSelectionScreen = () => {
+  const router = useRouter(); // <-- Initialize the router
   const {
     patients,
     selectedId,
@@ -53,34 +55,57 @@ const PatientSelectionScreen = () => {
             </TouchableOpacity>
           </View>
 
-          {patients.map((patient) => (
-            <PatientCard
-              key={patient.id}
-              patient={patient}
-              isSelected={selectedId === patient.id}
-              onPress={handleSelect}
-              onDelete={setDeleteTarget}
-            />
-          ))}
+          {/* Render when patient found, otherwise show no patient found */}
+          {patients.length > 0 ? (
+            patients.map((patient) => (
+              <PatientCard
+                key={patient.id}
+                patient={patient}
+                isSelected={selectedId === patient.id}
+                onPress={handleSelect}
+                onDelete={setDeleteTarget}
+              />
+            ))
+          ) : (
+            <View style={styles.emptyContainer}>
+              <Ionicons name="people-outline" size={64} color="#B0C8CA" />
+              <Text style={styles.emptyTitle}>No Patients Found</Text>
+              <Text style={styles.emptySubtitle}>
+                Please add a patient or create account for before proceeding.
+              </Text>
+            </View>
+          )}
 
-          <TouchableOpacity
-            style={[
-              styles.confirmButton,
-              (!selectedId || isConfirming) && styles.confirmButtonDisabled,
-            ]}
-            onPress={handleConfirm}
-            activeOpacity={0.8}
-            disabled={!selectedId || isConfirming}
-          >
-            {isConfirming ? (
-              <ActivityIndicator color="#FFFFFF" />
-            ) : (
-              <Text style={styles.confirmButtonText}>Confirm</Text>
-            )}
-          </TouchableOpacity>
+          {/* Conditionally render Back button or Confirm button based on patients length */}
+          {patients.length === 0 ? (
+            <TouchableOpacity
+              style={styles.backButton}
+              onPress={() => router.back()}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.backButtonText}>Back</Text>
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity
+              style={[
+                styles.confirmButton,
+                (!selectedId || isConfirming) && styles.confirmButtonDisabled,
+              ]}
+              onPress={handleConfirm}
+              activeOpacity={0.8}
+              disabled={!selectedId || isConfirming}
+            >
+              {isConfirming ? (
+                <ActivityIndicator color="#FFFFFF" />
+              ) : (
+                <Text style={styles.confirmButtonText}>Confirm</Text>
+              )}
+            </TouchableOpacity>
+          )}
         </View>
       </ScrollView>
 
+      {/* Modals remain the same */}
       <AddPatientModal
         visible={showAddModal}
         onConfirm={handleAddPatient}
@@ -149,4 +174,35 @@ const styles = StyleSheet.create({
   },
   confirmButtonDisabled: { backgroundColor: "#B0C8CA" },
   confirmButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
+  emptyContainer: {
+    paddingVertical: 64,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  emptyTitle: {
+    fontSize: 18,
+    fontWeight: "600",
+    color: "#4F7D81",
+    marginTop: 16,
+    marginBottom: 8,
+  },
+  emptySubtitle: {
+    fontSize: 14,
+    color: "#808080",
+    textAlign: "center",
+    paddingHorizontal: 24,
+  },
+  backButton: {
+    height: 54,
+    borderRadius: 16,
+    backgroundColor: "#F2F2F2", // A neutral color for the back button
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: 12,
+  },
+  backButtonText: {
+    color: "#4F7D81", // Brand color text on neutral background
+    fontSize: 16,
+    fontWeight: "600",
+  },
 });
