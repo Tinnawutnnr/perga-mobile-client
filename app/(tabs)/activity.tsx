@@ -248,28 +248,28 @@ const ActivityScreen = () => {
           style={[
             styles.mainButton,
             {
-              backgroundColor: isWaitingForData
-                ? mutedColor
-                : isRecording
-                  ? "#FF5252"
-                  : tintColor,
+              backgroundColor: isWaitingForData ? mutedColor : tintColor,
             },
           ]}
           onPress={handleToggleActivity}
           disabled={isWaitingForData}
         >
           {isWaitingForData ? (
-            <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 10 }} />
+            <ActivityIndicator
+              size="small"
+              color={mutedColor}
+              style={{ marginRight: 10 }}
+            />
           ) : (
             <Ionicons
               name={isRecording ? "stop-circle" : "play-circle"}
               size={32}
-              color="#FFF"
+              color={mutedColor}
               style={{ marginRight: 10 }}
             />
           )}
           <ThemedText
-            style={{ color: "#FFF", fontSize: 20, fontWeight: "bold" }}
+            style={{ color: mutedColor, fontSize: 20, fontWeight: "bold" }}
           >
             {isWaitingForData
               ? "Waiting for Sensor..."
