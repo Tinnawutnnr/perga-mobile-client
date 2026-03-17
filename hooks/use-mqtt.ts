@@ -1,4 +1,3 @@
-import { GaitSensorData } from "@/types/ble-type";
 import type { IClientOptions, MqttClient } from "precompiled-mqtt";
 import { connect as mqttConnect } from "precompiled-mqtt";
 import { useCallback, useRef, useState } from "react";
@@ -9,68 +8,101 @@ const MQTT_PASSWORD: string = process.env.EXPO_PUBLIC_MQTT_PASSWORD ?? "";
 
 const CONNECT_TIMEOUT_MS = 10_000;
 
+const normalizeBrokerUrl = (rawUrl: string): string => {
+  const trimmed = rawUrl.trim();
+  if (!trimmed) return "";
+  return /^wss?:\/\//i.test(trimmed) ? trimmed : `wss://${trimmed}`;
+};
+
+const redactBrokerUrl = (url: string): string => {
+  try {
+    const parsed = new URL(url);
+    return `${parsed.protocol}//${parsed.hostname}:${parsed.port || "<default>"}${parsed.pathname}`;
+  } catch {
+    return "<invalid-url>";
+  }
+};
+
 export interface UseMqttReturn {
   isConnected: boolean;
   connectMqtt: (token?: string) => Promise<void>;
   disconnectMqtt: () => void;
-  publishGaitData: (
-    userId: string,
-    sessionId: string,
-    dataBatch: GaitSensorData[],
-  ) => void;
+  publishGaitData: (userId: string, dataBatch: number[]) => void;
 }
 
 export const useMqtt = (): UseMqttReturn => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const clientRef = useRef<MqttClient | null>(null);
 
-  /**
-   * Connect to HiveMQ Cloud over WSS.
-   *
-   * Returns a Promise that resolves when the MQTT "connect" event fires,
-   * so callers can `await connectMqtt()` before starting BLE streaming.
-   */
   const connectMqtt = useCallback(async (_token?: string) => {
     if (!MQTT_BROKER_URL) {
-      console.error(
-        "[MQTT] EXPO_PUBLIC_MQTT_BROKER_URL is empty. " +
-          "Set it in .env.local and restart with `npx expo start --clear`.",
-      );
+      console.error("[MQTT] BROKER_URL not found");
       throw new Error("MQTT broker URL is not configured");
     }
 
-    if (clientRef.current) {
-      console.log("[MQTT] Client already exists, skipping re-connect");
-      return;
+    if (!MQTT_USERNAME || !MQTT_PASSWORD) {
+      console.error("[MQTT] Username/password not configured");
+      throw new Error("MQTT credentials are not configured");
     }
 
-    console.log("[MQTT] Connecting to", MQTT_BROKER_URL);
+    if (clientRef.current) {
+      if (clientRef.current.connected) {
+        console.log("[MQTT] Already connected, skipping.");
+        return Promise.resolve();
+      } else {
+        console.warn("[MQTT] Cleaning up hanging client before retrying...");
+        clientRef.current.end(true);
+        clientRef.current = null;
+      }
+    }
+
+    const brokerUrl = normalizeBrokerUrl(MQTT_BROKER_URL);
+
+    if (!/^wss:\/\//i.test(brokerUrl)) {
+      console.error(`[MQTT] Invalid broker protocol: ${redactBrokerUrl(brokerUrl)}`);
+      throw new Error("MQTT broker must use wss:// for mobile connectivity");
+    }
 
     return new Promise<void>((resolve, reject) => {
+      let settled = false;
+
+      const settleResolve = () => {
+        if (settled) return;
+        settled = true;
+        resolve();
+      };
+
+      const settleReject = (error: Error) => {
+        if (settled) return;
+        settled = true;
+        reject(error);
+      };
+
       try {
         const options: IClientOptions = {
           protocol: "wss",
           username: MQTT_USERNAME,
           password: MQTT_PASSWORD,
-          clientId: `pgad_mobile_${Math.random().toString(16).substring(2, 8)}`,
+          clientId: `perga_mobile_${Math.random().toString(16).substring(2, 8)}`,
           reconnectPeriod: 5000,
           connectTimeout: CONNECT_TIMEOUT_MS,
         };
 
-        const client = mqttConnect(MQTT_BROKER_URL, options);
+        console.log(`[MQTT] Connecting to ${redactBrokerUrl(brokerUrl)}`);
+        const client = mqttConnect(brokerUrl, options);
 
         const timer = setTimeout(() => {
           console.error("[MQTT] Connection timed out");
           client.end(true);
           clientRef.current = null;
-          reject(new Error("MQTT connection timed out"));
+          settleReject(new Error("MQTT connection timed out"));
         }, CONNECT_TIMEOUT_MS);
 
         client.on("connect", () => {
           clearTimeout(timer);
           console.log("[MQTT] Connected!");
           setIsConnected(true);
-          resolve();
+          settleResolve();
         });
 
         client.on("reconnect", () => {
@@ -83,7 +115,7 @@ export const useMqtt = (): UseMqttReturn => {
           setIsConnected(false);
           client.end(true);
           clientRef.current = null;
-          reject(err);
+          settleReject(err);
         });
 
         client.on("close", () => {
@@ -102,7 +134,7 @@ export const useMqtt = (): UseMqttReturn => {
           "[MQTT] Failed to initialize client:",
           error instanceof Error ? error.message : error,
         );
-        reject(error);
+        settleReject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }, []);
@@ -117,21 +149,14 @@ export const useMqtt = (): UseMqttReturn => {
   }, []);
 
   const publishGaitData = useCallback(
-    (userId: string, sessionId: string, dataBatch: GaitSensorData[]) => {
+    (userId: string, dataBatch: number[]) => {
       if (!clientRef.current || !isConnected) {
         console.warn("Cannot publish: MQTT not connected");
         return;
       }
 
-      const topic = `pgad/users/${userId}/sessions/${sessionId}/data`;
-
-      const payload = {
-        userId,
-        sessionId,
-        timestamp: new Date().toISOString(),
-        batchSize: dataBatch.length,
-        data: dataBatch,
-      };
+      const topic = `gait/telemetry/${userId}`;
+      const payload = { gyro_z: dataBatch };
 
       try {
         clientRef.current.publish(
@@ -142,15 +167,12 @@ export const useMqtt = (): UseMqttReturn => {
             if (error) {
               console.error("Publish Error: ", error.message);
             } else {
-              console.log(`Published ${dataBatch.length} records to ${topic}`);
+              // console.log(`Published ${dataBatch.length} records to ${topic}`);
             }
           },
         );
       } catch (error) {
-        console.error(
-          "Failed to stringify or publish payload",
-          error instanceof Error ? error.message : error,
-        );
+        console.error("Failed to stringify or publish payload", error);
       }
     },
     [isConnected],

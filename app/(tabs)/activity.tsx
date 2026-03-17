@@ -11,10 +11,10 @@ import {
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Alert,
   ScrollView,
   StyleSheet,
-  Switch,
   TouchableOpacity,
   View,
 } from "react-native";
@@ -26,7 +26,21 @@ import { ThemedView } from "../../components/themed-view";
 import { useThemeColor } from "../../hooks/use-theme-color";
 
 const WINDOW_REPORT_INTERVAL_MS = 30_000;
-const MOCK_PATIENT_ID = 1; // fallback for mock mode
+const MOCK_PATIENT_ID = 1; // temporary until window report API is available
+
+const addAlphaToHex = (hex: string, alpha: number) => {
+  // If the color is not a 6- or 8-digit hex, return it unchanged.
+  if (!hex || !hex.startsWith("#") || (hex.length !== 7 && hex.length !== 9)) {
+    return hex;
+  }
+
+  const alphaInt = Math.round(Math.min(Math.max(alpha, 0), 1) * 255);
+  const alphaHex = alphaInt.toString(16).padStart(2, "0");
+
+  // If hex already has alpha, replace it; otherwise, append it.
+  return hex.length === 7 ? `${hex}${alphaHex}` : `${hex.slice(0, 7)}${alphaHex}`;
+};
+const USER_ID = "USER_ID";
 
 const ActivityScreen = () => {
   // ── Global BLE state (Zustand) ──
@@ -45,6 +59,7 @@ const ActivityScreen = () => {
 
   // ── Local state ──
   const [isRecording, setIsRecording] = useState(false);
+  const [isWaitingForData, setIsWaitingForData] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [batchSentCount, setBatchSentCount] = useState(0);
 
@@ -58,12 +73,6 @@ const ActivityScreen = () => {
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const [sessionTotals, setSessionTotals] = useState(createEmptySessionTotals);
 
-  // `mockMode = true`  => skip BLE + MQTT and run only UI timers/polling
-  // `mockMode = false` => require real BLE device and MQTT connection
-  const [mockMode, setMockMode] = useState(false);
-
-  const isReady = mockMode || connectedDevice || lastBleData;
-
   // ── Theme ──
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
@@ -71,43 +80,7 @@ const ActivityScreen = () => {
   const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
 
-  // ── Cleanup on unmount ──
-  useEffect(() => {
-    return () => {
-      disconnectMqtt();
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, [disconnectMqtt]);
-
-  // ── Publish BLE batch while recording (real mode) ──
-  useEffect(() => {
-    if (
-      isRecording &&
-      !mockMode &&
-      pendingBatch.length > 0 &&
-      isMqttConnected &&
-      sessionId
-    ) {
-      publishGaitData("USER_ID", sessionId, pendingBatch);
-      setBatchSentCount((prev) => {
-        const next = prev + 1;
-        console.log(
-          `Publish Batch No. ${next} to HiveMQ (Session: ${sessionId})`,
-        );
-        return next;
-      });
-    }
-  }, [
-    pendingBatch,
-    isRecording,
-    mockMode,
-    isMqttConnected,
-    sessionId,
-    publishGaitData,
-  ]);
-
-  // ── Start / stop duration timer ──
+    // ── Start / stop duration timer ──
   const startTimer = useCallback(() => {
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -121,17 +94,12 @@ const ActivityScreen = () => {
   }, []);
 
   // ── Start / stop WindowReport polling ──
-  // This runs while recording: fetch once immediately, then every 30 seconds.
   const startPolling = useCallback(() => {
     setLatestReport(null);
     setReportCount(0);
     setSessionTotals(createEmptySessionTotals());
 
     const fetchReport = () => {
-      // PLACE REAL API HERE:
-      // Replace this block with your patient-specific call, for example:
-      // const report = await activityApi.getLatestWindowReport(patientId, token)
-      // Keep `setLatestReport(...)` and `setReportCount(...)` after the response.
       const report = generateMockWindowReport(MOCK_PATIENT_ID);
       setLatestReport(report);
       setSessionTotals((prev) => ({
@@ -142,7 +110,6 @@ const ActivityScreen = () => {
       setReportCount((c) => c + 1);
     };
 
-    // Fetch immediately, then every 30 s
     fetchReport();
     pollRef.current = setInterval(fetchReport, WINDOW_REPORT_INTERVAL_MS);
   }, []);
@@ -154,61 +121,112 @@ const ActivityScreen = () => {
     }
   }, []);
 
+  // ── Auto-Connect MQTT & Cleanup on unmount ──
+  useEffect(() => {
+    connectMqtt().catch((error) => {
+      console.error("Failed to auto-connect MQTT:", error);
+    });
+
+    return () => {
+      disconnectMqtt();
+      if (timerRef.current) clearInterval(timerRef.current);
+      if (pollRef.current) clearInterval(pollRef.current);
+    };
+  }, []);
+
+  // Keep latest report visible even when not recording.
+  useEffect(() => {
+    const fetchLatestReport = () => {
+      if (!isRecording && !isWaitingForData) {
+        setLatestReport(generateMockWindowReport(MOCK_PATIENT_ID));
+      }
+    };
+
+    fetchLatestReport();
+    const idleReportInterval = setInterval(fetchLatestReport, WINDOW_REPORT_INTERVAL_MS);
+    return () => clearInterval(idleReportInterval);
+  }, [isRecording, isWaitingForData]);
+
+  // ── Publish BLE batch & Catch First Batch ──
+  useEffect(() => {
+    if ((isRecording || isWaitingForData) && pendingBatch.length > 0 && isMqttConnected) {
+      
+      if (isWaitingForData) {
+        setIsWaitingForData(false);
+        setIsRecording(true);
+        startTimer();
+        startPolling();
+      }
+
+      publishGaitData(USER_ID, pendingBatch);
+      setBatchSentCount((prev) => {
+        const next = prev + 1;
+        return next;
+      });
+    }
+  }, [
+    pendingBatch,
+    isRecording,
+    isWaitingForData,
+    isMqttConnected,
+    startTimer,
+    startPolling,
+    publishGaitData,
+  ]);
+
   // ── Main action handler ──
   const handleToggleActivity = async () => {
-    if (!mockMode && !connectedDevice) {
-      Alert.alert("No Device", "Please connect to ESP32 in the BLE tab first.");
-      return;
-    }
+    if (!isRecording && !isWaitingForData) {
+      if (!connectedDevice) {
+        Alert.alert("No Device", "Please connect to ESP32 in the BLE tab first.");
+        return;
+      }
 
-    if (!isRecording) {
       const newSid = uuidv4();
       setSessionId(newSid);
       setBatchSentCount(0);
 
-      if (mockMode) {
-        // Mock path: no device/mqtt dependency, useful for UI verification.
-        setIsRecording(true);
-        startTimer();
-        startPolling();
-        return;
-      }
+      setIsWaitingForData(true);
 
       try {
-        await connectMqtt();
+        if (!isMqttConnected) {
+          console.log("MQTT", "Not connected yet, trying now...");
+          await connectMqtt(); 
+        }
+
         startStreaming();
-        setIsRecording(true);
-        startTimer();
-        startPolling();
       } catch (error) {
-        console.error("Failed to start activity:", error);
-        Alert.alert(
-          "Error",
-          "Failed to start activity. Check your connection.",
-        );
+        console.error("Failed to start BLE streaming:", error);
+        setIsWaitingForData(false);
         setSessionId(null);
       }
     } else {
-      // Stop path: clear device/network resources only in real mode,
-      // then always stop local timer + polling.
-      if (!mockMode) {
-        stopStreaming();
-        disconnectMqtt();
-      }
+      // Stop path: clear device/network resources, then stop timer + polling.
+      console.log("Stopping activity...");
+      stopStreaming();
       stopTimer();
       stopPolling();
       setIsRecording(false);
-
+      setIsWaitingForData(false);
+      
+      // system alert
       Alert.alert(
         "Success",
-        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nTotal batches sent: ${mockMode ? "(mock)" : batchSentCount}\nReports received: ${reportCount}`,
+        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nTotal batches sent: ${batchSentCount}\nReports received: ${reportCount}`,
       );
       setSessionTotals(createEmptySessionTotals());
-      setLatestReport(null);
       setReportCount(0);
       setSessionId(null);
     }
   };
+
+  const successColor = useThemeColor({}, "success");
+  const warningColor = useThemeColor({}, "warning");
+  const mqttBadgeTextColor = isMqttConnected ? successColor : warningColor;
+  const mqttBadgeBackgroundColor = addAlphaToHex(
+    isMqttConnected ? successColor : warningColor,
+    0.125 // Approximate previous 0x20 alpha (~12.5%)
+  );
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
@@ -222,106 +240,70 @@ const ActivityScreen = () => {
             style={[
               styles.badge,
               {
-                backgroundColor:
-                  mockMode || isMqttConnected ? "#4CAF5020" : "#FF980020",
+                backgroundColor: mqttBadgeBackgroundColor,
               },
             ]}
           >
             <ThemedText
               style={{
-                color: mockMode || isMqttConnected ? "#4CAF50" : "#FF9800",
+                color: mqttBadgeTextColor,
                 fontSize: 12,
                 fontWeight: "bold",
               }}
             >
-              {mockMode
-                ? "MOCK MODE"
-                : isMqttConnected
-                  ? "MQTT Online"
-                  : "MQTT Offline"}
+              {isMqttConnected ? "MQTT Online" : "MQTT Offline"}
             </ThemedText>
           </ThemedView>
-        </ThemedView>
-
-        {/* Mock-mode toggle */}
-        <ThemedView
-          style={[
-            styles.card,
-            {
-              backgroundColor: cardColor,
-              borderColor,
-              flexDirection: "row",
-              alignItems: "center",
-              justifyContent: "space-between",
-              paddingVertical: 14,
-            },
-          ]}
-        >
-          <ThemedText style={{ fontSize: 14 }}>
-            Dev Mock Mode (no BLE / MQTT)
-          </ThemedText>
-          <Switch
-            value={mockMode}
-            onValueChange={setMockMode}
-            disabled={isRecording}
-            trackColor={{ true: tintColor }}
-          />
-        </ThemedView>
-
-        {/* Live Preview Card */}
-        <ThemedView
-          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
-        >
-          <ThemedText
-            style={{ fontSize: 16, marginBottom: 10, color: mutedColor }}
-          >
-            {mockMode ? "Mock Z-Axis Data" : "Live Z-Axis Data (Gyro)"}
-          </ThemedText>
-          <ThemedText
-            style={{
-              fontSize: 56,
-              lineHeight: 68,
-              fontWeight: "bold",
-              textAlign: "center",
-              marginVertical: 20,
-              color: tintColor,
-            }}
-          >
-            {mockMode
-              ? (Math.random() * 4 - 2).toFixed(2)
-              : lastBleData?.z?.toFixed(2) || "0.00"}
-          </ThemedText>
-          <ThemedText
-            type="muted"
-            style={{ textAlign: "center", fontSize: 12 }}
-          >
-            Connected to:{" "}
-            {mockMode ? "Mock ESP32" : connectedDevice?.name || "None"}
-          </ThemedText>
         </ThemedView>
 
         {/* Action Button */}
         <TouchableOpacity
           style={[
             styles.mainButton,
-            { backgroundColor: isRecording ? "#FF5252" : tintColor },
-            !isReady && { backgroundColor: mutedColor },
+            {
+              backgroundColor: isWaitingForData
+                ? mutedColor
+                : isRecording
+                  ? "#FF5252"
+                  : tintColor,
+            },
           ]}
           onPress={handleToggleActivity}
-          disabled={!isReady && !isRecording}
+          disabled={isWaitingForData}
         >
-          <Ionicons
-            name={isRecording ? "stop-circle" : "play-circle"}
-            size={32}
-            color="#FFF"
-            style={{ marginRight: 10 }}
-          />
+          {isWaitingForData ? (
+            <ActivityIndicator
+              size="small"
+              color="#FFF"
+              style={{ marginRight: 10 }}
+            />
+          ) : (
+            <Ionicons
+              name={isRecording ? "stop-circle" : "play-circle"}
+              size={32}
+              color="#FFF"
+              style={{ marginRight: 10 }}
+            />
+          )}
           <ThemedText
             style={{ color: "#FFF", fontSize: 20, fontWeight: "bold" }}
           >
-            {isRecording ? "Stop Activity" : "Start Tracking"}
+            {isWaitingForData
+              ? "Waiting for Sensor..."
+              : isRecording
+                ? "Stop Activity"
+                : "Start Tracking"}
           </ThemedText>
+
         </TouchableOpacity>
+                {!connectedDevice && !isRecording && (
+          <ThemedText
+            type="muted"
+            style={{ textAlign: "center", marginTop: 20, marginBottom: 20, fontSize: 14 }}
+          >
+            No BLE device connected. Please connect to ESP32 in the BLE tab first.
+          </ThemedText>
+        )}
 
         {/* Duration + Status Card */}
         {isRecording && (
@@ -379,24 +361,13 @@ const ActivityScreen = () => {
         )}
 
         {/* Latest WindowReport card */}
-        {isRecording && latestReport && (
+        {latestReport && (
           <WindowStatCard
             report={latestReport}
             cardColor={cardColor}
             borderColor={borderColor}
             tintColor={tintColor}
           />
-        )}
-
-        {!isReady && !isRecording && (
-          <ThemedText
-            type="muted"
-            style={{ textAlign: "center", marginTop: 20, fontSize: 14 }}
-          >
-            {mockMode
-              ? "Mock mode ready – press Start"
-              : "Waiting for device connection..."}
-          </ThemedText>
         )}
 
         {/* Bottom spacer */}
