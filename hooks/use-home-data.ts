@@ -192,7 +192,7 @@ export const useHomeData = (
     return [
       {
         label: "Swing Speed",
-        unit: "°/s",
+        unit: "rad/s",
         before: Math.round(before.avg_max_gyr_ms),
         after: Math.round(after.avg_max_gyr_ms),
         deltaPercent: delta(before.avg_max_gyr_ms, after.avg_max_gyr_ms),
