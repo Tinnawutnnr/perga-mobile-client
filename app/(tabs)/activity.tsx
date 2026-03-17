@@ -27,6 +27,19 @@ import { useThemeColor } from "../../hooks/use-theme-color";
 
 const WINDOW_REPORT_INTERVAL_MS = 30_000;
 const MOCK_PATIENT_ID = 1; // temporary until window report API is available
+
+const addAlphaToHex = (hex: string, alpha: number) => {
+  // If the color is not a 6- or 8-digit hex, return it unchanged.
+  if (!hex || !hex.startsWith("#") || (hex.length !== 7 && hex.length !== 9)) {
+    return hex;
+  }
+
+  const alphaInt = Math.round(Math.min(Math.max(alpha, 0), 1) * 255);
+  const alphaHex = alphaInt.toString(16).padStart(2, "0");
+
+  // If hex already has alpha, replace it; otherwise, append it.
+  return hex.length === 7 ? `${hex}${alphaHex}` : `${hex.slice(0, 7)}${alphaHex}`;
+};
 const USER_ID = "USER_ID";
 
 const ActivityScreen = () => {
@@ -186,6 +199,14 @@ const ActivityScreen = () => {
     }
   };
 
+  const successColor = useThemeColor({}, "success");
+  const warningColor = useThemeColor({}, "warning");
+  const mqttBadgeTextColor = isMqttConnected ? successColor : warningColor;
+  const mqttBadgeBackgroundColor = addAlphaToHex(
+    isMqttConnected ? successColor : warningColor,
+    0.125 // Approximate previous 0x20 alpha (~12.5%)
+  );
+
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView style={styles.container}>
@@ -198,13 +219,13 @@ const ActivityScreen = () => {
             style={[
               styles.badge,
               {
-                backgroundColor: isMqttConnected ? "#4CAF5020" : "#FF980020",
+                backgroundColor: mqttBadgeBackgroundColor,
               },
             ]}
           >
             <ThemedText
               style={{
-                color: isMqttConnected ? "#4CAF50" : "#FF9800",
+                color: mqttBadgeTextColor,
                 fontSize: 12,
                 fontWeight: "bold",
               }}
