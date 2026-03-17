@@ -15,11 +15,17 @@ import {
   Text,
   TouchableOpacity,
   View,
+  useColorScheme,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
 const PatientSelectionScreen = () => {
   const router = useRouter(); // <-- Initialize the router
+  const colorScheme = useColorScheme();
+  const isDarkMode = colorScheme === "dark";
+  const primaryOnPrimaryColor = isDarkMode ? "#000000" : "#FFFFFF";
+  const emptyIconColor = isDarkMode ? "#4F7D81" : "#B0C8CA";
+
   const {
     patients,
     selectedId,
@@ -62,7 +68,7 @@ const PatientSelectionScreen = () => {
               onPress={() => setShowAddModal(true)}
               activeOpacity={0.8}
             >
-              <Ionicons name="add" size={24} color="#FFFFFF" />
+              <Ionicons name="add" size={24} color={primaryOnPrimaryColor} />
             </TouchableOpacity>
           </View>
 
@@ -79,7 +85,7 @@ const PatientSelectionScreen = () => {
             ))
           ) : (
             <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={64} color="#B0C8CA" />
+              <Ionicons name="people-outline" size={64} color={emptyIconColor} />
               <Text style={styles.emptyTitle}>No Patients Found</Text>
               <Text style={styles.emptySubtitle}>
                 Please add a patient or create account for before proceeding.
@@ -107,7 +113,7 @@ const PatientSelectionScreen = () => {
               disabled={!selectedId || isConfirming}
             >
               {isConfirming ? (
-                <ActivityIndicator color="#FFFFFF" />
+                <ActivityIndicator color={primaryOnPrimaryColor} />
               ) : (
                 <Text style={styles.confirmButtonText}>Confirm</Text>
               )}
