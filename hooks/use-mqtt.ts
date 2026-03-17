@@ -1,4 +1,3 @@
-import { GaitSensorData } from "@/types/ble-type";
 import type { IClientOptions, MqttClient } from "precompiled-mqtt";
 import { connect as mqttConnect } from "precompiled-mqtt";
 import { useCallback, useRef, useState } from "react";
@@ -15,8 +14,7 @@ export interface UseMqttReturn {
   disconnectMqtt: () => void;
   publishGaitData: (
     userId: string,
-    sessionId: string,
-    dataBatch: GaitSensorData[],
+    dataBatch: number[],
   ) => void;
 }
 
@@ -33,8 +31,7 @@ export const useMqtt = (): UseMqttReturn => {
   const connectMqtt = useCallback(async (_token?: string) => {
     if (!MQTT_BROKER_URL) {
       console.error(
-        "[MQTT] EXPO_PUBLIC_MQTT_BROKER_URL is empty. " +
-          "Set it in .env.local and restart with `npx expo start --clear`.",
+        "[MQTT] BROKER_URL not found"
       );
       throw new Error("MQTT broker URL is not configured");
     }
@@ -44,15 +41,13 @@ export const useMqtt = (): UseMqttReturn => {
       return;
     }
 
-    console.log("[MQTT] Connecting to", MQTT_BROKER_URL);
-
     return new Promise<void>((resolve, reject) => {
       try {
         const options: IClientOptions = {
           protocol: "wss",
           username: MQTT_USERNAME,
           password: MQTT_PASSWORD,
-          clientId: `pgad_mobile_${Math.random().toString(16).substring(2, 8)}`,
+          clientId: `perga_mobile_${Math.random().toString(16).substring(2, 8)}`,
           reconnectPeriod: 5000,
           connectTimeout: CONNECT_TIMEOUT_MS,
         };
@@ -117,20 +112,16 @@ export const useMqtt = (): UseMqttReturn => {
   }, []);
 
   const publishGaitData = useCallback(
-    (userId: string, sessionId: string, dataBatch: GaitSensorData[]) => {
+    (userId: string, dataBatch: number[]) => {
       if (!clientRef.current || !isConnected) {
         console.warn("Cannot publish: MQTT not connected");
         return;
       }
 
-      const topic = `pgad/users/${userId}/sessions/${sessionId}/data`;
+      const topic = `gait/telemetry/${userId}`;
 
       const payload = {
-        userId,
-        sessionId,
-        timestamp: new Date().toISOString(),
-        batchSize: dataBatch.length,
-        data: dataBatch,
+        gyro_z: dataBatch
       };
 
       try {

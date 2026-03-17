@@ -1,4 +1,4 @@
-import { BluetoothDeviceDisplay, GaitSensorData } from "@/types/ble-type";
+import { BluetoothDeviceDisplay } from "@/types/ble-type";
 import { Buffer } from "buffer";
 import * as ExpoDevice from "expo-device";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
@@ -21,7 +21,6 @@ if (
 }
 const SCAN_DURATION_MS = 10_000;
 const BATCH_SIZE = 100;
-const SAMPLE_INTERVAL_MS = 10; // for split 10 ms between samples
 
 // ─── Singleton BleManager ────────────────────────────────────────────────────
 //    Only ONE BleManager must exist in the whole app.
@@ -30,18 +29,6 @@ const bleManager: BleManager | null = !IS_WEB ? new BleManager() : null;
 let dataAccumulator: number[] = [];
 let monitorSubscription: { remove: () => void } | null = null;
 let scanTimeoutId: ReturnType<typeof setTimeout> | null = null;
-
-/** Build an ISO-8601 timestamp carrying the device's local UTC offset. */
-const formatWithLocalOffset = (ms: number): string => {
-  const date = new Date(ms);
-  const isoWithoutZ = date.toISOString().slice(0, -1); // remove trailing 'Z'
-  const offsetMinutes = date.getTimezoneOffset(); // minutes behind UTC
-  const absMinutes = Math.abs(offsetMinutes);
-  const sign = offsetMinutes <= 0 ? "+" : "-";
-  const hours = String(Math.floor(absMinutes / 60)).padStart(2, "0");
-  const minutes = String(absMinutes % 60).padStart(2, "0");
-  return `${isoWithoutZ}${sign}${hours}:${minutes}`;
-};
 
 /** Android-only BLE permission request. iOS uses Info.plist entitlements. */
 async function requestBlePermissions(): Promise<boolean> {
@@ -75,7 +62,7 @@ export interface BleState {
   // Most recent parsed sensor reading
   lastBleData: { z: number; timestamp: number } | null;
   // Batch that is pending to publish
-  pendingBatch: GaitSensorData[];
+  pendingBatch: number[];
 
   isWeb: boolean;
   scanForDevices: () => Promise<void>;
@@ -115,20 +102,8 @@ export const useBleStore = create<BleState>()((set, get) => {
     }
   };
 
-  // Convert raw float values into timestamped `GaitSensorData[]`
   const finalizeBatch = (data: number[]): void => {
-    const now = Date.now();
-
-    const finalizedData: GaitSensorData[] = data.map((val, index) => {
-      const offset = (data.length - 1 - index) * SAMPLE_INTERVAL_MS;
-      return {
-        timestamp: formatWithLocalOffset(now - offset),
-        gyro_z: parseFloat(val.toFixed(4)),
-      };
-    });
-
-    // Setting a new array reference guarantees useEffect in consumers fires.
-    set({ pendingBatch: finalizedData });
+    set({ pendingBatch: data });
   };
 
   return {

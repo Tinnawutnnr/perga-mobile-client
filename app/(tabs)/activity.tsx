@@ -89,11 +89,11 @@ const ActivityScreen = () => {
       isMqttConnected &&
       sessionId
     ) {
-      publishGaitData("USER_ID", sessionId, pendingBatch);
+      publishGaitData("USER_ID", pendingBatch);
       setBatchSentCount((prev) => {
         const next = prev + 1;
         console.log(
-          `Publish Batch No. ${next} to HiveMQ (Session: ${sessionId})`,
+          `Publish Batch No. ${next} to HiveMQ `,
         );
         return next;
       });
