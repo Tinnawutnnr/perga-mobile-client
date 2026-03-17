@@ -146,10 +146,10 @@ const ActivityScreen = () => {
       }
 
       publishGaitData(USER_ID, pendingBatch);
-      // setBatchSentCount((prev) => {
-      //   const next = prev + 1;
-      //   return next;
-      // });
+      setBatchSentCount((prev) => {
+        const next = prev + 1;
+        return next;
+      });
     }
   }, [
     pendingBatch,
