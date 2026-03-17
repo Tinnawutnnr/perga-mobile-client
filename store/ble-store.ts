@@ -86,6 +86,8 @@ export const useBleStore = create<BleState>()((set, get) => {
       lastVal = val;
     }
 
+    console.log(`Accumulated: ${dataAccumulator.length} / ${BATCH_SIZE}`);
+
     set({
       lastBleData: {
         z: parseFloat(lastVal.toFixed(4)),
@@ -210,6 +212,7 @@ export const useBleStore = create<BleState>()((set, get) => {
 
       // Reset accumulator for a fresh streaming session
       dataAccumulator = [];
+      set({ pendingBatch: [] });
 
       // Remove any previous subscription before creating a new one.
       if (monitorSubscription) {
@@ -222,6 +225,11 @@ export const useBleStore = create<BleState>()((set, get) => {
         CHARACTERISTIC_UUID!,
         (error, characteristic) => {
           if (error) {
+            if (error.errorCode === 2 || error.message.includes("cancelled")) {
+              console.log("BLE Stream stopped gracefully.");
+              return;
+            }
+
             console.error("Monitor error:", error);
             return;
           }
