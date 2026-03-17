@@ -156,6 +156,9 @@ const ActivityScreen = () => {
     isRecording,
     isWaitingForData,
     isMqttConnected,
+    startTimer,
+    startPolling,
+    publishGaitData,
   ]);
 
   // ── Main action handler ──

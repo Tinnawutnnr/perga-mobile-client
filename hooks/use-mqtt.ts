@@ -134,7 +134,7 @@ export const useMqtt = (): UseMqttReturn => {
           "[MQTT] Failed to initialize client:",
           error instanceof Error ? error.message : error,
         );
-        reject(error instanceof Error ? error : new Error(String(error)));
+        settleReject(error instanceof Error ? error : new Error(String(error)));
       }
     });
   }, []);
