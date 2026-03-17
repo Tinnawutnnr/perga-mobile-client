@@ -82,7 +82,7 @@ const PatientSelectionScreen = () => {
               <Ionicons name="people-outline" size={64} color="#B0C8CA" />
               <Text style={styles.emptyTitle}>No Patients Found</Text>
               <Text style={styles.emptySubtitle}>
-                Please add a patient or create account for before proceeding.
+                Please add a patient or create account before proceeding.
               </Text>
             </View>
           )}

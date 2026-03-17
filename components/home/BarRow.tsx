@@ -11,7 +11,8 @@ interface BarRowProps {
 }
 
 const BarRow = ({ label, value, max, color, valueStr }: BarRowProps) => {
-  const ratio = max > 0 ? Math.min(value / max, 1) : 0;
+  const safeMax = Math.abs(max);
+  const ratio = safeMax > 0 ? Math.min(Math.abs(value) / safeMax, 1) : 0;
   return (
     <View style={styles.row}>
       <ThemedText style={styles.sideLabel}>{label}</ThemedText>

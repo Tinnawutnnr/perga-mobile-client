@@ -208,7 +208,7 @@ export const useHomeData = (
       },
       {
         label: "Heel Impact",
-        unit: "",
+        unit: "rad/s",
         before: +before.avg_val_gyr_hs.toFixed(2),
         after: +after.avg_val_gyr_hs.toFixed(2),
         deltaPercent: delta(before.avg_val_gyr_hs, after.avg_val_gyr_hs),

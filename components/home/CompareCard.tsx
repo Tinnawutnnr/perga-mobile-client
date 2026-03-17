@@ -23,7 +23,7 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
     deltaColor = colors.error; // Red
     deltaIcon = "trending-down-outline";
   } else if (item.evaluation === "warning") {
-    deltaColor = "#E69A45"; // Orange color for warnings/cautions
+    deltaColor = colors.warning; // Orange color for warnings/cautions
     deltaIcon = "alert-circle-outline";
   } else {
     deltaIcon = "trending-up-outline";
@@ -33,7 +33,8 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
 
   const beforeColor = scheme === "dark" ? "#5D7DDF" : "#4F7D81";
   const afterColor = deltaColor;
-  const maxVal = Math.max(item.before, item.after) * 1.15 || 1;
+  const maxVal =
+    Math.max(Math.abs(item.before), Math.abs(item.after)) * 1.15 || 1;
   const fmtVal = (n: number) => `${n}${item.unit ? ` ${item.unit}` : ""}`;
 
   return (
