@@ -34,8 +34,8 @@ const SummaryBanner = ({ comparison }: { comparison: CompareMetric[] }) => {
   }
   // If there's 1 error, or just general warnings
   else if (badCount > 0) {
-    bgColor = "#E69A45" + "22"; // Using the orange caution color
-    iconColor = "#E69A45";
+    bgColor = colors.warning + "22"; // Using the orange caution color
+    iconColor = colors.warning;
     icon = "alert-outline";
     message = `${badCount} ${badCount === 1 ? "metric" : "metrics"} showing concerning changes`;
   }
