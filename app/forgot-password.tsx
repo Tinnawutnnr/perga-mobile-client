@@ -6,13 +6,13 @@ import {
     KeyboardAvoidingView,
     Modal,
     Platform,
-    SafeAreaView,
     ScrollView,
     StyleSheet,
     Text,
     TouchableOpacity,
     View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
 import { isValidEmail } from "../utils/validation";
@@ -29,7 +29,7 @@ const ForgotPasswordScreen = () => {
       console.log("Please enter a valid email address");
       return;
     }
-    
+
     // Show success modal
     setShowSuccessModal(true);
   };
@@ -69,8 +69,8 @@ const ForgotPasswordScreen = () => {
           {/* Content */}
           <View style={styles.contentContainer}>
             {/* Back button */}
-            <TouchableOpacity 
-              style={styles.backButton} 
+            <TouchableOpacity
+              style={styles.backButton}
               onPress={handleBackToLogin}
               activeOpacity={0.7}
             >
@@ -79,7 +79,8 @@ const ForgotPasswordScreen = () => {
 
             <Text style={styles.title}>Forgot Password?</Text>
             <Text style={styles.subtitle}>
-              Enter your email address and we&apos;ll send you a verification code to reset your password
+              Enter your email address and we&apos;ll send you a verification
+              code to reset your password
             </Text>
 
             {/* Email input */}
@@ -95,7 +96,7 @@ const ForgotPasswordScreen = () => {
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                (!email || !isValidEmail(email)) && styles.submitButtonDisabled
+                (!email || !isValidEmail(email)) && styles.submitButtonDisabled,
               ]}
               onPress={handleSubmit}
               activeOpacity={0.8}
@@ -126,10 +127,11 @@ const ForgotPasswordScreen = () => {
               <View style={styles.modalIconContainer}>
                 <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
               </View>
-              
+
               <Text style={styles.modalTitle}>Code Sent!</Text>
               <Text style={styles.modalMessage}>
-                We&apos;ve sent a verification code to {email}. Please check your email and enter the code on the next screen.
+                We&apos;ve sent a verification code to {email}. Please check
+                your email and enter the code on the next screen.
               </Text>
 
               <TouchableOpacity

@@ -2,8 +2,8 @@ import ArticleCard from "@/components/metric-detail/ArticleCard";
 import HeroCard from "@/components/metric-detail/HeroCard";
 import OtherCompareCard from "@/components/metric-detail/OtherCompareCard";
 import SelfCompareCard from "@/components/metric-detail/SelfCompareCard";
-import { CompareMode, useMetricCompare } from "@/hooks/use-metric-compare";
 import { ThemedText } from "@/components/themed-text";
+import { CompareMode, useMetricCompare } from "@/hooks/use-metric-compare";
 import { useMetricDetail } from "@/hooks/use-metric-detail";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
@@ -11,14 +11,18 @@ import { router } from "expo-router";
 import React from "react";
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-const MODES: { key: CompareMode; label: string; icon: keyof typeof Ionicons.glyphMap }[] = [
+const MODES: {
+  key: CompareMode;
+  label: string;
+  icon: keyof typeof Ionicons.glyphMap;
+}[] = [
   { key: "self", label: "Self Compare", icon: "person-outline" },
   { key: "others", label: "Peer Compare", icon: "people-outline" },
 ];
@@ -112,7 +116,9 @@ const ErrorCard = ({
         {message}
       </ThemedText>
       <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
-        <ThemedText style={{ fontSize: 13, color: "#5D7DDF", fontWeight: "600" }}>
+        <ThemedText
+          style={{ fontSize: 13, color: "#5D7DDF", fontWeight: "600" }}
+        >
           Retry
         </ThemedText>
       </TouchableOpacity>
@@ -140,7 +146,7 @@ const MetricCompareSection = () => {
   return (
     <>
       <ModeToggle mode={mode} onModeChange={setMode} />
-      <ThemedText style={[styles.modeSubtitle, { color: mutedColor }]}> 
+      <ThemedText style={[styles.modeSubtitle, { color: mutedColor }]}>
         {mode === "self"
           ? "Your metric values over time"
           : "How you compare to your peer group"}
@@ -172,7 +178,7 @@ const MetricDetailScreen = () => {
   const backgroundColor = useThemeColor({}, "background");
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}> 
+    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView
         style={[styles.container, { backgroundColor }]}
         showsVerticalScrollIndicator={false}

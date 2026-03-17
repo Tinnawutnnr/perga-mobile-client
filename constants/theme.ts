@@ -2,10 +2,10 @@
  * Colors for light and dark themes in PGAD mobile app
  */
 
-import { Platform } from 'react-native';
+import { Platform } from "react-native";
 
-const tintColorLight = '#4F7D81';
-const tintColorDark = '#8BBAC0';
+const tintColorLight = "#4F7D81";
+const tintColorDark = "#8BBAC0";
 
 export const Colors = {
   light: {
@@ -23,6 +23,7 @@ export const Colors = {
     success: "#4CAF50",
     warning: "#FFC107",
     error: "#FF4444",
+    info: "#7D8890",
     surface: "#FFFFFF",
     onSurface: "#1a1a1a",
   },
@@ -41,6 +42,7 @@ export const Colors = {
     success: "#66BB6A",
     warning: "#FFCA28",
     error: "#EF5350",
+    info: "#8D98A1",
     surface: "#1A1A1A",
     onSurface: "#FFFFFF",
   },
@@ -48,21 +50,22 @@ export const Colors = {
 
 export const Fonts = Platform.select({
   ios: {
-    sans: 'system-ui',
-    serif: 'ui-serif',
-    rounded: 'ui-rounded',
-    mono: 'ui-monospace',
+    sans: "system-ui",
+    serif: "ui-serif",
+    rounded: "ui-rounded",
+    mono: "ui-monospace",
   },
   default: {
-    sans: 'normal',
-    serif: 'serif',
-    rounded: 'normal',
-    mono: 'monospace',
+    sans: "normal",
+    serif: "serif",
+    rounded: "normal",
+    mono: "monospace",
   },
   web: {
     sans: "system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif",
     serif: "Georgia, 'Times New Roman', serif",
-    rounded: "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
+    rounded:
+      "'SF Pro Rounded', 'Hiragino Maru Gothic ProN', Meiryo, 'MS PGothic', sans-serif",
     mono: "SFMono-Regular, Menlo, Monaco, Consolas, 'Liberation Mono', 'Courier New', monospace",
   },
 });

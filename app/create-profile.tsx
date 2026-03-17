@@ -3,13 +3,13 @@ import React, { useState } from "react";
 import {
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { profileApi } from "../api/profile";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";

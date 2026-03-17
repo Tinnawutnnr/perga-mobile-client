@@ -6,7 +6,8 @@ export interface GaitData {
   cadence: number;
   swingSpeed: number;
   heelImpact: number;
-  stepDuration: number;
+  swingTime: number;
+  stanceTime: number;
   stability: number;
 }
 
@@ -15,7 +16,7 @@ export interface Metric {
   value: string;
   subValue: string;
   status: string;
-  statusColor?: "success" | "warning" | "danger" | "info";
+  statusColor?: "success" | "warning" | "error" | "info";
   iconName: IconName;
   onPress: () => void;
 }
@@ -73,28 +74,28 @@ export interface WindowReport {
 }
 
 // ─── Compare API types ───────────────────────────────────────────────────────
- 
+
 export type CompareRange = "day" | "week" | "month" | "year";
- 
+
 export interface MetricInfo {
-  name: string;           // e.g. "avg_swing_time"
-  display_name: string;   // e.g. "Average Swing Time"
-  unit: string;           // e.g. "seconds"
-  description: string;    // Thai or English description
+  name: string; // e.g. "avg_swing_time"
+  display_name: string; // e.g. "Average Swing Time"
+  unit: string; // e.g. "seconds"
+  description: string; // Thai or English description
 }
- 
+
 export interface ComparisonData {
   patient_current_avg: number;
   peer_group_avg: number;
-  percentile?: number;    // optional
+  percentile?: number; // optional
   peer_group_label: string; // e.g. "60-65 years old"
 }
- 
+
 export interface HistoryEntry {
-  date: string;   // "YYYY-MM-DD"
+  date: string; // "YYYY-MM-DD"
   value: number;
 }
- 
+
 export interface MetricCompareResponse {
   status: "success" | "error";
   metric_info: MetricInfo;

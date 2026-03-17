@@ -22,6 +22,33 @@ export interface MetricBoxProps {
   style?: ViewStyle;
 }
 
+function normalizeHex(color: string, fallback: string) {
+  if (!color) return fallback;
+  const candidate = color.trim();
+  return /^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(candidate)
+    ? candidate
+    : fallback;
+}
+
+function hexToRGBA(hex: string, alpha: number) {
+  // Keep rgba generation deterministic for all status colors.
+  if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) {
+    return `rgba(0, 0, 0, ${alpha})`;
+  }
+
+  let r, g, b;
+  if (hex.length === 4) {
+    r = parseInt(hex[1] + hex[1], 16);
+    g = parseInt(hex[2] + hex[2], 16);
+    b = parseInt(hex[3] + hex[3], 16);
+  } else {
+    r = parseInt(hex.slice(1, 3), 16);
+    g = parseInt(hex.slice(3, 5), 16);
+    b = parseInt(hex.slice(5, 7), 16);
+  }
+  return `rgba(${r}, ${g}, ${b}, ${alpha})`;
+}
+
 export function MetricBox({
   label,
   value,
@@ -38,6 +65,10 @@ export function MetricBox({
     statusColor in themeColors
       ? themeColors[statusColor as keyof typeof themeColors]
       : statusColor;
+  const resolvedStatusHex = normalizeHex(
+    String(resolvedStatusColor),
+    String(themeColors.info),
+  );
 
   const isPressable = Boolean(onPress);
 
@@ -49,10 +80,7 @@ export function MetricBox({
     >
       {/* Left accent bar */}
       <View
-        style={[
-          styles.accentBar,
-          { backgroundColor: String(resolvedStatusColor) },
-        ]}
+        style={[styles.accentBar, { backgroundColor: resolvedStatusHex }]}
       />
       <TouchableOpacity
         style={styles.content}
@@ -65,7 +93,10 @@ export function MetricBox({
           <View
             style={[
               styles.iconContainer,
-              { backgroundColor: String(resolvedStatusColor) + "18" },
+              {
+                backgroundColor: hexToRGBA(resolvedStatusHex, 0.1),
+                borderRadius: 12,
+              },
             ]}
           >
             {icon}
@@ -79,14 +110,14 @@ export function MetricBox({
           <View
             style={[
               styles.statusPill,
-              { backgroundColor: String(resolvedStatusColor) + "22" },
+              {
+                backgroundColor: hexToRGBA(resolvedStatusHex, 0.15),
+                borderRadius: 20,
+              },
             ]}
           >
             <ThemedText
-              style={[
-                styles.statusText,
-                { color: String(resolvedStatusColor) },
-              ]}
+              style={[styles.statusText, { color: resolvedStatusHex }]}
             >
               {status}
             </ThemedText>
@@ -103,7 +134,7 @@ export function MetricBox({
           </View>
           {isPressable && (
             <ThemedText
-              style={[styles.tapHint, { color: String(resolvedStatusColor) }]}
+              style={[styles.tapHint, { color: Colors[colorScheme].tint }]}
             >
               Details
             </ThemedText>
@@ -123,7 +154,8 @@ const styles = StyleSheet.create({
   },
   accentBar: {
     width: 4,
-    borderRadius: 0,
+    borderTopLeftRadius: 16,
+    borderBottomLeftRadius: 16,
   },
   content: {
     flex: 1,
@@ -139,6 +171,7 @@ const styles = StyleSheet.create({
     borderRadius: 12,
     justifyContent: "center",
     alignItems: "center",
+    overflow: "hidden",
   },
   labelBlock: {
     flex: 1,
@@ -154,6 +187,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
     paddingVertical: 2,
     borderRadius: 20,
+    overflow: "hidden",
   },
   statusText: {
     fontSize: 11,

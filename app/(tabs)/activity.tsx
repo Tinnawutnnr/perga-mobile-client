@@ -12,7 +12,6 @@ import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   Alert,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Switch,
@@ -20,6 +19,7 @@ import {
   View,
 } from "react-native";
 import "react-native-get-random-values";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "../../components/themed-text";
 import { ThemedView } from "../../components/themed-view";
