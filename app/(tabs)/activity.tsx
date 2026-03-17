@@ -134,6 +134,19 @@ const ActivityScreen = () => {
     };
   }, []);
 
+  // Keep latest report visible even when not recording.
+  useEffect(() => {
+    const fetchLatestReport = () => {
+      if (!isRecording && !isWaitingForData) {
+        setLatestReport(generateMockWindowReport(MOCK_PATIENT_ID));
+      }
+    };
+
+    fetchLatestReport();
+    const idleReportInterval = setInterval(fetchLatestReport, WINDOW_REPORT_INTERVAL_MS);
+    return () => clearInterval(idleReportInterval);
+  }, [isRecording, isWaitingForData]);
+
   // ── Publish BLE batch & Catch First Batch ──
   useEffect(() => {
     if ((isRecording || isWaitingForData) && pendingBatch.length > 0 && isMqttConnected) {
@@ -202,7 +215,6 @@ const ActivityScreen = () => {
         `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nTotal batches sent: ${batchSentCount}\nReports received: ${reportCount}`,
       );
       setSessionTotals(createEmptySessionTotals());
-      setLatestReport(null);
       setReportCount(0);
       setSessionId(null);
     }
@@ -244,35 +256,6 @@ const ActivityScreen = () => {
           </ThemedView>
         </ThemedView>
 
-        {/* Live Preview Card */}
-        <ThemedView
-          style={[styles.card, { backgroundColor: cardColor, borderColor }]}
-        >
-          <ThemedText
-            style={{ fontSize: 16, marginBottom: 10, color: mutedColor }}
-          >
-            Live Z-Axis Data (Gyro)
-          </ThemedText>
-          <ThemedText
-            style={{
-              fontSize: 56,
-              lineHeight: 68,
-              fontWeight: "bold",
-              textAlign: "center",
-              marginVertical: 20,
-              color: tintColor,
-            }}
-          >
-            {lastBleData?.z?.toFixed(2) || "0.00"}
-          </ThemedText>
-          <ThemedText
-            type="muted"
-            style={{ textAlign: "center", fontSize: 12 }}
-          >
-            Connected to: {connectedDevice?.name || "None"}
-          </ThemedText>
-        </ThemedView>
-
         {/* Action Button */}
         <TouchableOpacity
           style={[
@@ -311,7 +294,16 @@ const ActivityScreen = () => {
                 ? "Stop Activity"
                 : "Start Tracking"}
           </ThemedText>
+
         </TouchableOpacity>
+                {!connectedDevice && !isRecording && (
+          <ThemedText
+            type="muted"
+            style={{ textAlign: "center", marginTop: 20, marginBottom: 20, fontSize: 14 }}
+          >
+            No BLE device connected. Please connect to ESP32 in the BLE tab first.
+          </ThemedText>
+        )}
 
         {/* Duration + Status Card */}
         {isRecording && (
@@ -369,22 +361,13 @@ const ActivityScreen = () => {
         )}
 
         {/* Latest WindowReport card */}
-        {isRecording && latestReport && (
+        {latestReport && (
           <WindowStatCard
             report={latestReport}
             cardColor={cardColor}
             borderColor={borderColor}
             tintColor={tintColor}
           />
-        )}
-
-        {!connectedDevice && !isRecording && (
-          <ThemedText
-            type="muted"
-            style={{ textAlign: "center", marginTop: 20, fontSize: 14 }}
-          >
-            No BLE device connected. Please connect to ESP32 in the BLE tab first.
-          </ThemedText>
         )}
 
         {/* Bottom spacer */}
