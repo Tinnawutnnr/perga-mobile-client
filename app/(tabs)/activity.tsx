@@ -172,19 +172,25 @@ const ActivityScreen = () => {
       const newSid = uuidv4();
       setSessionId(newSid);
       setBatchSentCount(0);
+
       setIsWaitingForData(true);
 
       try {
+        if (!isMqttConnected) {
+          console.log("MQTT", "Not connected yet, trying now...");
+          await connectMqtt(); 
+        }
+
         startStreaming();
       } catch (error) {
         console.error("Failed to start BLE streaming:", error);
         setIsWaitingForData(false);
+        setSessionId(null);
       }
     } else {
       // Stop path: clear device/network resources, then stop timer + polling.
       console.log("Stopping activity...");
       stopStreaming();
-      await new Promise(resolve => setTimeout(resolve, 100));
       stopTimer();
       stopPolling();
       setIsRecording(false);
