@@ -67,7 +67,7 @@ export function MetricBox({
       : statusColor;
   const resolvedStatusHex = normalizeHex(
     String(resolvedStatusColor),
-    "#7D8890",
+    String(themeColors.info),
   );
 
   const isPressable = Boolean(onPress);
