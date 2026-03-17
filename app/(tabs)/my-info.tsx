@@ -13,13 +13,13 @@ import {
   ActivityIndicator,
   KeyboardAvoidingView,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const MyInfoScreen = () => {
   const { token, role } = useAuth();
@@ -133,7 +133,7 @@ const MyInfoScreen = () => {
           <View style={styles.contentContainer}>
             {/* Header */}
             <View style={styles.headerRow}>
-              <TouchableOpacity onPress={() => router.back()}>
+              <TouchableOpacity onPress={() => router.push("/(tabs)/profile")}>
                 <Text style={styles.backText}>Back</Text>
               </TouchableOpacity>
               <TouchableOpacity

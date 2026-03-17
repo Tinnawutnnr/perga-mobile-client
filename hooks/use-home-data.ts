@@ -1,4 +1,3 @@
-import { caretakerApi } from "@/api/caretaker";
 import { useAuth } from "@/context/auth-context";
 import { mockDailyAverages } from "@/data/mockGaitData";
 import { usePatientStore } from "@/store/patient-store";
@@ -61,7 +60,8 @@ function toGaitData(r: DailyAverage): GaitData {
         : 0,
     swingSpeed: Math.round(r.avg_max_gyr_ms),
     heelImpact: +r.avg_val_gyr_hs.toFixed(2),
-    stepDuration: +r.avg_swing_time.toFixed(2),
+    swingTime: +r.avg_swing_time.toFixed(2),
+    stanceTime: +r.avg_stance_time.toFixed(2),
     stability: Math.max(0, Math.round((1 - r.avg_stride_cv) * 100)),
   };
 }
@@ -71,9 +71,10 @@ export interface CompareMetric {
   unit: string;
   before: number;
   after: number;
-  deltaPercent: number; // positive = increased
-  higherIsBetter: boolean; // drives red/green coloring
-  neutral?: boolean;
+  deltaPercent: number;
+  higherIsBetter: boolean;
+  evaluation?: "success" | "error" | "warning";
+  disclaimer?: string;
 }
 
 export interface HomeData {
@@ -100,19 +101,15 @@ export const useHomeData = (
 
   const refresh = () => setTick((t) => t + 1);
 
-  //   useEffect(() => {
-  //     if (!selectedPatient || !token) return;
-  //     setLoading(true);
-  //     setError(null);
-  //     caretakerApi
-  //       .getDailyAverages(selectedPatient.id, token)
-  //       .then(setRecords)
-  //       .catch((e: Error) => setError(e.message))
-  //       .finally(() => setLoading(false));
-  //   }, [selectedPatient?.id, token, tick]);
   useEffect(() => {
+    // use mock data
+    setRecords(mockDailyAverages);
+    setLoading(false);
+    setError(null);
+
+    /* 
+    // FOR REAL DATA
     if (!selectedPatient || !token) {
-      // No patient selected — use mock data for local testing
       setRecords(mockDailyAverages);
       return;
     }
@@ -123,6 +120,7 @@ export const useHomeData = (
       .then(setRecords)
       .catch((e: Error) => setError(e.message))
       .finally(() => setLoading(false));
+    */
   }, [selectedPatient?.id, token, tick]);
 
   const latestRecord = useMemo(
@@ -178,6 +176,19 @@ export const useHomeData = (
       return Math.round(((a - b) / Math.abs(b)) * 100);
     };
 
+    // Helper to apply clinical MCID thresholds based on Perera et al. (2006)
+    // < 5% = Normal variance (Success)
+    // 5-10% = Small meaningful change (Warning/Caution)
+    // > 10% = Substantial meaningful change (Error/Alert)
+    const evaluateThreshold = (
+      diffPercent: number,
+    ): "success" | "warning" | "error" => {
+      const absDiff = Math.abs(diffPercent);
+      if (absDiff >= 10) return "error";
+      if (absDiff >= 5) return "warning";
+      return "success";
+    };
+
     return [
       {
         label: "Swing Speed",
@@ -186,15 +197,31 @@ export const useHomeData = (
         after: Math.round(after.avg_max_gyr_ms),
         deltaPercent: delta(before.avg_max_gyr_ms, after.avg_max_gyr_ms),
         higherIsBetter: true,
+        evaluation:
+          delta(before.avg_max_gyr_ms, after.avg_max_gyr_ms) <= -5
+            ? evaluateThreshold(
+                delta(before.avg_max_gyr_ms, after.avg_max_gyr_ms),
+              )
+            : "success",
+        disclaimer:
+          "Decrease indicates muscle weakness/onset of shuffling gait",
       },
       {
         label: "Heel Impact",
-        unit: "°/s",
+        unit: "",
         before: +before.avg_val_gyr_hs.toFixed(2),
         after: +after.avg_val_gyr_hs.toFixed(2),
         deltaPercent: delta(before.avg_val_gyr_hs, after.avg_val_gyr_hs),
         higherIsBetter: false,
-        neutral: true,
+        evaluation: evaluateThreshold(
+          delta(before.avg_val_gyr_hs, after.avg_val_gyr_hs),
+        ),
+        disclaimer:
+          delta(before.avg_val_gyr_hs, after.avg_val_gyr_hs) >= 5
+            ? "Spike indicates foot slapping (tibialis anterior weakness)."
+            : delta(before.avg_val_gyr_hs, after.avg_val_gyr_hs) <= -5
+              ? "Drop indicates antalgic gait/limping."
+              : "",
       },
       {
         label: "Swing Time",
@@ -203,7 +230,16 @@ export const useHomeData = (
         after: +after.avg_swing_time.toFixed(2),
         deltaPercent: delta(before.avg_swing_time, after.avg_swing_time),
         higherIsBetter: false,
-        neutral: true, // slower could be caution, not just weakness
+        evaluation:
+          delta(before.avg_swing_time, after.avg_swing_time) <= -5
+            ? evaluateThreshold(
+                delta(before.avg_swing_time, after.avg_swing_time),
+              )
+            : "success",
+        disclaimer:
+          delta(before.avg_swing_time, after.avg_swing_time) <= -5
+            ? "Decrease correlates with shortened step/dragging."
+            : "",
       },
       {
         label: "Stance Time",
@@ -212,7 +248,15 @@ export const useHomeData = (
         after: +after.avg_stance_time.toFixed(2),
         deltaPercent: delta(before.avg_stance_time, after.avg_stance_time),
         higherIsBetter: false,
-        neutral: true, // longer stance may be compensatory caution post-fall
+        evaluation: evaluateThreshold(
+          delta(before.avg_stance_time, after.avg_stance_time),
+        ),
+        disclaimer:
+          delta(before.avg_stance_time, after.avg_stance_time) >= 5
+            ? "Increase indicates cautious walking/fear of falling."
+            : delta(before.avg_stance_time, after.avg_stance_time) <= -5
+              ? "Sudden drop indicates joint pain avoidance."
+              : "",
       },
       {
         label: "Stride CV",
@@ -220,20 +264,32 @@ export const useHomeData = (
         before: +(before.avg_stride_cv * 100).toFixed(1),
         after: +(after.avg_stride_cv * 100).toFixed(1),
         deltaPercent: delta(before.avg_stride_cv, after.avg_stride_cv),
-        higherIsBetter: false, // lower variability = more stable
+        higherIsBetter: false,
+        evaluation:
+          delta(before.avg_stride_cv, after.avg_stride_cv) >= 5
+            ? evaluateThreshold(
+                delta(before.avg_stride_cv, after.avg_stride_cv),
+              )
+            : "success",
+        disclaimer:
+          delta(before.avg_stride_cv, after.avg_stride_cv) >= 5
+            ? "High predictor of future falls."
+            : "",
       },
       {
         label: "Anomalies",
         unit: "",
-        before: before.anomaly_count, // 0 (avg, rounded)
-        after: after.anomaly_count, // 5
+        before: before.anomaly_count,
+        after: after.anomaly_count,
         deltaPercent:
           before.anomaly_count === 0
             ? after.anomaly_count > 0
               ? 100
-              : 0 // treat 0→N as 100% increase
+              : 0
             : delta(before.anomaly_count, after.anomaly_count),
         higherIsBetter: false,
+        evaluation:
+          after.anomaly_count > before.anomaly_count ? "error" : "success",
       },
     ];
   }, [records, fallDate]);

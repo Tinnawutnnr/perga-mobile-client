@@ -12,21 +12,22 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
-  const isGood =
-    (item.higherIsBetter && item.deltaPercent >= 0) ||
-    (!item.higherIsBetter && item.deltaPercent <= 0);
+  // Map the new evaluation directly to colors based on biomechanical criteria:
+  // - "error" (Red/Alert): Critical regressions (e.g., sudden drop in Stance Time indicating pain avoidance, drop in Swing Time indicating shuffling, spiked Heel Impact indicating foot slapping)
+  // - "warning" (Orange/Caution): Compensatory behaviors (e.g., increased Stance Time indicating cautious walking/fear of falling, dropped Heel Impact indicating limping)
+  // - "success" (Green/Good): Stable or improving metrics
+  let deltaColor = colors.success; // Default green
+  let deltaIcon: keyof typeof Ionicons.glyphMap = "checkmark-circle-outline";
 
-  const deltaColor = item.neutral
-    ? colors.accent
-    : isGood
-      ? colors.success
-      : colors.error;
-
-  const deltaIcon: keyof typeof Ionicons.glyphMap = item.neutral
-    ? "alert-circle-outline"
-    : isGood
-      ? "trending-up-outline"
-      : "trending-down-outline";
+  if (item.evaluation === "error") {
+    deltaColor = colors.error; // Red
+    deltaIcon = "trending-down-outline";
+  } else if (item.evaluation === "warning") {
+    deltaColor = "#E69A45"; // Orange color for warnings/cautions
+    deltaIcon = "alert-circle-outline";
+  } else {
+    deltaIcon = "trending-up-outline";
+  }
 
   const arrow = item.deltaPercent > 0 ? "▲" : item.deltaPercent < 0 ? "▼" : "–";
 
@@ -44,12 +45,17 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
       <View style={styles.topRow}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ThemedText style={styles.metricLabel}>{item.label}</ThemedText>
-          {item.neutral && (
-            <View
-              style={[styles.pill, { backgroundColor: colors.accent + "22" }]}
-            >
-              <ThemedText style={[styles.pillText, { color: colors.accent }]}>
-                Review
+          {item.evaluation === "warning" && (
+            <View style={[styles.pill, { backgroundColor: deltaColor + "22" }]}>
+              <ThemedText style={[styles.pillText, { color: deltaColor }]}>
+                Caution
+              </ThemedText>
+            </View>
+          )}
+          {item.evaluation === "error" && (
+            <View style={[styles.pill, { backgroundColor: deltaColor + "22" }]}>
+              <ThemedText style={[styles.pillText, { color: deltaColor }]}>
+                Alert
               </ThemedText>
             </View>
           )}
@@ -79,11 +85,12 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
         valueStr={fmtVal(item.after)}
       />
 
-      {item.neutral && (
-        <ThemedText style={[styles.disclaimer, { color: colors.accent }]}>
-          Direction may reflect pain avoidance — consult clinician.
+      {/* Render the specific clinical disclaimer we passed */}
+      {item.disclaimer ? (
+        <ThemedText style={[styles.disclaimer, { color: deltaColor }]}>
+          {item.disclaimer}
         </ThemedText>
-      )}
+      ) : null}
     </ThemedView>
   );
 };

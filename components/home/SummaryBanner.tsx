@@ -12,31 +12,32 @@ const SummaryBanner = ({ comparison }: { comparison: CompareMetric[] }) => {
 
   if (comparison.length === 0) return null;
 
-  const badCount = comparison.filter(
-    (m) =>
-      !m.neutral &&
-      !(
-        (m.higherIsBetter && m.deltaPercent >= 0) ||
-        (!m.higherIsBetter && m.deltaPercent <= 0)
-      ),
+  // Count errors (Red/Alert) and warnings (Orange/Caution) based on the new evaluation flag
+  const errorCount = comparison.filter((m) => m.evaluation === "error").length;
+  const warningCount = comparison.filter(
+    (m) => m.evaluation === "warning",
   ).length;
-  const total = comparison.filter((m) => !m.neutral).length;
+  const badCount = errorCount + warningCount;
 
   let bgColor = colors.success + "22";
   let iconColor = colors.success;
   let icon: keyof typeof Ionicons.glyphMap = "checkmark-circle-outline";
   let message = "Gait recovery looks stable";
 
-  if (badCount > 0 && badCount < total) {
-    bgColor = colors.warning + "22";
-    iconColor = colors.warning;
-    icon = "alert-outline";
-    message = `${badCount} of ${total} metrics worsened after the fall`;
-  } else if (badCount === total && total > 0) {
+  // If there are multiple errors, it's high risk
+  if (errorCount >= 2) {
     bgColor = colors.error + "22";
     iconColor = colors.error;
     icon = "close-circle-outline";
-    message = "All tracked metrics declined — follow up recommended";
+    message =
+      "High risk indicators detected — clinical follow-up strongly recommended";
+  }
+  // If there's 1 error, or just general warnings
+  else if (badCount > 0) {
+    bgColor = "#E69A45" + "22"; // Using the orange caution color
+    iconColor = "#E69A45";
+    icon = "alert-outline";
+    message = `${badCount} ${badCount === 1 ? "metric" : "metrics"} showing concerning changes`;
   }
 
   return (

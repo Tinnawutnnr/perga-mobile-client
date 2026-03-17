@@ -20,12 +20,12 @@ import React, { useState } from "react";
 import {
   ActivityIndicator,
   Platform,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const formatDate = (d: Date) =>
   d.toLocaleDateString("en-GB", {
@@ -33,7 +33,13 @@ const formatDate = (d: Date) =>
     month: "short",
     year: "numeric",
   });
-const toISODate = (d: Date) => d.toISOString().split("T")[0];
+
+const toISODate = (d: Date) => {
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, "0");
+  const day = String(d.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+};
 
 // ─── Main screen ──────────────────────────────────────────────────────────────
 const SummaryScreen = () => {
@@ -132,28 +138,48 @@ const SummaryScreen = () => {
         </ThemedText>
 
         {/* Date picker button */}
-        <TouchableOpacity
-          style={[styles.dateButton, { backgroundColor: cardColor }]}
-          onPress={() => setShowPicker(true)}
-          activeOpacity={0.8}
-        >
-          <View
-            style={[styles.dateIconWrap, { backgroundColor: tintColor + "22" }]}
+        {/* Date picker button */}
+        <View style={{ flexDirection: "row", alignItems: "stretch", gap: 12 }}>
+          <TouchableOpacity
+            style={[styles.dateButton, { backgroundColor: cardColor, flex: 1 }]}
+            onPress={() => setShowPicker(true)}
+            activeOpacity={0.8}
           >
-            <Ionicons name="calendar-outline" size={18} color={tintColor} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText style={{ fontSize: 11, opacity: 0.5 }}>
-              Fall date
-            </ThemedText>
-            <ThemedText
-              style={{ fontSize: 14, fontWeight: "600", color: tintColor }}
+            <View
+              style={[
+                styles.dateIconWrap,
+                { backgroundColor: tintColor + "22" },
+              ]}
             >
-              {fallDate ? formatDate(fallDate) : "Tap to select"}
-            </ThemedText>
-          </View>
-          <Ionicons name="chevron-forward" size={16} color={mutedColor} />
-        </TouchableOpacity>
+              <Ionicons name="calendar-outline" size={18} color={tintColor} />
+            </View>
+            <View style={{ flex: 1 }}>
+              <ThemedText style={{ fontSize: 11, opacity: 0.5 }}>
+                Fall date
+              </ThemedText>
+              <ThemedText
+                style={{ fontSize: 14, fontWeight: "600", color: tintColor }}
+              >
+                {fallDate ? formatDate(fallDate) : "Tap to select"}
+              </ThemedText>
+            </View>
+            <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+          </TouchableOpacity>
+
+          {fallDate && (
+            <TouchableOpacity
+              style={[styles.resetButton, { backgroundColor: cardColor }]}
+              onPress={() => setFallDate(null)}
+              activeOpacity={0.8}
+            >
+              <Ionicons
+                name="close-outline"
+                size={24}
+                color={Colors[scheme].error}
+              />
+            </TouchableOpacity>
+          )}
+        </View>
 
         {showPicker && (
           <DateTimePicker
@@ -201,6 +227,7 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     alignItems: "center",
     marginBottom: 24,
+    marginTop: 8,
   },
   title: { fontSize: 28, fontWeight: "700" },
   subtitle: { fontSize: 13, marginTop: 2 },
@@ -232,5 +259,11 @@ const styles = StyleSheet.create({
     padding: 32,
     alignItems: "center",
     marginTop: 16,
+  },
+  resetButton: {
+    width: 56,
+    borderRadius: 14,
+    justifyContent: "center",
+    alignItems: "center",
   },
 });

@@ -2,15 +2,10 @@ import { profileApi } from "@/api/profile";
 import { usePatientStore } from "@/store/patient-store";
 import { patientStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useEffect, useState } from "react";
-import {
-  SafeAreaView,
-  ScrollView,
-  StyleSheet,
-  Switch,
-  TouchableOpacity,
-} from "react-native";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
+import { ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 import { ThemedText } from "../../components/themed-text";
 import { ThemedView } from "../../components/themed-view";
 import { useAuth } from "../../context/auth-context";
@@ -28,16 +23,19 @@ const ProfileScreen = () => {
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
-  useEffect(() => {
-    if (!token) return;
-    profileApi
-      .getMe(token)
-      .then((data) => {
-        setFirstName(data.first_name ?? "");
-        setLastName(data.last_name ?? "");
-      })
-      .catch(() => {});
-  }, [token]);
+  useFocusEffect(
+    useCallback(() => {
+      if (!token) return;
+
+      profileApi
+        .getMe(token)
+        .then((data) => {
+          setFirstName(data.first_name ?? "");
+          setLastName(data.last_name ?? "");
+        })
+        .catch(() => {});
+    }, [token]),
+  );
 
   // Theme colors
   const backgroundColor = useThemeColor({}, "background");

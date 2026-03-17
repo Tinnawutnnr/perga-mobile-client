@@ -2,19 +2,21 @@ import { PatientBrief } from "@/api/caretaker";
 import AddPatientModal from "@/components/patient-component/add-patient-modal";
 import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
 import PatientCard from "@/components/patient-component/patient-card";
+import { useAuth } from "@/context/auth-context";
 import { usePatientSelection } from "@/hooks/use-patients";
+import { usePatientStore } from "@/store/patient-store";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  SafeAreaView,
   ScrollView,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PatientSelectionScreen = () => {
   const router = useRouter(); // <-- Initialize the router
@@ -31,6 +33,15 @@ const PatientSelectionScreen = () => {
   } = usePatientSelection();
 
   const [deleteTarget, setDeleteTarget] = useState<PatientBrief | null>(null);
+
+  const { clearToken } = useAuth();
+  const { setSelectedPatient } = usePatientStore();
+
+  const handleLogout = async () => {
+    await clearToken();
+    setSelectedPatient(null);
+    router.replace("/login");
+  };
 
   return (
     <SafeAreaView style={styles.safeArea}>
@@ -80,7 +91,7 @@ const PatientSelectionScreen = () => {
           {patients.length === 0 ? (
             <TouchableOpacity
               style={styles.backButton}
-              onPress={() => router.back()}
+              onPress={handleLogout}
               activeOpacity={0.8}
             >
               <Text style={styles.backButtonText}>Back</Text>
