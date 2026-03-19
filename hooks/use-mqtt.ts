@@ -1,10 +1,8 @@
+import { mqttApi } from "@/api/mqtt";
+import { tokenStorage } from "@/utils/token-storage";
 import type { IClientOptions, MqttClient } from "precompiled-mqtt";
 import { connect as mqttConnect } from "precompiled-mqtt";
 import { useCallback, useRef, useState } from "react";
-
-const MQTT_BROKER_URL: string = process.env.EXPO_PUBLIC_MQTT_BROKER_URL ?? "";
-const MQTT_USERNAME: string = process.env.EXPO_PUBLIC_MQTT_USERNAME ?? "";
-const MQTT_PASSWORD: string = process.env.EXPO_PUBLIC_MQTT_PASSWORD ?? "";
 
 const CONNECT_TIMEOUT_MS = 10_000;
 
@@ -25,7 +23,7 @@ const redactBrokerUrl = (url: string): string => {
 
 export interface UseMqttReturn {
   isConnected: boolean;
-  connectMqtt: (token?: string) => Promise<void>;
+  connectMqtt: () => Promise<void>;
   disconnectMqtt: () => void;
   publishGaitData: (userId: string, dataBatch: number[]) => void;
 }
@@ -34,17 +32,8 @@ export const useMqtt = (): UseMqttReturn => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const clientRef = useRef<MqttClient | null>(null);
 
-  const connectMqtt = useCallback(async (_token?: string) => {
-    if (!MQTT_BROKER_URL) {
-      console.error("[MQTT] BROKER_URL not found");
-      throw new Error("MQTT broker URL is not configured");
-    }
-
-    if (!MQTT_USERNAME || !MQTT_PASSWORD) {
-      console.error("[MQTT] Username/password not configured");
-      throw new Error("MQTT credentials are not configured");
-    }
-
+  const connectMqtt = useCallback(async () => {
+    //Check if there's an existing active connection
     if (clientRef.current) {
       if (clientRef.current.connected) {
         console.log("[MQTT] Already connected, skipping.");
@@ -56,13 +45,40 @@ export const useMqtt = (): UseMqttReturn => {
       }
     }
 
-    const brokerUrl = normalizeBrokerUrl(MQTT_BROKER_URL);
+    let mqttBrokerUrl = "";
+    let mqttUsername = "";
+    let mqttPassword = "";
+
+    try {
+      const token = await tokenStorage.get();
+      if (!token) throw new Error("No authentication token found");
+
+      // Api call to get mqtt data
+      const { broker_url, username, password } =
+        await mqttApi.getCredentials(token);
+
+      mqttBrokerUrl = broker_url;
+      mqttUsername = username;
+      mqttPassword = password;
+    } catch (error) {
+      console.error("[MQTT] Failed to fetch credentials:", error);
+      throw new Error("Unable to fetch MQTT credentials from backend");
+    }
+
+    if (!mqttBrokerUrl || !mqttUsername || !mqttPassword) {
+      throw new Error("MQTT credentials from backend are incomplete");
+    }
+
+    const brokerUrl = normalizeBrokerUrl(mqttBrokerUrl);
 
     if (!/^wss:\/\//i.test(brokerUrl)) {
-      console.error(`[MQTT] Invalid broker protocol: ${redactBrokerUrl(brokerUrl)}`);
+      console.error(
+        `[MQTT] Invalid broker protocol: ${redactBrokerUrl(brokerUrl)}`,
+      );
       throw new Error("MQTT broker must use wss:// for mobile connectivity");
     }
 
+    //Establish the connection
     return new Promise<void>((resolve, reject) => {
       let settled = false;
 
@@ -81,8 +97,8 @@ export const useMqtt = (): UseMqttReturn => {
       try {
         const options: IClientOptions = {
           protocol: "wss",
-          username: MQTT_USERNAME,
-          password: MQTT_PASSWORD,
+          username: mqttUsername,
+          password: mqttPassword,
           clientId: `perga_mobile_${Math.random().toString(16).substring(2, 8)}`,
           reconnectPeriod: 5000,
           connectTimeout: CONNECT_TIMEOUT_MS,
@@ -166,8 +182,6 @@ export const useMqtt = (): UseMqttReturn => {
           (error?: Error) => {
             if (error) {
               console.error("Publish Error: ", error.message);
-            } else {
-              // console.log(`Published ${dataBatch.length} records to ${topic}`);
             }
           },
         );
