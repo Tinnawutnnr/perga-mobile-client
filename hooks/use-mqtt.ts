@@ -62,7 +62,10 @@ export const useMqtt = (): UseMqttReturn => {
       mqttPassword = password;
     } catch (error) {
       console.error("[MQTT] Failed to fetch credentials:", error);
-      throw new Error("Unable to fetch MQTT credentials from backend");
+      // Wrap the original error using the 'cause' property
+      throw new Error("Unable to fetch MQTT credentials from backend", {
+        cause: error,
+      });
     }
 
     if (!mqttBrokerUrl || !mqttUsername || !mqttPassword) {
