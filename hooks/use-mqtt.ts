@@ -78,7 +78,7 @@ export const useMqtt = (): UseMqttReturn => {
       throw new Error("MQTT broker must use wss:// for mobile connectivity");
     }
 
-    //Establish the connection
+    // Establish the connection
     return new Promise<void>((resolve, reject) => {
       let settled = false;
 
@@ -106,15 +106,20 @@ export const useMqtt = (): UseMqttReturn => {
 
         console.log(`[MQTT] Connecting to ${redactBrokerUrl(brokerUrl)}`);
         const client = mqttConnect(brokerUrl, options);
+        // Set it immediately so event handlers can verify they belong to the active connection
+        clientRef.current = client;
 
         const timer = setTimeout(() => {
+          if (client !== clientRef.current) return;
           console.error("[MQTT] Connection timed out");
+          // Mark connection as defunct
+          clientRef.current = null; 
           client.end(true);
-          clientRef.current = null;
           settleReject(new Error("MQTT connection timed out"));
         }, CONNECT_TIMEOUT_MS);
 
         client.on("connect", () => {
+          if (client !== clientRef.current) return; // Guard against events from an aborted client
           clearTimeout(timer);
           console.log("[MQTT] Connected!");
           setIsConnected(true);
@@ -122,29 +127,32 @@ export const useMqtt = (): UseMqttReturn => {
         });
 
         client.on("reconnect", () => {
+          if (client !== clientRef.current) return; // Guard
           console.log("[MQTT] Reconnecting...");
         });
 
         client.on("error", (err: Error) => {
+          if (client !== clientRef.current) return; // Guard
           clearTimeout(timer);
           console.error("[MQTT] Error:", err.message);
           setIsConnected(false);
-          client.end(true);
           clientRef.current = null;
+          client.end(true);
           settleReject(err);
         });
 
         client.on("close", () => {
+          if (client !== clientRef.current) return; // Guard
           console.warn("[MQTT] Connection closed");
           setIsConnected(false);
         });
 
         client.on("offline", () => {
+          if (client !== clientRef.current) return; // Guard
           console.warn("[MQTT] Offline");
           setIsConnected(false);
         });
 
-        clientRef.current = client;
       } catch (error) {
         console.error(
           "[MQTT] Failed to initialize client:",
@@ -153,7 +161,6 @@ export const useMqtt = (): UseMqttReturn => {
         settleReject(error instanceof Error ? error : new Error(String(error)));
       }
     });
-  }, []);
 
   const disconnectMqtt = useCallback(() => {
     if (clientRef.current) {
