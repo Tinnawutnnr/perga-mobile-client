@@ -1,4 +1,4 @@
-import { apiClient } from "./client";
+import { apiClient } from "@/api/client";
 import { MqttCredentialResponse } from "@/types/mqtt-res";
 
 export const mqttApi = {
