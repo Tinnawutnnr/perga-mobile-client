@@ -79,6 +79,8 @@ export interface CompareMetric {
 
 export interface HomeData {
   periodGaitData: GaitData | null;
+  selectedDateGaitData: GaitData | null;
+  availableDates: string[];
   latestGaitData: GaitData | null;
   latestRecord: DailyAverage | null;
   comparison: CompareMetric[];
@@ -90,6 +92,7 @@ export interface HomeData {
 export const useHomeData = (
   fallDate?: string,
   period: Period = "daily",
+  selectedDate?: string,
 ): HomeData => {
   const { token } = useAuth();
   const { selectedPatient } = usePatientStore();
@@ -154,6 +157,17 @@ export const useHomeData = (
     const avg = avgRecords(windowRecords);
     return avg ? toGaitData(avg) : null;
   }, [records, period, latestRecord]);
+
+  const selectedDateGaitData = useMemo(() => {
+    if (!selectedDate || records.length === 0) return null;
+    const record = records.find((r) => r.report_date === selectedDate);
+    return record ? toGaitData(record) : null;
+  }, [records, selectedDate]);
+
+  const availableDates = useMemo(
+    () => records.map((r) => r.report_date),
+    [records],
+  );
 
   const comparison = useMemo<CompareMetric[]>(() => {
     if (!fallDate || records.length === 0) return [];
@@ -296,6 +310,8 @@ export const useHomeData = (
 
   return {
     periodGaitData,
+    selectedDateGaitData,
+    availableDates,
     latestGaitData,
     latestRecord,
     comparison,
