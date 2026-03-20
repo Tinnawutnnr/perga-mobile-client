@@ -1,6 +1,9 @@
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import React, { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
+  Alert,
   Image,
   KeyboardAvoidingView,
   Platform,
@@ -11,41 +14,53 @@ import {
   View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
 import { authApi } from "../api/auth";
 import { profileApi } from "../api/profile";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
-import { isValidEmail, isValidPassword } from "../utils/validation";
 
+// ── Zod schema ──────────────────────────────────────────────────────────
+const loginSchema = z.object({
+  username: z.string().min(1, "Username or email is required"),
+  password: z.string().min(1, "Password is required"),
+});
+
+type LoginFormData = z.infer<typeof loginSchema>;
+
+// ── Screen ──────────────────────────────────────────────────────────────
 const LoginScreen = () => {
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
-  const [isLoading, setIsLoading] = useState(false);
   const { saveToken, saveRole, saveUsername } = useAuth();
 
-  const hasEmailError = email.length > 0 && !isValidEmail(email);
-  const hasPasswordError = password.length > 0 && !isValidPassword(password);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<LoginFormData>({
+    resolver: zodResolver(loginSchema),
+    defaultValues: { username: "", password: "" },
+  });
 
-  const isFormValid = isValidEmail(email) && isValidPassword(password);
-
-  const handleLogin = async () => {
-    setIsLoading(true);
+  const onSubmit = async (data: LoginFormData) => {
     try {
-      const res = await authApi.login({ username: email, password });
+      const res = await authApi.login({
+        username: data.username,
+        password: data.password,
+      });
       await saveToken(res.access_token);
       const status = await profileApi.getStatus(res.access_token);
       await saveRole(status.role);
-      await saveUsername(email);
+      await saveUsername(data.username);
       if (status.role === "caretaker") {
         router.replace("/(tabs)/patient-selection");
       } else {
         router.replace("/(tabs)/home");
       }
     } catch (error) {
-      console.error("Login failed:", error);
-    } finally {
-      setIsLoading(false);
+      const message =
+        error instanceof Error ? error.message : "Login failed. Please try again.";
+      Alert.alert("Login Failed", message);
     }
   };
 
@@ -83,25 +98,47 @@ const LoginScreen = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Welcome!</Text>
 
-            {/* Email input */}
-            <PrimaryInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="Email"
-              keyboardType="email-address"
-              autoCapitalize="none"
-              hasError={hasEmailError}
+            {/* Username / Email input */}
+            <Controller
+              control={control}
+              name="username"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Username or Email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    hasError={!!errors.username}
+                  />
+                  {errors.username && (
+                    <Text style={styles.errorText}>{errors.username.message}</Text>
+                  )}
+                </>
+              )}
             />
 
             {/* Password input */}
-            <PrimaryInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              secureTextEntry={securePassword}
-              rightIcon={securePassword ? "eye-off" : "eye"}
-              onPressRight={() => setSecurePassword((prev) => !prev)}
-              hasError={hasPasswordError}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Password"
+                    secureTextEntry={securePassword}
+                    rightIcon={securePassword ? "eye-off" : "eye"}
+                    onPressRight={() => setSecurePassword((prev) => !prev)}
+                    hasError={!!errors.password}
+                  />
+                  {errors.password && (
+                    <Text style={styles.errorText}>{errors.password.message}</Text>
+                  )}
+                </>
+              )}
             />
 
             {/* Forgot password */}
@@ -116,14 +153,14 @@ const LoginScreen = () => {
             <TouchableOpacity
               style={[
                 styles.loginButton,
-                (!isFormValid || isLoading) && styles.loginButtonDisabled,
+                isSubmitting && styles.loginButtonDisabled,
               ]}
-              onPress={handleLogin}
+              onPress={handleSubmit(onSubmit)}
               activeOpacity={0.8}
-              disabled={!isFormValid || isLoading}
+              disabled={isSubmitting}
             >
               <Text style={styles.loginButtonText}>
-                {isLoading ? "Logging in..." : "Login"}
+                {isSubmitting ? "Logging in..." : "Login"}
               </Text>
             </TouchableOpacity>
 
@@ -171,6 +208,13 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     color: "#000000",
     marginBottom: 24,
+  },
+  errorText: {
+    color: "#FF4444",
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   forgotWrapper: {
     alignSelf: "flex-start",
