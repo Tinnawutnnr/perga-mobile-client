@@ -38,9 +38,10 @@ const addAlphaToHex = (hex: string, alpha: number) => {
   const alphaHex = alphaInt.toString(16).padStart(2, "0");
 
   // If hex already has alpha, replace it; otherwise, append it.
-  return hex.length === 7 ? `${hex}${alphaHex}` : `${hex.slice(0, 7)}${alphaHex}`;
+  return hex.length === 7
+    ? `${hex}${alphaHex}`
+    : `${hex.slice(0, 7)}${alphaHex}`;
 };
-const USER_ID = "USER_ID";
 
 const ActivityScreen = () => {
   // ── Global BLE state (Zustand) ──
@@ -80,7 +81,7 @@ const ActivityScreen = () => {
   const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
 
-    // ── Start / stop duration timer ──
+  // ── Start / stop duration timer ──
   const startTimer = useCallback(() => {
     setElapsed(0);
     timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
@@ -143,14 +144,20 @@ const ActivityScreen = () => {
     };
 
     fetchLatestReport();
-    const idleReportInterval = setInterval(fetchLatestReport, WINDOW_REPORT_INTERVAL_MS);
+    const idleReportInterval = setInterval(
+      fetchLatestReport,
+      WINDOW_REPORT_INTERVAL_MS,
+    );
     return () => clearInterval(idleReportInterval);
   }, [isRecording, isWaitingForData]);
 
   // ── Publish BLE batch & Catch First Batch ──
   useEffect(() => {
-    if ((isRecording || isWaitingForData) && pendingBatch.length > 0 && isMqttConnected) {
-      
+    if (
+      (isRecording || isWaitingForData) &&
+      pendingBatch.length > 0 &&
+      isMqttConnected
+    ) {
       if (isWaitingForData) {
         setIsWaitingForData(false);
         setIsRecording(true);
@@ -158,7 +165,7 @@ const ActivityScreen = () => {
         startPolling();
       }
 
-      publishGaitData(USER_ID, pendingBatch);
+      publishGaitData(pendingBatch);
       setBatchSentCount((prev) => {
         const next = prev + 1;
         return next;
@@ -178,7 +185,10 @@ const ActivityScreen = () => {
   const handleToggleActivity = async () => {
     if (!isRecording && !isWaitingForData) {
       if (!connectedDevice) {
-        Alert.alert("No Device", "Please connect to ESP32 in the BLE tab first.");
+        Alert.alert(
+          "No Device",
+          "Please connect to ESP32 in the BLE tab first.",
+        );
         return;
       }
 
@@ -191,7 +201,7 @@ const ActivityScreen = () => {
       try {
         if (!isMqttConnected) {
           console.log("MQTT", "Not connected yet, trying now...");
-          await connectMqtt(); 
+          await connectMqtt();
         }
 
         startStreaming();
@@ -208,7 +218,7 @@ const ActivityScreen = () => {
       stopPolling();
       setIsRecording(false);
       setIsWaitingForData(false);
-      
+
       // system alert
       Alert.alert(
         "Success",
@@ -225,7 +235,7 @@ const ActivityScreen = () => {
   const mqttBadgeTextColor = isMqttConnected ? successColor : warningColor;
   const mqttBadgeBackgroundColor = addAlphaToHex(
     isMqttConnected ? successColor : warningColor,
-    0.125 // Approximate previous 0x20 alpha (~12.5%)
+    0.125, // Approximate previous 0x20 alpha (~12.5%)
   );
 
   return (
@@ -294,14 +304,19 @@ const ActivityScreen = () => {
                 ? "Stop Activity"
                 : "Start Tracking"}
           </ThemedText>
-
         </TouchableOpacity>
-                {!connectedDevice && !isRecording && (
+        {!connectedDevice && !isRecording && (
           <ThemedText
             type="muted"
-            style={{ textAlign: "center", marginTop: 20, marginBottom: 20, fontSize: 14 }}
+            style={{
+              textAlign: "center",
+              marginTop: 20,
+              marginBottom: 20,
+              fontSize: 14,
+            }}
           >
-            No BLE device connected. Please connect to ESP32 in the BLE tab first.
+            No BLE device connected. Please connect to ESP32 in the BLE tab
+            first.
           </ThemedText>
         )}
 
