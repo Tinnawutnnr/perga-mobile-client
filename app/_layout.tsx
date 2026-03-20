@@ -20,7 +20,7 @@ export default function RootLayout() {
             <Stack.Screen name="register" />
             <Stack.Screen name="create-profile" />
             <Stack.Screen name="forgot-password" />
-            <Stack.Screen name="confirmation-code" />
+            <Stack.Screen name="reset-password" />
             <Stack.Screen name="(tabs)" />
           </Stack>
         </ThemeProvider>
