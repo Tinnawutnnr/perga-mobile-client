@@ -1,31 +1,25 @@
-import CompareCard from "@/components/home/CompareCard";
-import SummaryBanner from "@/components/home/SummaryBanner";
-import PeriodToggle from "@/components/home/TimePeriodToggle";
-import { MetricBox } from "@/components/metric-box";
-import { MetricGroup } from "@/components/metric-group";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { mockdata } from "@/data/mockGaitData";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { Period, useHomeData } from "@/hooks/use-home-data";
+import { useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker, {
-  DateTimePickerEvent,
-} from "@react-native-community/datetimepicker";
 import { router } from "expo-router";
 import React, { useState } from "react";
 import {
   ActivityIndicator,
-  Platform,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { DatePickerField } from "@/components/home/DatePickerField";
+import { FallCompareSection } from "@/components/home/FallCompareSection";
+import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
 
 const formatDate = (d: Date) =>
   d.toLocaleDateString("en-GB", {
@@ -46,41 +40,40 @@ const SummaryScreen = () => {
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
-  const iconColor = useThemeColor({}, "icon");
-  const mutedColor = useThemeColor({}, "muted");
   const scheme = useColorScheme() ?? "light";
 
+  const insets = useSafeAreaInsets();
+
   const [fallDate, setFallDate] = useState<Date | null>(null);
-  const [showPicker, setShowPicker] = useState(false);
-  const [period, setPeriod] = useState<Period>("daily");
+  const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(null);
 
   const fallDateStr = fallDate ? toISODate(fallDate) : undefined;
-  const { periodGaitData, comparison, loading, error } = useHomeData(
-    fallDateStr,
-    period,
-  );
+  const selectedViewDateStr = selectedViewDate
+    ? toISODate(selectedViewDate)
+    : undefined;
 
-  const gaitData = periodGaitData ?? mockdata;
+  const { periodGaitData, selectedDateGaitData, comparison, loading, error } =
+    useHomeData(fallDateStr, "daily", selectedViewDateStr);
 
-  const sectionTitle =
-    period === "daily"
-      ? "Today's Gait Metrics"
-      : period === "weekly"
-        ? "Weekly Average"
-        : "Yearly Average";
+  const hasData = selectedViewDate ? selectedDateGaitData !== null : true;
+  const gaitData =
+    (selectedViewDate ? selectedDateGaitData : periodGaitData) ?? mockdata;
+
+  const sectionTitle = selectedViewDate
+    ? `Gait Metrics - ${formatDate(selectedViewDate)}`
+    : "Today's Gait Metrics";
+
   const metrics = useMetrics(gaitData);
 
-  const onDateChange = (event: DateTimePickerEvent, date?: Date) => {
-    setShowPicker(Platform.OS === "ios");
-    if (event.type === "set" && date) setFallDate(date);
-  };
-
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <View style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView
         style={[styles.container, { backgroundColor }]}
         showsVerticalScrollIndicator={false}
-        contentContainerStyle={{ paddingBottom: 32 }}
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 32,
+        }}
       >
         {/* Header */}
         <ThemedView style={styles.headerRow}>
@@ -108,112 +101,34 @@ const SummaryScreen = () => {
           </ThemedText>
         )}
 
-        {/* Period toggle */}
-        <PeriodToggle value={period} onChange={setPeriod} />
-
-        {/* Overall Metrics */}
-        <MetricGroup title={sectionTitle}>
-          {metrics.map((item, index) => (
-            <MetricBox
-              key={index}
-              label={item.label}
-              value={item.value}
-              subValue={item.subValue}
-              status={item.status}
-              statusColor={item.statusColor || "success"}
-              icon={
-                <Ionicons name={item.iconName} size={24} color={iconColor} />
-              }
-              onPress={item.onPress}
-            />
-          ))}
-        </MetricGroup>
-
-        {/* Before / After Fall */}
-        <ThemedText style={styles.sectionTitle}>
-          Before vs After Fall
-        </ThemedText>
-        <ThemedText type="muted" style={styles.sectionDesc}>
-          Compares the 7-day average before and after the selected fall date.
-        </ThemedText>
-
-        {/* Date picker button */}
-        {/* Date picker button */}
-        <View style={{ flexDirection: "row", alignItems: "stretch", gap: 12 }}>
-          <TouchableOpacity
-            style={[styles.dateButton, { backgroundColor: cardColor, flex: 1 }]}
-            onPress={() => setShowPicker(true)}
-            activeOpacity={0.8}
-          >
-            <View
-              style={[
-                styles.dateIconWrap,
-                { backgroundColor: tintColor + "22" },
-              ]}
-            >
-              <Ionicons name="calendar-outline" size={18} color={tintColor} />
-            </View>
-            <View style={{ flex: 1 }}>
-              <ThemedText style={{ fontSize: 11, opacity: 0.5 }}>
-                Fall date
-              </ThemedText>
-              <ThemedText
-                style={{ fontSize: 14, fontWeight: "600", color: tintColor }}
-              >
-                {fallDate ? formatDate(fallDate) : "Tap to select"}
-              </ThemedText>
-            </View>
-            <Ionicons name="chevron-forward" size={16} color={mutedColor} />
-          </TouchableOpacity>
-
-          {fallDate && (
-            <TouchableOpacity
-              style={[styles.resetButton, { backgroundColor: cardColor }]}
-              onPress={() => setFallDate(null)}
-              activeOpacity={0.8}
-            >
-              <Ionicons
-                name="close-outline"
-                size={24}
-                color={Colors[scheme].error}
-              />
-            </TouchableOpacity>
-          )}
+        {/* View date picker */}
+        <View style={styles.viewDateRow}>
+          <DatePickerField
+            label="View date"
+            value={selectedViewDate}
+            placeholder="Today"
+            onChange={setSelectedViewDate}
+            onClear={() => setSelectedViewDate(null)}
+          />
         </View>
 
-        {showPicker && (
-          <DateTimePicker
-            value={fallDate ?? new Date()}
-            mode="date"
-            display={Platform.OS === "ios" ? "inline" : "default"}
-            onChange={onDateChange}
-            maximumDate={new Date()}
-          />
-        )}
+        {/* Gait metrics */}
+        <GaitMetricsSection
+          title={sectionTitle}
+          metrics={metrics}
+          hasData={hasData}
+        />
 
-        {/* Summary banner + cards */}
-        {fallDate && comparison.length > 0 && (
-          <View style={{ marginTop: 16 }}>
-            <SummaryBanner comparison={comparison} />
-            {comparison.map((item) => (
-              <CompareCard key={item.label} item={item} />
-            ))}
-          </View>
-        )}
-
-        {fallDate && comparison.length === 0 && !loading && (
-          <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
-            <Ionicons name="bar-chart-outline" size={32} color={mutedColor} />
-            <ThemedText
-              style={{ color: mutedColor, marginTop: 8, textAlign: "center" }}
-            >
-              Not enough data around this date.{"\n"}At least 1 day on each side
-              is needed.
-            </ThemedText>
-          </View>
-        )}
+        {/* Before / After Fall */}
+        <FallCompareSection
+          fallDate={fallDate}
+          onFallDateChange={setFallDate}
+          onFallDateClear={() => setFallDate(null)}
+          comparison={comparison}
+          loading={loading}
+        />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -229,10 +144,8 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 8,
   },
-  title: { fontSize: 28, fontWeight: "700" },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 28 },
   subtitle: { fontSize: 13, marginTop: 2 },
-  sectionTitle: { fontSize: 18, fontWeight: "700", marginBottom: 4 },
-  sectionDesc: { fontSize: 12, marginBottom: 12 },
   avatar: {
     width: 40,
     height: 40,
@@ -240,30 +153,7 @@ const styles = StyleSheet.create({
     justifyContent: "center",
     alignItems: "center",
   },
-  dateButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 14,
-    padding: 14,
-    gap: 12,
-  },
-  dateIconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  emptyState: {
-    borderRadius: 16,
-    padding: 32,
-    alignItems: "center",
-    marginTop: 16,
-  },
-  resetButton: {
-    width: 56,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
+  viewDateRow: {
+    marginBottom: 12,
   },
 });
