@@ -83,6 +83,7 @@ export interface HomeData {
   availableDates: string[];
   latestGaitData: GaitData | null;
   latestRecord: DailyAverage | null;
+  records: DailyAverage[];
   comparison: CompareMetric[];
   loading: boolean;
   error: string | null;
@@ -314,6 +315,7 @@ export const useHomeData = (
     availableDates,
     latestGaitData,
     latestRecord,
+    records,
     comparison,
     loading,
     error,

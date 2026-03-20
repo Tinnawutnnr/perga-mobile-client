@@ -20,6 +20,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { DatePickerField } from "@/components/home/DatePickerField";
 import { FallCompareSection } from "@/components/home/FallCompareSection";
 import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
+import { AnomalyChart } from "@/components/home/AnomalyChart";
 
 const formatDate = (d: Date) =>
   d.toLocaleDateString("en-GB", {
@@ -52,7 +53,7 @@ const SummaryScreen = () => {
     ? toISODate(selectedViewDate)
     : undefined;
 
-  const { periodGaitData, selectedDateGaitData, comparison, loading, error } =
+  const { periodGaitData, selectedDateGaitData, comparison, loading, error, records } =
     useHomeData(fallDateStr, "daily", selectedViewDateStr);
 
   const hasData = selectedViewDate ? selectedDateGaitData !== null : true;
@@ -119,6 +120,13 @@ const SummaryScreen = () => {
           hasData={hasData}
         />
 
+        {/* Anomaly Chart */}
+        <ThemedText style={styles.sectionTitle}>Anomaly Trend</ThemedText>
+        <ThemedText type="muted" style={styles.sectionDesc}>
+          Daily gait anomaly events over time
+        </ThemedText>
+        <AnomalyChart records={records} />
+
         {/* Before / After Fall */}
         <FallCompareSection
           fallDate={fallDate}
@@ -154,6 +162,15 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   viewDateRow: {
+    marginBottom: 12,
+  },
+    sectionTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    marginBottom: 4,
+  },
+  sectionDesc: {
+    fontSize: 12,
     marginBottom: 12,
   },
 });
