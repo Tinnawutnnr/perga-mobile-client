@@ -164,6 +164,7 @@ export const useMqtt = (): UseMqttReturn => {
         settleReject(error instanceof Error ? error : new Error(String(error)));
       }
     });
+  }, []);
 
   const disconnectMqtt = useCallback(() => {
     if (clientRef.current) {
