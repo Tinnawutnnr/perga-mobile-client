@@ -69,8 +69,15 @@ export const useMqtt = (): UseMqttReturn => {
       });
     }
 
-    if (!mqttBrokerUrl || !mqttUsername || !mqttPassword) {
-      throw new Error("MQTT credentials from backend are incomplete");
+    if (
+      !mqttBrokerUrl ||
+      !mqttUsername ||
+      !mqttPassword ||
+      !telemetryTokenRef.current?.trim()
+    ) {
+      throw new Error(
+        "MQTT credentials from backend are incomplete (missing telemetry token)",
+      );
     }
 
     const brokerUrl = normalizeBrokerUrl(mqttBrokerUrl);
