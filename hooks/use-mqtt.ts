@@ -25,12 +25,13 @@ export interface UseMqttReturn {
   isConnected: boolean;
   connectMqtt: () => Promise<void>;
   disconnectMqtt: () => void;
-  publishGaitData: (userId: string, dataBatch: number[]) => void;
+  publishGaitData: (dataBatch: number[]) => void;
 }
 
 export const useMqtt = (): UseMqttReturn => {
   const [isConnected, setIsConnected] = useState<boolean>(false);
   const clientRef = useRef<MqttClient | null>(null);
+  const telemetryTokenRef = useRef<string | null>(null);
 
   const connectMqtt = useCallback(async () => {
     //Check if there's an existing active connection
@@ -54,15 +55,15 @@ export const useMqtt = (): UseMqttReturn => {
       if (!token) throw new Error("No authentication token found");
 
       // Api call to get mqtt data
-      const { broker_url, username, password } =
+      const { broker_url, username, password, telemetry_token } =
         await mqttApi.getCredentials(token);
 
       mqttBrokerUrl = broker_url;
       mqttUsername = username;
       mqttPassword = password;
+      telemetryTokenRef.current = telemetry_token;
     } catch (error) {
       console.error("[MQTT] Failed to fetch credentials:", error);
-      // Wrap the original error using the 'cause' property
       throw new Error("Unable to fetch MQTT credentials from backend", {
         cause: error,
       });
@@ -116,7 +117,7 @@ export const useMqtt = (): UseMqttReturn => {
           if (client !== clientRef.current) return;
           console.error("[MQTT] Connection timed out");
           // Mark connection as defunct
-          clientRef.current = null; 
+          clientRef.current = null;
           client.end(true);
           settleReject(new Error("MQTT connection timed out"));
         }, CONNECT_TIMEOUT_MS);
@@ -155,7 +156,6 @@ export const useMqtt = (): UseMqttReturn => {
           console.warn("[MQTT] Offline");
           setIsConnected(false);
         });
-
       } catch (error) {
         console.error(
           "[MQTT] Failed to initialize client:",
@@ -176,13 +176,15 @@ export const useMqtt = (): UseMqttReturn => {
   }, []);
 
   const publishGaitData = useCallback(
-    (userId: string, dataBatch: number[]) => {
-      if (!clientRef.current || !isConnected) {
-        console.warn("Cannot publish: MQTT not connected");
+    (dataBatch: number[]) => {
+      const currentToken = telemetryTokenRef.current;
+
+      if (!clientRef.current || !isConnected || !currentToken) {
+        console.warn("Cannot publish: MQTT not connected or missing token");
         return;
       }
 
-      const topic = `gait/telemetry/${userId}`;
+      const topic = `gait/telemetry/${currentToken}`;
       const payload = { gyro_z: dataBatch };
 
       try {
