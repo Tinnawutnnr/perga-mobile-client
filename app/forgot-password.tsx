@@ -1,43 +1,60 @@
 import { Ionicons } from "@expo/vector-icons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
+import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
-import { useAuth } from "../context/auth-context";
-import { isValidEmail } from "../utils/validation";
 
+// ── Zod schema ──────────────────────────────────────────────────────────
+const forgotPasswordSchema = z.object({
+  email: z
+    .string()
+    .min(1, "Email is required")
+    .email("Please enter a valid email address")
+    .transform((v) => v.trim().toLowerCase()),
+});
+
+type ForgotPasswordFormData = z.infer<typeof forgotPasswordSchema>;
+
+// ── Screen ──────────────────────────────────────────────────────────────
 const ForgotPasswordScreen = () => {
-  const { saveTempEmail } = useAuth();
-  const [email, setEmail] = useState("");
-  const [showSuccessModal, setShowSuccessModal] = useState(false);
+  const {
+    control,
+    handleSubmit,
+    formState: { errors, isSubmitting },
+  } = useForm<ForgotPasswordFormData>({
+    resolver: zodResolver(forgotPasswordSchema),
+    defaultValues: { email: "" },
+  });
 
-  const hasEmailError = email.length > 0 && !isValidEmail(email);
-
-  const handleSubmit = () => {
-    if (!isValidEmail(email)) {
-      console.log("Please enter a valid email address");
-      return;
+  const onSubmit = async (data: ForgotPasswordFormData) => {
+    try {
+      const res = await authApi.forgotPassword({ email: data.email });
+      router.push({
+        pathname: "/reset-password",
+        params: { token: res.reset_session_token, email: data.email },
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Something went wrong. Please try again.";
+      Alert.alert("Error", message);
     }
-
-    // Show success modal
-    setShowSuccessModal(true);
-  };
-
-  const handleContinue = () => {
-    setShowSuccessModal(false);
-    saveTempEmail(email);
-    router.push("/confirmation-code");
   };
 
   const handleBackToLogin = () => {
@@ -79,30 +96,44 @@ const ForgotPasswordScreen = () => {
 
             <Text style={styles.title}>Forgot Password?</Text>
             <Text style={styles.subtitle}>
-              Enter your email address and we&apos;ll send you a verification
-              code to reset your password
+              Enter your email address and we'll send you a verification code to
+              reset your password.
             </Text>
 
             {/* Email input */}
-            <PrimaryInput
-              value={email}
-              onChangeText={setEmail}
-              placeholder="name@email.com"
-              keyboardType="email-address"
-              hasError={hasEmailError}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="name@email.com"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    hasError={!!errors.email}
+                  />
+                  {errors.email && (
+                    <Text style={styles.errorText}>{errors.email.message}</Text>
+                  )}
+                </>
+              )}
             />
 
             {/* Submit button */}
             <TouchableOpacity
               style={[
                 styles.submitButton,
-                (!email || !isValidEmail(email)) && styles.submitButtonDisabled,
+                isSubmitting && styles.submitButtonDisabled,
               ]}
-              onPress={handleSubmit}
+              onPress={handleSubmit(onSubmit)}
               activeOpacity={0.8}
-              disabled={!email || !isValidEmail(email)}
+              disabled={isSubmitting}
             >
-              <Text style={styles.submitButtonText}>Send Reset Code</Text>
+              <Text style={styles.submitButtonText}>
+                {isSubmitting ? "Sending..." : "Send Reset Code"}
+              </Text>
             </TouchableOpacity>
 
             {/* Back to login */}
@@ -114,36 +145,6 @@ const ForgotPasswordScreen = () => {
             </View>
           </View>
         </ScrollView>
-
-        {/* Success Modal */}
-        <Modal
-          animationType="fade"
-          transparent={true}
-          visible={showSuccessModal}
-          onRequestClose={() => setShowSuccessModal(false)}
-        >
-          <View style={styles.modalOverlay}>
-            <View style={styles.modalContainer}>
-              <View style={styles.modalIconContainer}>
-                <Ionicons name="checkmark-circle" size={64} color="#4CAF50" />
-              </View>
-
-              <Text style={styles.modalTitle}>Code Sent!</Text>
-              <Text style={styles.modalMessage}>
-                We&apos;ve sent a verification code to {email}. Please check
-                your email and enter the code on the next screen.
-              </Text>
-
-              <TouchableOpacity
-                style={styles.modalButton}
-                onPress={handleContinue}
-                activeOpacity={0.8}
-              >
-                <Text style={styles.modalButtonText}>Continue</Text>
-              </TouchableOpacity>
-            </View>
-          </View>
-        </Modal>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -200,6 +201,13 @@ const styles = StyleSheet.create({
     lineHeight: 24,
     marginBottom: 32,
   },
+  errorText: {
+    color: "#FF4444",
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 12,
+    marginLeft: 4,
+  },
   submitButton: {
     height: 54,
     borderRadius: 16,
@@ -229,51 +237,6 @@ const styles = StyleSheet.create({
   loginLink: {
     fontSize: 14,
     color: "#477E85",
-    fontWeight: "600",
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: "rgba(0, 0, 0, 0.5)",
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 24,
-  },
-  modalContainer: {
-    backgroundColor: "#FFFFFF",
-    borderRadius: 20,
-    padding: 32,
-    alignItems: "center",
-    width: "100%",
-    maxWidth: 340,
-  },
-  modalIconContainer: {
-    marginBottom: 24,
-  },
-  modalTitle: {
-    fontSize: 24,
-    fontWeight: "700",
-    color: "#000000",
-    marginBottom: 16,
-    textAlign: "center",
-  },
-  modalMessage: {
-    fontSize: 16,
-    color: "#808080",
-    lineHeight: 24,
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  modalButton: {
-    width: "100%",
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#4F7D81",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  modalButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
     fontWeight: "600",
   },
 });

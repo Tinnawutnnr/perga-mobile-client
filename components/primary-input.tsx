@@ -11,7 +11,7 @@ import {
 } from "react-native";
 import { useThemeColor } from "../hooks/use-theme-color";
 
-interface PrimaryInputProps {
+interface PrimaryInputProps extends React.ComponentProps<typeof TextInput> {
   value: string;
   onChangeText: (text: string) => void;
   placeholder?: string;
@@ -35,6 +35,7 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
   onPressRight,
   hasError = false,
   editable = true,
+  ...rest
 }) => {
   const backgroundColor = useThemeColor({}, "background");
   const borderColor = useThemeColor({}, "border");
@@ -71,6 +72,7 @@ const PrimaryInput: React.FC<PrimaryInputProps> = ({
         secureTextEntry={secureTextEntry}
         keyboardType={keyboardType}
         editable={editable}
+        {...rest}
       />
       {(rightText || rightIcon) && (
         <TouchableOpacity

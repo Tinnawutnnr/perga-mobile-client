@@ -1,64 +1,96 @@
 import { Ionicons } from "@expo/vector-icons";
+import { zodResolver } from "@hookform/resolvers/zod";
 import { router } from "expo-router";
 import React, { useState } from "react";
+import { Controller, useForm } from "react-hook-form";
 import {
-    Image,
-    KeyboardAvoidingView,
-    Platform,
-    ScrollView,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  Alert,
+  Image,
+  KeyboardAvoidingView,
+  Platform,
+  ScrollView,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { z } from "zod";
 import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
-import {
-    doPasswordsMatch,
-    isValidPassword,
-    isValidUsername,
-} from "../utils/validation";
 
+// ── Zod schema ──────────────────────────────────────────────────────────
+const registerSchema = z
+  .object({
+    email: z.string().email("Invalid email format"),
+    username: z
+      .string()
+      .min(3, "Username must be at least 3 characters")
+      .max(20, "Username must be at most 20 characters"),
+    password: z.string().min(8, "Password must be at least 8 characters"),
+    confirmPassword: z.string(),
+    role: z.enum(["caretaker", "patient"]),
+    agreeToTerms: z.boolean(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  })
+  .refine((data) => data.agreeToTerms, {
+    message: "You must agree to the terms",
+    path: ["agreeToTerms"],
+  });
+
+type RegisterFormData = z.infer<typeof registerSchema>;
+
+// ── Screen ──────────────────────────────────────────────────────────────
 const RegisterScreen = () => {
-  const [username, setUsername] = useState("");
-  const [role, setRole] = useState("caretaker");
-  const [password, setPassword] = useState("");
-  const [confirmPassword, setConfirmPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
   const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
-  const [agreeToTerms, setAgreeToTerms] = useState(false);
-  const [isLoading, setIsLoading] = useState(false);
   const { saveTempUsername, saveToken } = useAuth();
 
-  const hasUsernameError = username.length > 0 && !isValidUsername(username);
-  const hasPasswordError = password.length > 0 && !isValidPassword(password);
-  const hasConfirmPasswordError =
-    confirmPassword.length > 0 && !doPasswordsMatch(password, confirmPassword);
+  const {
+    control,
+    handleSubmit,
+    watch,
+    setValue,
+    formState: { errors, isSubmitting },
+  } = useForm<RegisterFormData>({
+    resolver: zodResolver(registerSchema),
+    defaultValues: {
+      email: "",
+      username: "",
+      password: "",
+      confirmPassword: "",
+      role: "caretaker",
+      agreeToTerms: false,
+    },
+  });
 
-  const isFormValid =
-    agreeToTerms &&
-    isValidUsername(username) &&
-    role.trim().length > 0 &&
-    isValidPassword(password) &&
-    doPasswordsMatch(password, confirmPassword);
+  const role = watch("role");
+  const agreeToTerms = watch("agreeToTerms");
 
-  const handleRegister = async () => {
-    if (!isValidPassword(password)) return;
-    if (!doPasswordsMatch(password, confirmPassword)) return;
-    if (!agreeToTerms) return;
+  const onSubmit = async (data: RegisterFormData) => {
+    const normalizedEmail = data.email.trim().toLowerCase();
+    const normalizedUsername = data.username.trim().toLowerCase();
 
-    setIsLoading(true);
     try {
-      const res = await authApi.register({ username, password, role });
-      saveToken(res.access_token);
-      saveTempUsername(username);
-      router.push({ pathname: "/create-profile", params: { role } });
+      const res = await authApi.register({
+        email: normalizedEmail,
+        username: normalizedUsername,
+        password: data.password,
+        role: data.role,
+      });
+      await saveToken(res.access_token);
+      saveTempUsername(normalizedUsername);
+      router.push({ pathname: "/create-profile", params: { role: data.role } });
     } catch (error) {
-      console.error("Registration failed:", error);
-    } finally {
-      setIsLoading(false);
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Registration failed. Please try again.";
+      Alert.alert("Registration Failed", message);
     }
   };
 
@@ -101,18 +133,18 @@ const RegisterScreen = () => {
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>Sign up to get started</Text>
 
-            {/* Role input */}
+            {/* Role toggle */}
             <View style={styles.roleContainer}>
               <Text style={styles.roleLabel}>Role</Text>
               <View style={styles.roleToggle}>
-                {["caretaker", "patient"].map((option) => (
+                {(["caretaker", "patient"] as const).map((option) => (
                   <TouchableOpacity
                     key={option}
                     style={[
                       styles.roleOption,
                       role === option && styles.roleOptionSelected,
                     ]}
-                    onPress={() => setRole(option)}
+                    onPress={() => setValue("role", option)}
                     activeOpacity={0.8}
                   >
                     <Text
@@ -128,40 +160,104 @@ const RegisterScreen = () => {
               </View>
             </View>
 
-            <PrimaryInput
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Username (3–20 characters)"
-              keyboardType="default"
-              hasError={hasUsernameError}
+            {/* Email input */}
+            <Controller
+              control={control}
+              name="email"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Email"
+                    keyboardType="email-address"
+                    autoCapitalize="none"
+                    hasError={!!errors.email}
+                  />
+                  {errors.email && (
+                    <Text style={styles.errorText}>{errors.email.message}</Text>
+                  )}
+                </>
+              )}
+            />
+
+            {/* Username input */}
+            <Controller
+              control={control}
+              name="username"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Username (3–20 characters)"
+                    keyboardType="default"
+                    autoCapitalize="none"
+                    hasError={!!errors.username}
+                  />
+                  {errors.username && (
+                    <Text style={styles.errorText}>
+                      {errors.username.message}
+                    </Text>
+                  )}
+                </>
+              )}
             />
 
             {/* Password input */}
-            <PrimaryInput
-              value={password}
-              onChangeText={setPassword}
-              placeholder="Password"
-              secureTextEntry={securePassword}
-              rightText={securePassword ? "Show" : "Hide"}
-              onPressRight={() => setSecurePassword((prev) => !prev)}
-              hasError={hasPasswordError}
+            <Controller
+              control={control}
+              name="password"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Password (min 8 characters)"
+                    secureTextEntry={securePassword}
+                    rightText={securePassword ? "Show" : "Hide"}
+                    onPressRight={() => setSecurePassword((prev) => !prev)}
+                    hasError={!!errors.password}
+                  />
+                  {errors.password && (
+                    <Text style={styles.errorText}>
+                      {errors.password.message}
+                    </Text>
+                  )}
+                </>
+              )}
             />
 
             {/* Confirm Password input */}
-            <PrimaryInput
-              value={confirmPassword}
-              onChangeText={setConfirmPassword}
-              placeholder="Confirm Password"
-              secureTextEntry={secureConfirmPassword}
-              rightText={secureConfirmPassword ? "Show" : "Hide"}
-              onPressRight={() => setSecureConfirmPassword((prev) => !prev)}
-              hasError={hasConfirmPasswordError}
+            <Controller
+              control={control}
+              name="confirmPassword"
+              render={({ field: { onChange, value } }) => (
+                <>
+                  <PrimaryInput
+                    value={value}
+                    onChangeText={onChange}
+                    placeholder="Confirm Password"
+                    secureTextEntry={secureConfirmPassword}
+                    rightText={secureConfirmPassword ? "Show" : "Hide"}
+                    onPressRight={() =>
+                      setSecureConfirmPassword((prev) => !prev)
+                    }
+                    hasError={!!errors.confirmPassword}
+                  />
+                  {errors.confirmPassword && (
+                    <Text style={styles.errorText}>
+                      {errors.confirmPassword.message}
+                    </Text>
+                  )}
+                </>
+              )}
             />
 
             {/* Terms and conditions checkbox */}
             <TouchableOpacity
               style={styles.checkboxRow}
-              onPress={() => setAgreeToTerms(!agreeToTerms)}
+              onPress={() => setValue("agreeToTerms", !agreeToTerms)}
               activeOpacity={0.8}
             >
               <View
@@ -185,19 +281,24 @@ const RegisterScreen = () => {
                 </TouchableOpacity>
               </View>
             </TouchableOpacity>
+            {errors.agreeToTerms && (
+              <Text style={[styles.errorText, { marginTop: -16 }]}>
+                {errors.agreeToTerms.message}
+              </Text>
+            )}
 
             {/* Register button */}
             <TouchableOpacity
               style={[
                 styles.registerButton,
-                (!isFormValid || isLoading) && styles.registerButtonDisabled,
+                isSubmitting && styles.registerButtonDisabled,
               ]}
-              onPress={handleRegister}
+              onPress={handleSubmit(onSubmit)}
               activeOpacity={0.8}
-              disabled={!isFormValid || isLoading}
+              disabled={isSubmitting}
             >
               <Text style={styles.registerButtonText}>
-                {isLoading ? "Creating Account..." : "Create Account"}
+                {isSubmitting ? "Creating Account..." : "Create Account"}
               </Text>
             </TouchableOpacity>
 
@@ -250,6 +351,13 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: "#808080",
     marginBottom: 24,
+  },
+  errorText: {
+    color: "#FF4444",
+    fontSize: 12,
+    marginTop: -12,
+    marginBottom: 12,
+    marginLeft: 4,
   },
   checkboxRow: {
     flexDirection: "row",
@@ -318,32 +426,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: "#477E85",
     fontWeight: "600",
-  },
-  dividerRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: "#E5E5E5",
-  },
-  dividerText: {
-    fontSize: 12,
-    color: "#808080",
-    marginHorizontal: 8,
-  },
-  socialWrapper: {
-    alignItems: "center",
-  },
-  googleButton: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: "#000000",
-    justifyContent: "center",
-    alignItems: "center",
   },
   roleContainer: {
     marginBottom: 16,
