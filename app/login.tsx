@@ -15,28 +15,28 @@ import { authApi } from "../api/auth";
 import { profileApi } from "../api/profile";
 import PrimaryInput from "../components/primary-input";
 import { useAuth } from "../context/auth-context";
-import { isValidPassword, isValidUsername } from "../utils/validation";
+import { isValidEmail, isValidPassword } from "../utils/validation";
 
 const LoginScreen = () => {
-  const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [securePassword, setSecurePassword] = useState(true);
   const [isLoading, setIsLoading] = useState(false);
   const { saveToken, saveRole, saveUsername } = useAuth();
 
-  const hasUsernameError = username.length > 0 && !isValidUsername(username);
+  const hasEmailError = email.length > 0 && !isValidEmail(email);
   const hasPasswordError = password.length > 0 && !isValidPassword(password);
 
-  const isFormValid = isValidUsername(username) && isValidPassword(password);
+  const isFormValid = isValidEmail(email) && isValidPassword(password);
 
   const handleLogin = async () => {
     setIsLoading(true);
     try {
-      const res = await authApi.login({ username, password });
+      const res = await authApi.login({ username: email, password });
       await saveToken(res.access_token);
       const status = await profileApi.getStatus(res.access_token);
       await saveRole(status.role);
-      await saveUsername(username);
+      await saveUsername(email);
       if (status.role === "caretaker") {
         router.replace("/(tabs)/patient-selection");
       } else {
@@ -83,13 +83,14 @@ const LoginScreen = () => {
           <View style={styles.contentContainer}>
             <Text style={styles.title}>Welcome!</Text>
 
-            {/* Username input */}
+            {/* Email input */}
             <PrimaryInput
-              value={username}
-              onChangeText={setUsername}
-              placeholder="Username"
-              keyboardType="default"
-              hasError={hasUsernameError}
+              value={email}
+              onChangeText={setEmail}
+              placeholder="Email"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              hasError={hasEmailError}
             />
 
             {/* Password input */}
