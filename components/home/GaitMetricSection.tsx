@@ -34,6 +34,7 @@ export function GaitMetricsSection({
           <MetricBox
             key={index}
             label={item.label}
+            infoText={item.infoText}
             value={item.value}
             subValue={item.subValue}
             status={item.status}

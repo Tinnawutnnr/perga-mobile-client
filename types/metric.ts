@@ -13,6 +13,7 @@ export interface GaitData {
 
 export interface Metric {
   label: string;
+  infoText?: string;
   value: string;
   subValue: string;
   status: string;

@@ -1,5 +1,8 @@
-import React from "react";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useRef, useState } from "react";
 import {
+  Modal,
+  Pressable,
   StyleSheet,
   TouchableOpacity,
   View,
@@ -13,6 +16,7 @@ import { ThemedView } from "./themed-view";
 
 export interface MetricBoxProps {
   label: string;
+  infoText?: string;
   value?: string;
   subValue: string;
   status: string;
@@ -51,6 +55,7 @@ function hexToRGBA(hex: string, alpha: number) {
 
 export function MetricBox({
   label,
+  infoText,
   value,
   subValue,
   status,
@@ -61,6 +66,34 @@ export function MetricBox({
 }: MetricBoxProps) {
   const colorScheme = useColorScheme() ?? "light";
   const themeColors = Colors[colorScheme];
+  const [showInfo, setShowInfo] = useState(false);
+  const hideInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  useEffect(() => {
+    if (!showInfo) return;
+
+    if (hideInfoTimer.current) {
+      clearTimeout(hideInfoTimer.current);
+    }
+
+    hideInfoTimer.current = setTimeout(() => {
+      setShowInfo(false);
+    }, 3500);
+
+    return () => {
+      if (hideInfoTimer.current) {
+        clearTimeout(hideInfoTimer.current);
+      }
+    };
+  }, [showInfo]);
+
+  const handleInfoPress = (event: GestureResponderEvent) => {
+    event.stopPropagation?.();
+    if (!infoText) return;
+
+    setShowInfo(true);
+  };
+
   const resolvedStatusColor =
     statusColor in themeColors
       ? themeColors[statusColor as keyof typeof themeColors]
@@ -105,7 +138,24 @@ export function MetricBox({
 
         {/* Label */}
         <View style={styles.labelBlock}>
-          <ThemedText style={styles.label}>{label}</ThemedText>
+          <View style={styles.labelRow}>
+            <ThemedText style={styles.label}>{label}</ThemedText>
+            {infoText ? (
+              <TouchableOpacity
+                onPress={handleInfoPress}
+                activeOpacity={0.8}
+                style={styles.infoButton}
+                hitSlop={8}
+              >
+                <Ionicons
+                  name="information-circle-outline"
+                  size={16}
+                  color={themeColors.muted}
+                />
+              </TouchableOpacity>
+            ) : null}
+          </View>
+
           {/* Status pill */}
           <View
             style={[
@@ -141,6 +191,45 @@ export function MetricBox({
           )}
         </View>
       </TouchableOpacity>
+
+      <Modal
+        visible={showInfo && Boolean(infoText)}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setShowInfo(false)}
+      >
+        <Pressable
+          style={styles.infoModalBackdrop}
+          onPress={() => setShowInfo(false)}
+        >
+          <Pressable
+            style={[
+              styles.infoModalCard,
+              {
+                backgroundColor: Colors[colorScheme].card,
+                borderColor: hexToRGBA(resolvedStatusHex, 0.35),
+              },
+            ]}
+            onPress={(event) => event.stopPropagation()}
+          >
+            <View style={styles.infoModalHeader}>
+              <ThemedText style={styles.infoModalTitle}>{label}</ThemedText>
+              <TouchableOpacity
+                onPress={() => setShowInfo(false)}
+                hitSlop={8}
+                style={styles.infoModalClose}
+              >
+                <Ionicons
+                  name="close"
+                  size={16}
+                  color={Colors[colorScheme].muted}
+                />
+              </TouchableOpacity>
+            </View>
+            <ThemedText style={styles.infoModalText}>{infoText}</ThemedText>
+          </Pressable>
+        </Pressable>
+      </Modal>
     </ThemedView>
   );
 }
@@ -177,10 +266,19 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 5,
   },
+  labelRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+  },
   label: {
     fontSize: 14,
     fontWeight: "600",
     letterSpacing: 0.1,
+  },
+  infoButton: {
+    alignItems: "center",
+    justifyContent: "center",
   },
   statusPill: {
     alignSelf: "flex-start",
@@ -218,5 +316,46 @@ const styles = StyleSheet.create({
     fontSize: 11,
     fontWeight: "600",
     opacity: 0.7,
+  },
+  infoModalBackdrop: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.18)",
+    alignItems: "center",
+    justifyContent: "center",
+    paddingHorizontal: 28,
+  },
+  infoModalCard: {
+    width: "100%",
+    maxWidth: 360,
+    borderRadius: 14,
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    borderWidth: 1,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 6 },
+    shadowOpacity: 0.12,
+    shadowRadius: 16,
+    elevation: 6,
+  },
+  infoModalHeader: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  infoModalTitle: {
+    fontSize: 14,
+    fontWeight: "700",
+  },
+  infoModalClose: {
+    width: 24,
+    height: 24,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  infoModalText: {
+    fontSize: 13,
+    lineHeight: 18,
+    opacity: 0.85,
   },
 });
