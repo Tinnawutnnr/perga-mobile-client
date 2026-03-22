@@ -1,9 +1,12 @@
+import { DatePickerField } from "@/components/home/DatePickerField";
+import { FallCompareSection } from "@/components/home/FallCompareSection";
+import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { mockdata } from "@/data/mockGaitData";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { useHomeData } from "@/hooks/use-home-data";
+import { CompareDuration, useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
@@ -17,9 +20,6 @@ import {
   View,
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { DatePickerField } from "@/components/home/DatePickerField";
-import { FallCompareSection } from "@/components/home/FallCompareSection";
-import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
 
 const formatDate = (d: Date) =>
   d.toLocaleDateString("en-GB", {
@@ -46,6 +46,8 @@ const SummaryScreen = () => {
 
   const [fallDate, setFallDate] = useState<Date | null>(null);
   const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(null);
+  const [compareDuration, setCompareDuration] =
+    useState<CompareDuration>("week");
 
   const fallDateStr = fallDate ? toISODate(fallDate) : undefined;
   const selectedViewDateStr = selectedViewDate
@@ -53,7 +55,7 @@ const SummaryScreen = () => {
     : undefined;
 
   const { periodGaitData, selectedDateGaitData, comparison, loading, error } =
-    useHomeData(fallDateStr, "daily", selectedViewDateStr);
+    useHomeData(fallDateStr, "daily", selectedViewDateStr, compareDuration);
 
   const hasData = selectedViewDate ? selectedDateGaitData !== null : true;
   const gaitData =
@@ -124,6 +126,8 @@ const SummaryScreen = () => {
           fallDate={fallDate}
           onFallDateChange={setFallDate}
           onFallDateClear={() => setFallDate(null)}
+          duration={compareDuration}
+          onDurationChange={setCompareDuration}
           comparison={comparison}
           loading={loading}
         />
