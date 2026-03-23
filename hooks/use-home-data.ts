@@ -6,7 +6,20 @@ import { useEffect, useMemo, useState } from "react";
 
 export type Period = "daily" | "weekly" | "yearly";
 
-const WINDOW_DAYS = 7; // days each side of the fall date
+export type CompareDuration = "week" | "month" | "year";
+
+const COMPARE_WINDOW_DAYS: Record<CompareDuration, number> = {
+  week: 7,
+  month: 30,
+  year: 365,
+};
+
+function toLocalISODate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
 
 function avgRecords(records: DailyAverage[]): DailyAverage | null {
   if (records.length === 0) return null;
@@ -93,6 +106,7 @@ export const useHomeData = (
   fallDate?: string,
   period: Period = "daily",
   selectedDate?: string,
+  compareDuration: CompareDuration = "week",
 ): HomeData => {
   const { token } = useAuth();
   const { selectedPatient } = usePatientStore();
@@ -148,7 +162,7 @@ export const useHomeData = (
     if (period === "weekly") cutoff.setDate(today.getDate() - 7);
     else cutoff.setFullYear(today.getFullYear() - 1);
 
-    const cutoffStr = cutoff.toISOString().split("T")[0];
+    const cutoffStr = toLocalISODate(cutoff);
     const windowRecords = records.filter((r) => r.report_date >= cutoffStr);
 
     if (windowRecords.length === 0)
@@ -172,13 +186,31 @@ export const useHomeData = (
   const comparison = useMemo<CompareMetric[]>(() => {
     if (!fallDate || records.length === 0) return [];
 
-    const beforeRecords = records
-      .filter((r) => r.report_date < fallDate)
-      .slice(-WINDOW_DAYS);
+    const sortedRecords = [...records].sort((a, b) =>
+      a.report_date.localeCompare(b.report_date),
+    );
+    const windowDays = COMPARE_WINDOW_DAYS[compareDuration];
 
-    const afterRecords = records
-      .filter((r) => r.report_date >= fallDate)
-      .slice(0, WINDOW_DAYS);
+    const fallDateObj = new Date(`${fallDate}T00:00:00`);
+    const beforeStartDate = new Date(fallDateObj);
+    beforeStartDate.setDate(beforeStartDate.getDate() - windowDays);
+    const beforeStartStr = toLocalISODate(beforeStartDate);
+
+    const beforeRecords = sortedRecords.filter(
+      (r) => r.report_date >= beforeStartStr && r.report_date < fallDate,
+    );
+
+    const postFallRecords = sortedRecords.filter(
+      (r) => r.report_date >= fallDate,
+    );
+    const afterRecords = postFallRecords.slice(-windowDays);
+
+    // Keep windows symmetrical for a fair before-vs-after comparison.
+    if (
+      beforeRecords.length !== windowDays ||
+      afterRecords.length !== windowDays
+    )
+      return [];
 
     const before = avgRecords(beforeRecords);
     const after = avgRecords(afterRecords);
@@ -306,7 +338,7 @@ export const useHomeData = (
           after.anomaly_count > before.anomaly_count ? "error" : "success",
       },
     ];
-  }, [records, fallDate]);
+  }, [records, fallDate, compareDuration]);
 
   return {
     periodGaitData,

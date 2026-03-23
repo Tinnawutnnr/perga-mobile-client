@@ -1,3 +1,4 @@
+import { sessionApi } from "@/api/session";
 import { CumulativeStatsCard } from "@/components/activity/CumulativeStatsCard";
 import { WindowStatCard } from "@/components/activity/WindowStatCard";
 import { useMqtt } from "@/hooks/use-mqtt";
@@ -8,6 +9,7 @@ import {
   formatDuration,
   generateMockWindowReport,
 } from "@/utils/activity-session";
+import { tokenStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
@@ -219,6 +221,19 @@ const ActivityScreen = () => {
       setIsRecording(false);
       setIsWaitingForData(false);
 
+      // Call API to stop gait session
+      try {
+        const token = await tokenStorage.get();
+        if (token) {
+          await sessionApi.stopSession(token);
+          console.log("Session stopped successfully on the backend.");
+        } else {
+          console.warn("No token found. Could not stop session on backend.");
+        }
+      } catch (error) {
+        console.error("Failed to activate window summary:", error);
+      }
+      // -----------------------------------------------
       // system alert
       Alert.alert(
         "Success",

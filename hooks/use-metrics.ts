@@ -7,9 +7,10 @@ export const useMetrics = (data: GaitData) => {
   const metricsConfig: Metric[] = [
     {
       label: "Total Steps",
+      infoText:
+        "Shows how much you walk each day. A significant drop means you might be feeling tired or afraid of falling.",
       value: Math.floor(data.distance * 1312).toLocaleString(),
       subValue: "steps",
-      // goal
       status: data.distance > 6 ? "Reached Goal" : "Keep going",
       statusColor: "info",
       iconName: "walk-outline",
@@ -21,9 +22,10 @@ export const useMetrics = (data: GaitData) => {
     },
     {
       label: "Cadence",
+      infoText:
+        "Shows your walking rhythm. A steady speed helps you walk safely without getting tired quickly.",
       value: data.cadence.toString(),
       subValue: "steps/min",
-      // normal walk: 90-115 (Optimal), < 90 (Slow), > 115 (Brisk Walking)
       status:
         data.cadence < 90
           ? "Slow Pace"
@@ -40,9 +42,10 @@ export const useMetrics = (data: GaitData) => {
     },
     {
       label: "Swing Speed",
+      infoText:
+        "Measures how fast you swing your leg forward. A slow swing means your muscles might be weak, which makes you drag your feet.",
       value: data.swingSpeed.toString(),
       subValue: "rad/s",
-      // Normal is around 5.0 rad/s. Below 3.0 suggests reduced swing.
       status: data.swingSpeed < 3.0 ? "Low Lift" : "Active Swing",
       statusColor: data.swingSpeed < 3.0 ? "warning" : "success",
       iconName: "speedometer-outline",
@@ -54,11 +57,10 @@ export const useMetrics = (data: GaitData) => {
     },
     {
       label: "Heel Impact",
+      infoText:
+        "Measures how hard your foot hits the ground. Hitting too hard hurts your joints. A very light step means you might be limping to avoid pain.",
       value: data.heelImpact.toString(),
       subValue: "rad/s",
-      // Normal is around -2.1 rad/s.
-      // More negative than -3.5 suggests hard strike.
-      // Less negative than -1.0 suggests limping / reduced impact.
       status:
         data.heelImpact < -3.5
           ? "Hard Strike"
@@ -78,9 +80,10 @@ export const useMetrics = (data: GaitData) => {
     },
     {
       label: "Swing Time",
+      infoText:
+        "Measures how long your foot is in the air. A short time means you are taking tiny steps or dragging your feet, which can cause a trip.",
       value: data.swingTime.toString(),
       subValue: "s",
-      // Healthy swing time is around 0.4s. If it drops significantly, it indicates shuffling.
       status: data.swingTime < 0.35 ? "Shuffling" : "Normal",
       statusColor: data.swingTime < 0.35 ? "error" : "success",
       iconName: "hourglass-outline",
@@ -92,10 +95,10 @@ export const useMetrics = (data: GaitData) => {
     },
     {
       label: "Stance Time",
+      infoText:
+        "Measures how long your foot rests on the ground. Resting too long means you are walking stiffly. Lifting it too fast means your leg hurts.",
       value: data.stanceTime.toString(),
       subValue: "s",
-      // Healthy stance time is roughly 0.6s (~60% of cycle).
-      // > 0.70s indicates cautious walking, < 0.50s indicates pain avoidance.
       status:
         data.stanceTime > 0.7
           ? "Cautious"
@@ -117,9 +120,10 @@ export const useMetrics = (data: GaitData) => {
     },
     {
       label: "Stability",
+      infoText:
+        "Measures how steady your steps are. If your steps are uneven, you have a high risk of falling.",
       value: data.stability + "%",
       subValue: "CV",
-      // CV is an error metric. Lower is better. Normal is 2-5%.
       status: data.stability > 10 ? "Unstable" : "Balanced",
       statusColor: data.stability > 10 ? "error" : "success",
       iconName: "analytics-outline",
