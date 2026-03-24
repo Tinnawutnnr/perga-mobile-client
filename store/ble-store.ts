@@ -2,35 +2,33 @@ import { BluetoothDeviceDisplay } from "@/types/ble-type";
 import { Buffer } from "buffer";
 import * as ExpoDevice from "expo-device";
 import { Alert, PermissionsAndroid, Platform } from "react-native";
-import { BleManager, Device } from "react-native-ble-plx";
+import { BleManager, Device, Subscription } from "react-native-ble-plx";
 import { create } from "zustand";
 
 const IS_WEB = Platform.OS === "web";
 const SERVICE_UUID = process.env.EXPO_PUBLIC_BLE_SERVICE_UUID;
 const CHARACTERISTIC_UUID = process.env.EXPO_PUBLIC_BLE_CHARACTERISTIC_UUID;
+
 if (
   !IS_WEB &&
-  (
-    !SERVICE_UUID ||
+  (!SERVICE_UUID ||
     !CHARACTERISTIC_UUID ||
     SERVICE_UUID.trim() === "" ||
-    CHARACTERISTIC_UUID.trim() === ""
-  )
+    CHARACTERISTIC_UUID.trim() === "")
 ) {
   throw new Error("BLE UUIDs are missing or empty in config!");
 }
+
 const SCAN_DURATION_MS = 10_000;
 const BATCH_SIZE = 100;
 
 // ─── Singleton BleManager ────────────────────────────────────────────────────
-//    Only ONE BleManager must exist in the whole app.
 const bleManager: BleManager | null = !IS_WEB ? new BleManager() : null;
 
 let dataAccumulator: number[] = [];
-let monitorSubscription: { remove: () => void } | null = null;
+let monitorSubscription: Subscription | null = null;
 let scanTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-/** Android-only BLE permission request. iOS uses Info.plist entitlements. */
 async function requestBlePermissions(): Promise<boolean> {
   if (Platform.OS !== "android") return true;
 
@@ -59,34 +57,35 @@ export interface BleState {
   foundDevices: BluetoothDeviceDisplay[];
   connectedDevice: Device | null;
   isStreaming: boolean;
-  // Most recent parsed sensor reading
   lastBleData: { z: number; timestamp: number } | null;
-  // Batch that is pending to publish
   pendingBatch: number[];
-
   isWeb: boolean;
   scanForDevices: () => Promise<void>;
   connectToDevice: (device: Device) => Promise<void>;
   disconnectDevice: () => Promise<void>;
-  /** Begin monitoring the BLE characteristic. Call from ActivityScreen. */
   startStreaming: () => void;
-  /** Stop monitoring and clean up the native subscription. */
   stopStreaming: () => void;
 }
 
-// Zustand store
 export const useBleStore = create<BleState>()((set, get) => {
   const processBatchData = (base64Data: string): void => {
     const buffer = Buffer.from(base64Data, "base64");
 
+    const nowObj = new Date();
+    const ts = `${nowObj.toLocaleTimeString("en-GB", { hour12: false })}.${nowObj.getMilliseconds().toString().padStart(3, "0")}`;
+
     let lastVal = 0;
+    const incomingCount = buffer.length / 4; 
+
     for (let i = 0; i + 3 < buffer.length; i += 4) {
       const val = buffer.readFloatLE(i);
       dataAccumulator.push(val);
       lastVal = val;
     }
 
-    console.log(`Accumulated: ${dataAccumulator.length} / ${BATCH_SIZE}`);
+    console.log(
+      `[${ts}] BLE Received: +${incomingCount} samples | Acc: ${dataAccumulator.length}/${BATCH_SIZE}`,
+    );
 
     set({
       lastBleData: {
@@ -95,17 +94,15 @@ export const useBleStore = create<BleState>()((set, get) => {
       },
     });
 
-    // Flush every BATCH_SIZE samples (use `while` for robustness in case a
-    // single notification brings enough data to span multiple batches).
     while (dataAccumulator.length >= BATCH_SIZE) {
       const chunk = dataAccumulator.slice(0, BATCH_SIZE);
       dataAccumulator = dataAccumulator.slice(BATCH_SIZE);
-      finalizeBatch(chunk);
-    }
-  };
 
-  const finalizeBatch = (data: number[]): void => {
-    set({ pendingBatch: data });
+      console.log(
+        `[${ts}]Batch Full! Flushing ${BATCH_SIZE} samples to MQTT...`,
+      );
+      set({ pendingBatch: chunk });
+    }
   };
 
   return {
@@ -119,7 +116,6 @@ export const useBleStore = create<BleState>()((set, get) => {
 
     scanForDevices: async () => {
       if (!bleManager) return;
-
       const hasPermission = await requestBlePermissions();
       if (!hasPermission) {
         Alert.alert("Permission Denied", "Bluetooth permissions are required.");
@@ -138,7 +134,7 @@ export const useBleStore = create<BleState>()((set, get) => {
         if (device?.name) {
           set((state) => {
             if (state.foundDevices.some((d) => d.id === device.id))
-              return state; // no-op → no re-render
+              return state;
             return {
               foundDevices: [
                 ...state.foundDevices,
@@ -155,31 +151,42 @@ export const useBleStore = create<BleState>()((set, get) => {
         }
       });
 
-      // Auto-stop scan after SCAN_DURATION_MS
       if (scanTimeoutId) clearTimeout(scanTimeoutId);
       scanTimeoutId = setTimeout(() => {
         bleManager.stopDeviceScan();
         set({ isScanning: false });
-        console.log(`Scan stopped after ${SCAN_DURATION_MS} ms`);
       }, SCAN_DURATION_MS);
     },
 
     connectToDevice: async (device: Device) => {
       try {
-        // Stop any ongoing scan
         if (bleManager) bleManager.stopDeviceScan();
-        if (scanTimeoutId) {
-          clearTimeout(scanTimeoutId);
-          scanTimeoutId = null;
-        }
         set({ isScanning: false });
 
         const connected = await device.connect();
         await connected.discoverAllServicesAndCharacteristics();
-        set({ connectedDevice: connected });
 
+        // Android Optimization: Expand MTU and Set Priority
+        if (Platform.OS === "android") {
+          try {
+            // expand mtu to 256 bytes
+            const mtuDevice = await connected.requestMTU(256);
+            console.log(
+              `[BLE] Android MTU expanded to: ${mtuDevice.mtu} bytes`,
+            );
+
+            await connected.requestConnectionPriority(1); // 1 = High Priority
+            console.log("[BLE] Android Connection Priority set to High");
+          } catch (configError) {
+            console.warn(
+              "[BLE] Android Config Error (MTU/Priority):",
+              configError,
+            );
+          }
+        }
+
+        set({ connectedDevice: connected });
         Alert.alert("Connected", `Connected to ${device.name}`);
-        console.log("BLE Connected");
       } catch (e) {
         console.error("Connection Error:", e);
         Alert.alert("Error", "Connection failed");
@@ -190,46 +197,39 @@ export const useBleStore = create<BleState>()((set, get) => {
       const { connectedDevice } = get();
       if (!connectedDevice) return;
 
-      // Always stop streaming BEFORE disconnecting to avoid a leaked
       get().stopStreaming();
 
       try {
         await connectedDevice.cancelConnection();
       } catch (e) {
-        console.warn(
-          "Disconnect error (device may already be disconnected):",
-          e,
-        );
+        console.warn("Disconnect error:", e);
       }
 
-      set({ connectedDevice: null, lastBleData: null });
-      console.log("BLE Disconnected");
+      monitorSubscription = null;
+      set({ connectedDevice: null, lastBleData: null, isStreaming: false });
+      console.log("BLE Disconnected and Subscription cleared");
     },
 
     startStreaming: () => {
       const { connectedDevice } = get();
       if (!connectedDevice) return;
 
-      // Reset accumulator for a fresh streaming session
       dataAccumulator = [];
-      set({ pendingBatch: [] });
+      set({ pendingBatch: [], isStreaming: true });
 
-      // Remove any previous subscription before creating a new one.
       if (monitorSubscription) {
-        monitorSubscription.remove();
-        monitorSubscription = null;
+        console.log("BLE Streaming: Resuming existing subscription");
+        return;
       }
 
       monitorSubscription = connectedDevice.monitorCharacteristicForService(
         SERVICE_UUID!,
         CHARACTERISTIC_UUID!,
         (error, characteristic) => {
-          if (error) {
-            if (error.errorCode === 2 || error.message.includes("cancelled")) {
-              console.log("BLE Stream stopped gracefully.");
-              return;
-            }
+          if (!get().isStreaming) return;
 
+          if (error) {
+            if (error.errorCode === 2) return;
             console.error("Monitor error:", error);
             return;
           }
@@ -239,26 +239,16 @@ export const useBleStore = create<BleState>()((set, get) => {
         },
       );
 
-      set({ isStreaming: true });
       console.log("BLE streaming started");
     },
 
     stopStreaming: () => {
-      // Always remove the monitor subscription
-      //    before it goes out of scope or the device disconnects.
-      if (monitorSubscription) {
-        monitorSubscription.remove();
-        monitorSubscription = null;
-      }
       set({ isStreaming: false });
-      console.log("BLE streaming stopped");
+      console.log("BLE streaming soft-stopped (Flag set to false)");
     },
   };
 });
 
-// NOTE: This subscription intentionally lives for the entire
-//    app lifetime. No cleanup is needed because the OS reclaims resources
-//    when the process exits.
 if (bleManager) {
   bleManager.onStateChange((state) => {
     if (state === "PoweredOn") {
