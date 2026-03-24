@@ -213,32 +213,30 @@ const ActivityScreen = () => {
         setSessionId(null);
       }
     } else {
-      // Stop path: clear device/network resources, then stop timer + polling.
       console.log("Stopping activity...");
+
       stopStreaming();
       stopTimer();
       stopPolling();
+
       setIsRecording(false);
       setIsWaitingForData(false);
 
-      // Call API to stop gait session
-      try {
-        const token = await tokenStorage.get();
+      tokenStorage.get().then((token) => {
         if (token) {
-          await sessionApi.stopSession(token);
-          console.log("Session stopped successfully on the backend.");
-        } else {
-          console.warn("No token found. Could not stop session on backend.");
+          sessionApi
+            .stopSession(token) // ยิงไปเฉยๆ
+            .then(() => console.log("Summary triggered successfully"))
+            .catch((err) => console.error("Summary trigger failed", err));
         }
-      } catch (error) {
-        console.error("Failed to activate window summary:", error);
-      }
-      // -----------------------------------------------
-      // system alert
+      });
+
       Alert.alert(
         "Success",
-        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nTotal batches sent: ${batchSentCount}\nReports received: ${reportCount}`,
+        `Gait session saved!\nDuration: ${formatDuration(elapsed || 0)}\nTotal batches sent: ${batchSentCount || 0}\nReports received: ${reportCount || 0}`,
       );
+
+      // เคลียร์ค่า State
       setSessionTotals(createEmptySessionTotals());
       setReportCount(0);
       setSessionId(null);
