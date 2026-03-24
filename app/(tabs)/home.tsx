@@ -4,7 +4,6 @@ import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
-import { mockdata } from "@/data/mockGaitData";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CompareDuration, useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
@@ -21,6 +20,9 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
+/**
+ * Formats date for UI display (e.g., 25 Mar 2026)
+ */
 const formatDate = (d: Date) =>
   d.toLocaleDateString("en-GB", {
     day: "numeric",
@@ -28,6 +30,9 @@ const formatDate = (d: Date) =>
     year: "numeric",
   });
 
+/**
+ * Formats date for API calls (YYYY-MM-DD)
+ */
 const toISODate = (d: Date) => {
   const year = d.getFullYear();
   const month = String(d.getMonth() + 1).padStart(2, "0");
@@ -35,7 +40,8 @@ const toISODate = (d: Date) => {
   return `${year}-${month}-${day}`;
 };
 
-// ─── Main screen ──────────────────────────────────────────────────────────────
+// ─── Main Screen ──────────────────────────────────────────────────────────────
+
 const SummaryScreen = () => {
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
@@ -54,18 +60,25 @@ const SummaryScreen = () => {
     ? toISODate(selectedViewDate)
     : undefined;
 
-  const { periodGaitData, selectedDateGaitData, comparison, loading, error } =
-    useHomeData(fallDateStr, "daily", selectedViewDateStr, compareDuration);
+  const {
+    periodGaitData,
+    selectedDateGaitData,
+    fallAnalysis, // Updated from 'comparison' to match hook output
+    loading,
+    error,
+  } = useHomeData(fallDateStr, "daily", selectedViewDateStr);
 
-  const hasData = selectedViewDate ? selectedDateGaitData !== null : true;
-  const gaitData =
-    (selectedViewDate ? selectedDateGaitData : periodGaitData) ?? mockdata;
+  const hasData = selectedViewDate ? selectedDateGaitData !== null : periodGaitData !== null;
+  const gaitData = (selectedViewDate ? selectedDateGaitData : periodGaitData);
 
   const sectionTitle = selectedViewDate
     ? `Gait Metrics - ${formatDate(selectedViewDate)}`
     : "Today's Gait Metrics";
 
-  const metrics = useMetrics(gaitData);
+  const metrics = useMetrics(gaitData ?? {
+    distance: 0, cadence: 0, swingSpeed: 0,
+    heelImpact: 0, swingTime: 0, stanceTime: 0, stability: 0,
+  });
 
   return (
     <View style={[styles.safeArea, { backgroundColor }]}>
@@ -121,14 +134,14 @@ const SummaryScreen = () => {
           hasData={hasData}
         />
 
-        {/* Before / After Fall */}
+        {/* Before / After Fall Analysis */}
         <FallCompareSection
           fallDate={fallDate}
           onFallDateChange={setFallDate}
           onFallDateClear={() => setFallDate(null)}
           duration={compareDuration}
           onDurationChange={setCompareDuration}
-          comparison={comparison}
+          fallAnalysis={fallAnalysis} // Updated to match state name
           loading={loading}
         />
       </ScrollView>

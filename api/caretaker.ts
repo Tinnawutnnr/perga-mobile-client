@@ -1,6 +1,7 @@
 import { apiClient } from "./client";
 
 import { DailyAverage } from "@/types/metric";
+import { FallAnalysisResponse } from "@/types/report";
 import { PatientBrief, PatientProfile } from "@/types/patient";
 
 export const caretakerApi = {
@@ -16,19 +17,12 @@ export const caretakerApi = {
   unlinkPatient: (username: string, token: string) =>
     apiClient.delete<void>(`/caretakers/patients/${username}`, token),
 
-  getDailyAverages: (
-    patientId: number,
-    token: string,
-    params?: {
-      start_date?: string; // "YYYY-MM-DD"
-      end_date?: string;
-    },
-  ) => {
-    const query = new URLSearchParams(params as any).toString();
-    return apiClient.get<DailyAverage[]>(
-      `/patients/${patientId}/daily-averages${query ? `?${query}` : ""}`,
-      token,
-    );
-  },
+  getDailyAverageByDate: (username: string, date: string, token: string) => (
+    apiClient.get<DailyAverage>(`/caretakers/patients/dailyAverage/byDate/${username}?date_str=${date}`, token)
+  ),
+
+  getFallAnalysis: (username: string, fallDate: string, token: string) =>
+    apiClient.get<FallAnalysisResponse>(`/caretakers/patients/${username}/fallAnalysis/${username}?date_str=${fallDate}`, token),
+
 };
 export { PatientBrief, PatientProfile };
