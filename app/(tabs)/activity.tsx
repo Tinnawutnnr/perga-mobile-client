@@ -225,7 +225,7 @@ const ActivityScreen = () => {
       tokenStorage.get().then((token) => {
         if (token) {
           sessionApi
-            .stopSession(token) // ยิงไปเฉยๆ
+            .stopSession(token)
             .then(() => console.log("Summary triggered successfully"))
             .catch((err) => console.error("Summary trigger failed", err));
         }
@@ -236,7 +236,7 @@ const ActivityScreen = () => {
         `Gait session saved!\nDuration: ${formatDuration(elapsed || 0)}\nTotal batches sent: ${batchSentCount || 0}\nReports received: ${reportCount || 0}`,
       );
 
-      // เคลียร์ค่า State
+      // clear state
       setSessionTotals(createEmptySessionTotals());
       setReportCount(0);
       setSessionId(null);
