@@ -71,17 +71,24 @@ function avgRecords(records: DailyAverage[]): DailyAverage | null {
 }
 
 function toGaitData(r: DailyAverage): GaitData {
+  console.log("--- toGaitData is processing ---", r.daily_report_id);
+  
   const swingTime  = r.avg_swing_time  ?? 0;
   const stanceTime = r.avg_stance_time ?? 0;
-  return {
-    distance:   (r.total_distance_m ?? 0) / 1000,
-    cadence:    swingTime > 0 ? Math.round(60 / (swingTime + stanceTime)) : 0,
-    swingSpeed: Math.round(r.avg_max_gyr_ms ?? 0),
-    heelImpact: +(r.avg_val_gyr_hs ?? 0).toFixed(2),
-    swingTime:  +swingTime.toFixed(2),
-    stanceTime: +stanceTime.toFixed(2),
-    stability:  Math.max(0, Math.round((1 - (r.avg_stride_cv ?? 0)) * 100)),
+  
+  const result = {
+    distance:    (r.total_distance_m ?? 0) / 1000,
+    cadence:     swingTime > 0 ? Math.round(60 / (swingTime + stanceTime)) : 0,
+    swingSpeed:  Math.round(r.avg_max_gyr_ms ?? 0),
+    heelImpact:  +(r.avg_val_gyr_hs ?? 0).toFixed(2),
+    swingTime:   +swingTime.toFixed(2),
+    stanceTime:  +stanceTime.toFixed(2),
+    stability:   Math.max(0, Math.round((1 - (r.avg_stride_cv ?? 0)) * 100)),
+    totalSteps:  r.total_steps ?? 0,
   };
+
+  console.log("--- toGaitData Result ---", result);
+  return result;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -109,6 +116,8 @@ export const useHomeData = (
 
   // ── Fetch daily records (patient) or byDate (caretaker) ─────────────────
   useEffect(() => {
+    console.log("[useHomeData] token:", token, "role:", role, "username:", selectedPatient?.username);
+
     if (!token || !role) {
       setRecords([]);
       return;
@@ -121,15 +130,17 @@ export const useHomeData = (
         return;
       }
 
-      if (selectedDate) {
-        setLoading(true);
-        setError(null);
-        caretakerApi
-          .getDailyAverageByDate(selectedPatient.username, selectedDate, token)
-          .then(setSelectedDateRecord)
-          .catch((e: Error) => {
-            // 404 = No data for that day -> Clear data without showing error
-            if (!e.message.includes("404")) setError(e.message);
+    if (selectedDate) {
+      setLoading(true);
+      setError(null);
+      caretakerApi
+        .getDailyAverageByDate(selectedPatient.username, selectedDate, token)
+        .then((response) => {
+      setSelectedDateRecord(response); 
+    })
+        .catch((e: Error) => {
+        // 404 = No data for that day -> Clear data without showing error
+          if (!e.message.includes("404")) setError(e.message);
             setSelectedDateRecord(null);
           })
           .finally(() => setLoading(false));

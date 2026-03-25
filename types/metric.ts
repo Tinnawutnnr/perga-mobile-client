@@ -9,6 +9,7 @@ export interface GaitData {
   swingTime: number;
   stanceTime: number;
   stability: number;
+  totalSteps: number;
 }
 
 export interface Metric {

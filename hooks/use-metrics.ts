@@ -9,7 +9,7 @@ export const useMetrics = (data: GaitData) => {
       label: "Total Steps",
       infoText:
         "Shows how much you walk each day. A significant drop means you might be feeling tired or afraid of falling.",
-      value: Math.floor(data.distance * 1312).toLocaleString(),
+      value: (data.totalSteps ?? 0).toLocaleString(),
       subValue: "steps",
       status: data.distance > 6 ? "Reached Goal" : "Keep going",
       statusColor: "info",

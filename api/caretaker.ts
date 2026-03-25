@@ -17,12 +17,13 @@ export const caretakerApi = {
   unlinkPatient: (username: string, token: string) =>
     apiClient.delete<void>(`/caretakers/patients/${username}`, token),
 
-  getDailyAverageByDate: (username: string, date: string, token: string) => (
-    apiClient.get<DailyAverage>(`/caretakers/patients/dailyAverage/byDate/${username}?date_str=${date}`, token)
-  ),
+  getDailyAverageByDate: (username: string, date: string, token: string) => {
+    const path = `/caretakers/patients/dailyAverage/byDate/${username}?date_str=${date}`;
+    return apiClient.get<DailyAverage | null>(path, token);
+  },
 
   getFallAnalysis: (username: string, fallDate: string, token: string) =>
-    apiClient.get<FallAnalysisResponse>(`/caretakers/patients/${username}/fallAnalysis/${username}?date_str=${fallDate}`, token),
+    apiClient.get<FallAnalysisResponse>(`/caretakers/patients/fallAnalysis/${username}?date_str=${fallDate}`, token),
 
 };
 export { PatientBrief, PatientProfile };

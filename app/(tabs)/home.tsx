@@ -68,8 +68,8 @@ const SummaryScreen = () => {
     error,
   } = useHomeData(fallDateStr, "daily", selectedViewDateStr);
 
-  const hasData = selectedViewDate ? selectedDateGaitData !== null : periodGaitData !== null;
-  const gaitData = (selectedViewDate ? selectedDateGaitData : periodGaitData);
+  const gaitData = periodGaitData;
+  const hasData = periodGaitData !== null;
 
   const sectionTitle = selectedViewDate
     ? `Gait Metrics - ${formatDate(selectedViewDate)}`
@@ -77,7 +77,7 @@ const SummaryScreen = () => {
 
   const metrics = useMetrics(gaitData ?? {
     distance: 0, cadence: 0, swingSpeed: 0,
-    heelImpact: 0, swingTime: 0, stanceTime: 0, stability: 0,
+    heelImpact: 0, swingTime: 0, stanceTime: 0, stability: 0, totalSteps: 0,
   });
 
   return (
