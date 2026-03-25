@@ -1,4 +1,5 @@
 import { FallAnalysisResponse, DailyAverage } from "@/types/report";
+import { WindowReport } from "@/types/metric";
 import { apiClient } from "./client";
 
 export const patientApi = {
@@ -14,4 +15,8 @@ export const patientApi = {
     // GET /patients/me/dailyAverage/byDate
     getDailyAverageByDate: (date: string, token: string) =>
         apiClient.get<DailyAverage>(`/patients/me/dailyAverage/byDate?date_str=${date}`, token),
-};
+
+    // GET /patients/me/windowReport
+    getWindowReport: (token: string) =>
+        apiClient.get<WindowReport>("/patients/me/windowReport", token)
+};  

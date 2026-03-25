@@ -61,19 +61,19 @@ export interface WindowReport {
   window_report_id: string;
   patient_id: number;
   timestamp: string;
-  status: string;
-  gait_health: string;
-  anomaly_score: number;
-  max_gyr_ms: number;
-  val_gyr_hs: number;
-  swing_time: number;
-  stance_time: number;
-  stride_time: number;
-  stride_cv: number;
-  n_strides: number;
-  steps: number;
-  calories: number;
-  distance_m: number;
+  status: string | null;
+  gait_health: string | null;
+  anomaly_score: number | null;
+  max_gyr_ms: number | null;
+  val_gyr_hs: number | null;
+  swing_time: number | null;
+  stance_time: number | null;
+  stride_time: number | null;
+  stride_cv: number | null;
+  n_strides: number | null;
+  steps: number | null;
+  calories: number | null;
+  distance_m: number | null;
 }
 
 // ─── Compare API types ───────────────────────────────────────────────────────
