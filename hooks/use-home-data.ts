@@ -10,7 +10,6 @@ import { DailyAverage, GaitData } from "@/types/metric";
 import { useEffect, useMemo, useState } from "react";
 
 export type Period = "daily" | "weekly" | "yearly";
-
 export type CompareDuration = "week" | "month" | "year";
 
 // ─── Types ────────────────────────────────────────────────────────────────────
@@ -31,6 +30,9 @@ export interface HomeData {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
+/**
+ * Formats Date object to YYYY-MM-DD string
+ */
 function toLocalISODate(date: Date): string {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -38,6 +40,9 @@ function toLocalISODate(date: Date): string {
   return `${year}-${month}-${day}`;
 }
 
+/**
+ * Calculates average values from an array of DailyAverage records
+ */
 function avgRecords(records: DailyAverage[]): DailyAverage | null {
   if (records.length === 0) return null;
   const sum = records.reduce(
@@ -70,11 +75,14 @@ function avgRecords(records: DailyAverage[]): DailyAverage | null {
   };
 }
 
+/**
+ * Transforms DailyAverage DB model to GaitData UI model
+ */
 function toGaitData(r: DailyAverage): GaitData {
   const swingTime  = r.avg_swing_time  ?? 0;
   const stanceTime = r.avg_stance_time ?? 0;
   
-  const result = {
+  return {
     distance:    (r.total_distance_m ?? 0) / 1000,
     cadence:     swingTime > 0 ? Math.round(60 / (swingTime + stanceTime)) : 0,
     swingSpeed:  Math.round(r.avg_max_gyr_ms ?? 0),
@@ -84,7 +92,6 @@ function toGaitData(r: DailyAverage): GaitData {
     stability:   Math.max(0, Math.round((1 - (r.avg_stride_cv ?? 0)) * 100)),
     totalSteps:  r.total_steps ?? 0,
   };
-  return result;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -98,11 +105,8 @@ export const useHomeData = (
   const { selectedPatient } = usePatientStore();
 
   const [records, setRecords] = useState<DailyAverage[]>([]);
-  const [selectedDateRecord, setSelectedDateRecord] =
-    useState<DailyAverage | null>(null);
-  const [fallAnalysis, setFallAnalysis] = useState<FallAnalysisResponse | null>(
-    null,
-  );
+  const [selectedDateRecord, setSelectedDateRecord] = useState<DailyAverage | null>(null);
+  const [fallAnalysis, setFallAnalysis] = useState<FallAnalysisResponse | null>(null);
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -110,7 +114,7 @@ export const useHomeData = (
 
   const refresh = () => setTick((t) => t + 1);
 
-  // ── Fetch daily records (patient) or byDate (caretaker) ─────────────────
+  // ── Fetch Daily Records ───────────────────────────────────────────────────
   useEffect(() => {
     if (!token || !role) {
       setRecords([]);
@@ -123,31 +127,32 @@ export const useHomeData = (
         setSelectedDateRecord(null);
         return;
       }
-      
+
+      // Default to today's date if no date is selected
       const todayStr = toLocalISODate(new Date());
       const dateToFetch = selectedDate || todayStr;
 
       setLoading(true);
       setError(null);
       caretakerApi
-        .getDailyAverageByDate(selectedPatient.username, dateToFetch, token) // 👈 ใช้ dateToFetch
-        .then((response) => {
-          setSelectedDateRecord(response);
+        .getDailyAverageByDate(selectedPatient.username, dateToFetch, token)
+        .then((response: any) => {
+          setSelectedDateRecord(response.data || response);
         })
         .catch((e: Error) => {
-          // 404 = No data for that day -> Clear data without showing error
+          // 404 means no data for that day; clear state without throwing error
           if (!e.message.includes("404")) setError(e.message);
           setSelectedDateRecord(null);
         })
         .finally(() => setLoading(false));
 
     } else {
-      // ── ส่วนของ Patient (คนไข้) ──
+      // Fetch all records for Patient role
       setLoading(true);
       setError(null);
       patientApi
         .getDailyAverages(token)
-        .then(setRecords)
+        .then((res: any) => setRecords(res.data || res))
         .catch((e: Error) => {
           setError(e.message);
           setRecords([]);
@@ -156,27 +161,42 @@ export const useHomeData = (
     }
   }, [token, role, selectedPatient?.username, selectedDate, tick]);
 
-  // ── Fetch fall analysis when fallDate is present ──────────────────────────
+  // ── Fetch Fall Analysis ───────────────────────────────────────────────────
   useEffect(() => {
-    if (!fallDate || !token || role !== "caretaker" || !selectedPatient?.username) {
+    if (!fallDate || !token || !role) {
       setFallAnalysis(null);
       return;
     }
 
-    setLoading(true);
-    setError(null);
-    caretakerApi
-      .getFallAnalysis(selectedPatient.username, fallDate, token)
-      .then(setFallAnalysis)
-      .catch((e: Error) => {
-        // 404 = No data for that period -> Clear data without showing error
-        if (!e.message.includes("404")) setError(e.message);
-        setFallAnalysis(null);
-      })
-      .finally(() => setLoading(false));
+    if (role === "caretaker") {
+      if (!selectedPatient?.username) return;
+
+      setLoading(true);
+      setError(null);
+      caretakerApi
+        .getFallAnalysis(selectedPatient.username, fallDate, token)
+        .then((res: any) => setFallAnalysis(res.data))
+        .catch((e: Error) => {
+          if (!e.message.includes("404")) setError(e.message);
+          setFallAnalysis(null);
+        })
+        .finally(() => setLoading(false));
+    } else {
+      // Patient fetches their own fall analysis
+      setLoading(true);
+      setError(null);
+      patientApi
+        .getFallAnalysis(fallDate, token)
+        .then((res: any) => setFallAnalysis(res.data))
+        .catch((e: Error) => {
+          if (!e.message.includes("404")) setError(e.message);
+          setFallAnalysis(null);
+        })
+        .finally(() => setLoading(false));
+    }
   }, [token, role, selectedPatient?.username, fallDate, tick]);
 
-  // ── Derived data ──────────────────────────────────────────────────────────
+  // ── Derived Data for UI ───────────────────────────────────────────────────
 
   const latestRecord = useMemo(
     () => (records.length > 0 ? records[records.length - 1] : null),
@@ -190,11 +210,7 @@ export const useHomeData = (
 
   const periodGaitData = useMemo(() => {
     if (role === "caretaker") {
-      // if the date is selected, show that day's data.
-      if(selectedDateRecord) {
-        return toGaitData(selectedDateRecord);
-      }
-      return null;
+      return selectedDateRecord ? toGaitData(selectedDateRecord) : null;
     }
 
     if (records.length === 0) return null;
@@ -206,6 +222,7 @@ export const useHomeData = (
       return targetRecord ? toGaitData(targetRecord) : null;
     }
 
+    // Weekly/Yearly aggregation logic
     const today = new Date();
     const cutoff = new Date(today);
     if (period === "weekly") cutoff.setDate(today.getDate() - 7);
@@ -213,12 +230,12 @@ export const useHomeData = (
 
     const cutoffStr = toLocalISODate(cutoff);
     const windowRecords = records.filter((r) => r.report_date >= cutoffStr);
-    if (windowRecords.length === 0)
-      return latestRecord ? toGaitData(latestRecord) : null;
+    
+    if (windowRecords.length === 0) return null;
 
     const avg = avgRecords(windowRecords);
     return avg ? toGaitData(avg) : null;
-  }, [records, period, latestRecord, role, selectedDateRecord]);
+  }, [records, period, role, selectedDateRecord, selectedDate]);
 
   const selectedDateGaitData = useMemo(() => {
     if (role === "caretaker") return null;
