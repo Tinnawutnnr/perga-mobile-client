@@ -98,7 +98,7 @@ const ActivityScreen = () => {
 
       const response = await patientApi.getWindowReport(token);
       
-      // ✅ Check if response itself is null or undefined first
+      // Check if response itself is null or undefined first
       if (!response) {
         return;
       }
@@ -235,7 +235,7 @@ const ActivityScreen = () => {
           </ThemedText>
         </TouchableOpacity>
 
-        {/* 🔴 RECORDING STATUS CARD */}
+        {/* RECORDING STATUS CARD */}
         {isRecording && (
           <ThemedView style={[styles.statusCard, { backgroundColor: cardColor, borderColor: tintColor }]}>
             <View style={styles.liveIndicator}>
@@ -253,7 +253,7 @@ const ActivityScreen = () => {
           </ThemedView>
         )}
 
-        {/* 📊 CUMULATIVE STATS CARD (Always visible) */}
+        {/* CUMULATIVE STATS CARD (Always visible) */}
         <CumulativeStatsCard 
           totals={sessionTotals} 
           tintColor={tintColor} 
@@ -261,7 +261,7 @@ const ActivityScreen = () => {
           borderColor={borderColor} 
         />
         
-        {/* 🪟 LATEST WINDOW CARD (Always visible) */}
+        {/* LATEST WINDOW CARD (Always visible) */}
         <WindowStatCard 
           report={latestReport} 
           cardColor={cardColor} 

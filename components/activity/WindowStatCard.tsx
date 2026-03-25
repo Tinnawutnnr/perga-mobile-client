@@ -10,7 +10,7 @@ import { ThemedText } from "../themed-text";
 import { ThemedView } from "../themed-view";
 
 type Props = {
-  report: WindowReport | null; // ✅ Allow null from ActivityScreen
+  report: WindowReport | null; // Allow null from ActivityScreen
   cardColor: string;
   borderColor: string;
   tintColor: string;
