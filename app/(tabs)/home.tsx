@@ -51,7 +51,7 @@ const SummaryScreen = () => {
   const insets = useSafeAreaInsets();
 
   const [fallDate, setFallDate] = useState<Date | null>(null);
-  const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(null);
+  const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(new Date());
   const [compareDuration, setCompareDuration] =
     useState<CompareDuration>("week");
 

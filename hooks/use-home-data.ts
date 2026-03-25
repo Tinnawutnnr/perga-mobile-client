@@ -71,8 +71,6 @@ function avgRecords(records: DailyAverage[]): DailyAverage | null {
 }
 
 function toGaitData(r: DailyAverage): GaitData {
-  console.log("--- toGaitData is processing ---", r.daily_report_id);
-  
   const swingTime  = r.avg_swing_time  ?? 0;
   const stanceTime = r.avg_stance_time ?? 0;
   
@@ -86,8 +84,6 @@ function toGaitData(r: DailyAverage): GaitData {
     stability:   Math.max(0, Math.round((1 - (r.avg_stride_cv ?? 0)) * 100)),
     totalSteps:  r.total_steps ?? 0,
   };
-
-  console.log("--- toGaitData Result ---", result);
   return result;
 }
 
@@ -116,8 +112,6 @@ export const useHomeData = (
 
   // ── Fetch daily records (patient) or byDate (caretaker) ─────────────────
   useEffect(() => {
-    console.log("[useHomeData] token:", token, "role:", role, "username:", selectedPatient?.username);
-
     if (!token || !role) {
       setRecords([]);
       return;
@@ -195,13 +189,20 @@ export const useHomeData = (
 
   const periodGaitData = useMemo(() => {
     if (role === "caretaker") {
-      return selectedDateRecord ? toGaitData(selectedDateRecord) : null;
+      // if the date is selected, show that day's data.
+      if(selectedDateRecord) {
+        return toGaitData(selectedDateRecord);
+      }
+      return null;
     }
 
     if (records.length === 0) return null;
 
     if (period === "daily") {
-      return latestRecord ? toGaitData(latestRecord) : null;
+      const todayStr = toLocalISODate(new Date());
+      const targetDate = selectedDate || todayStr;
+      const targetRecord = records.find((r) => r.report_date === targetDate);
+      return targetRecord ? toGaitData(targetRecord) : null;
     }
 
     const today = new Date();
