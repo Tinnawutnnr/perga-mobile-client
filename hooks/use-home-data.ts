@@ -123,25 +123,26 @@ export const useHomeData = (
         setSelectedDateRecord(null);
         return;
       }
+      
+      const todayStr = toLocalISODate(new Date());
+      const dateToFetch = selectedDate || todayStr;
 
-    if (selectedDate) {
       setLoading(true);
       setError(null);
       caretakerApi
-        .getDailyAverageByDate(selectedPatient.username, selectedDate, token)
+        .getDailyAverageByDate(selectedPatient.username, dateToFetch, token) // 👈 ใช้ dateToFetch
         .then((response) => {
-      setSelectedDateRecord(response); 
-    })
+          setSelectedDateRecord(response);
+        })
         .catch((e: Error) => {
-        // 404 = No data for that day -> Clear data without showing error
+          // 404 = No data for that day -> Clear data without showing error
           if (!e.message.includes("404")) setError(e.message);
-            setSelectedDateRecord(null);
-          })
-          .finally(() => setLoading(false));
-      } else {
-        setSelectedDateRecord(null);
-      }
+          setSelectedDateRecord(null);
+        })
+        .finally(() => setLoading(false));
+
     } else {
+      // ── ส่วนของ Patient (คนไข้) ──
       setLoading(true);
       setError(null);
       patientApi
