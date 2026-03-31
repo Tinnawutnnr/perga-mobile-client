@@ -1,18 +1,13 @@
 import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
-import {
-  CompareRange,
-  MetricCompareResponse,
-  HistoryEntry,
-  ComparisonData,
-  MetricInfo,
-} from "@/types/metric";
-import { mockCompareData } from "@/data/mockCompareData";
+import { patientApi } from "@/api/patient";
+import { caretakerApi } from "@/api/caretaker";
+import { SingleMetricBenchmark, SingleMetricPeriod } from "@/types/compare";
+import { CompareRange } from "@/types/metric";
 
-// ─── API call ─────────────────────────────────────────────────────────────────
-// Swap the body of fetchMetricCompare() for your real fetch() when backend is ready.
+import { useAuth } from "@/context/auth-context";
 
-// Maps the navigation label param to the API metric name
+// Maps the navigation label param → API metric name
 const LABEL_TO_METRIC_NAME: Record<string, string> = {
   Cadence: "cadence",
   "Total Steps": "total_steps",
@@ -23,32 +18,12 @@ const LABEL_TO_METRIC_NAME: Record<string, string> = {
   Stability: "avg_stride_cv",
 };
 
-// ─── API call ─────────────────────────────────────────────────────────────────
-// Swap the body of this function for your real fetch() when the backend is ready.
-
-async function fetchMetricCompare(
-  metricName: string,
-  range: CompareRange
-): Promise<MetricCompareResponse> {
-  await new Promise((r) => setTimeout(r, 400)); // simulate network latency
-
-  // Real implementation (uncomment when backend is ready):
-  // const res = await fetch(
-  //   `/api/metrics/compare?metric=${metricName}&range=${range}`
-  // );
-  // if (!res.ok) throw new Error("Network response was not ok");
-  // return res.json();
-
-  const metricData = mockCompareData[metricName] ?? mockCompareData["cadence"];
-  return metricData[range];
-}
-
 // ─── Bar types ────────────────────────────────────────────────────────────────
 
 export type CompareMode = "self" | "others";
 
 export interface SelfBar {
-  label: string;     // x-axis label derived from the history date
+  label: string;
   value: number;
   isLatest: boolean;
 }
@@ -56,83 +31,126 @@ export interface SelfBar {
 export interface OtherBar {
   selfValue: number;
   peerValue: number;
-  peerGroupLabel: string;    // e.g. "60-65 years old"
+  peerGroupLabel: string;
   percentile?: number;
 }
 
-// ─── Hook ─────────────────────────────────────────────────────────────────────
+// ─── Hook result ──────────────────────────────────────────────────────────────
 
 export interface UseMetricCompareResult {
-  // ui state
   mode: CompareMode;
   setMode: (m: CompareMode) => void;
   range: CompareRange;
   setRange: (r: CompareRange) => void;
 
-  // async state
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
 
-  // metadata from API
-  metricInfo: MetricInfo | null;
-  comparison: ComparisonData | null;
+  metricLabel: string | null;       // e.g. "Cadence"
+  unit: string | null;              // e.g. "steps/min"
+  higherIsBetter: boolean;
 
-  // self compare — shaped from history[]
   selfBars: SelfBar[];
   maxSelf: number;
 
-  // other compare — shaped from comparison{}
   otherBar: OtherBar | null;
 }
 
+// ─── Hook ─────────────────────────────────────────────────────────────────────
+
 export const useMetricCompare = (): UseMetricCompareResult => {
-  const { label } = useLocalSearchParams<{ label?: string }>();
+  // label & optional patientUsername come from navigation params
+  // e.g. router.push({ pathname: "/compare", params: { label: "Cadence", patientUsername: "john" } })
+  const { label, patientUsername } = useLocalSearchParams<{
+    label?: string;
+    patientUsername?: string; // only present when role === "caretaker"
+  }>();
+
+  // ⚠️  Swap these to match your real auth hook/store
+  const { token, role } = useAuth(); // role: "patient" | "caretaker"
+
   const metricName = LABEL_TO_METRIC_NAME[label ?? ""] ?? "cadence";
 
   const [mode, setMode] = useState<CompareMode>("self");
   const [range, setRange] = useState<CompareRange>("day");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<MetricCompareResponse | null>(null);
+  const [data, setData] = useState<SingleMetricBenchmark | null>(null);
 
   const load = useCallback(async () => {
+    if(!token || !role) {
+      setError("Authentication required.");
+      return;
+    }
+
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchMetricCompare(metricName, range);
+      let result: SingleMetricBenchmark;
+
+      if (role === "caretaker" && patientUsername) {
+        // Caretaker viewing a patient's benchmark
+        result = await caretakerApi.getPatientBenchmark(
+          patientUsername,
+          metricName,
+          token
+        );
+      } else {
+        // Patient viewing their own benchmark
+        result = await patientApi.getBenchmark(metricName, token);
+      }
+
       setData(result);
     } catch {
       setError("Failed to load comparison data. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [metricName, range]);
+  }, [metricName, token, role, patientUsername]);
 
   useEffect(() => {
     load();
   }, [load]);
 
-  // Shape history[] → SelfBar[]
-  const selfBars: SelfBar[] = (data?.history ?? []).map(
-    (entry: HistoryEntry, i, arr) => ({
-      label: formatDateLabel(entry.date, range),
-      value: entry.value,
-      isLatest: i === arr.length - 1,
-    })
-  );
+  // ─── Shape SingleMetricBenchmark → SelfBar[] based on selected range ───────
+  //
+  // The API returns one snapshot per period (daily/weekly/monthly/yearly).
+  // We build a small history array from whichever fields are available so
+  // the bar chart has something to render.  When the backend starts returning
+  // richer history arrays you can replace this shaping logic without touching
+  // any of the UI components.
+
+  const periodForRange = (b: SingleMetricBenchmark, r: CompareRange): SingleMetricPeriod => {
+    switch (r) {
+      case "day":   return b.daily;
+      case "week":  return b.weekly;
+      case "month": return b.monthly;
+      case "year":  return b.yearly;
+    }
+  };
+
+  const selfBars: SelfBar[] = data
+    ? buildSelfBars(data, range)
+    : [];
 
   const maxSelf = Math.max(...selfBars.map((b) => b.value), 1);
 
-  // Shape comparison{} → OtherBar
-  const otherBar: OtherBar | null = data?.comparison
-    ? {
-        selfValue: data.comparison.patient_current_avg,
-        peerValue: data.comparison.peer_group_avg,
-        peerGroupLabel: data.comparison.peer_group_label,
-        percentile: data.comparison.percentile,
-      }
-    : null;
+  // ─── Shape SingleMetricBenchmark → OtherBar ────────────────────────────────
+
+  const currentPeriod = data ? periodForRange(data, range) : null;
+
+  const otherBar: OtherBar | null =
+    currentPeriod &&
+    currentPeriod.patient_value != null &&
+    currentPeriod.cohort_avg != null
+      ? {
+          selfValue: currentPeriod.patient_value,
+          peerValue: currentPeriod.cohort_avg,
+          peerGroupLabel: data!.cohort_age_range,          // e.g. "60-65 years old"
+          percentile: currentPeriod.percentile ?? undefined,
+        }
+      : null;
 
   return {
     mode,
@@ -142,8 +160,9 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     isLoading,
     error,
     refetch: load,
-    metricInfo: data?.metric_info ?? null,
-    comparison: data?.comparison ?? null,
+    metricLabel: label ?? null,
+    unit: currentPeriod?.label ?? null,
+    higherIsBetter: deriveHigherIsBetter(metricName),
     selfBars,
     maxSelf,
     otherBar,
@@ -152,24 +171,46 @@ export const useMetricCompare = (): UseMetricCompareResult => {
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function formatDateLabel(dateStr: string, range: CompareRange): string {
-  const d = new Date(dateStr);
-  switch (range) {
-    case "day":
-      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
-    case "week":
-      return `W${getISOWeek(d)}`;
-    case "month":
-      return d.toLocaleString("en", { month: "short" });
-    case "year":
-      return `Q${Math.ceil((d.getMonth() + 1) / 3)}`;
-  }
+/**
+ * Builds a small ordered array of SelfBar from the four period snapshots.
+ * The selected range's period is marked isLatest = true.
+ *
+ * Layout per range:
+ *   day   → [yearly, monthly, weekly, daily]   (coarse → fine)
+ *   week  → [yearly, monthly, weekly]
+ *   month → [yearly, monthly]
+ *   year  → [yearly]
+ */
+function buildSelfBars(
+  b: SingleMetricBenchmark,
+  range: CompareRange
+): SelfBar[] {
+  const periods: { period: SingleMetricPeriod; label: string; isLatest: boolean }[] = [
+    { period: b.yearly,  label: "Year",  isLatest: range === "year" },
+    { period: b.monthly, label: "Month", isLatest: range === "month" },
+    { period: b.weekly,  label: "Week",  isLatest: range === "week" },
+    { period: b.daily,   label: "Day",   isLatest: range === "day" },
+  ];
+
+  // Only show periods up to and including the selected range
+  const rangeOrder: CompareRange[] = ["year", "month", "week", "day"];
+  const cutoff = rangeOrder.indexOf(range);
+
+  return periods
+    .filter((_, i) => i <= cutoff + (4 - rangeOrder.length - cutoff))  // keep all coarser + current
+    .filter((p) => p.period.patient_value != null)
+    .map((p) => ({
+      label: p.label,
+      value: p.period.patient_value!,
+      isLatest: p.isLatest,
+    }));
 }
 
-function getISOWeek(date: Date): number {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  const yearStart = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
+/**
+ * Metrics where a lower value is clinically better (e.g. heel impact, CV).
+ * Everything else defaults to higher = better.
+ */
+function deriveHigherIsBetter(metricName: string): boolean {
+  const lowerIsBetter = new Set(["avg_val_gyr_hs", "avg_stride_cv"]);
+  return !lowerIsBetter.has(metricName);
 }
