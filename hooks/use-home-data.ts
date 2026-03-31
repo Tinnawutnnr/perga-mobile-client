@@ -104,6 +104,10 @@ export const useHomeData = (
   const { token, role } = useAuth();
   const { selectedPatient } = usePatientStore();
 
+  // Default to today if no date is explicitly selected
+  const todayStr = toLocalISODate(new Date());
+  const effectiveDate = selectedDate || todayStr;
+
   const [records, setRecords] = useState<DailyAverage[]>([]);
   const [selectedDateRecord, setSelectedDateRecord] = useState<DailyAverage | null>(null);
   const [fallAnalysis, setFallAnalysis] = useState<FallAnalysisResponse | null>(null);
@@ -128,16 +132,12 @@ export const useHomeData = (
         return;
       }
 
-      // Default to today's date if no date is selected
-      const todayStr = toLocalISODate(new Date());
-      const dateToFetch = selectedDate || todayStr;
-
       setLoading(true);
       setError(null);
       caretakerApi
-        .getDailyAverageByDate(selectedPatient.username, dateToFetch, token)
+        .getDailyAverageByDate(selectedPatient.username, effectiveDate, token)
         .then((response: any) => {
-          setSelectedDateRecord(response.data || response);
+          setSelectedDateRecord(response?.data ?? response ?? null);
         })
         .catch((e: Error) => {
           // 404 means no data for that day; clear state without throwing error
@@ -152,14 +152,14 @@ export const useHomeData = (
       setError(null);
       patientApi
         .getDailyAverages(token)
-        .then((res: any) => setRecords(res.data || res))
+        .then((res: any) => setRecords(res?.data ?? res ?? []))
         .catch((e: Error) => {
           setError(e.message);
           setRecords([]);
         })
         .finally(() => setLoading(false));
     }
-  }, [token, role, selectedPatient?.username, selectedDate, tick]);
+  }, [token, role, selectedPatient?.username, effectiveDate, tick]);
 
   // ── Fetch Fall Analysis ───────────────────────────────────────────────────
   useEffect(() => {
@@ -216,9 +216,7 @@ export const useHomeData = (
     if (records.length === 0) return null;
 
     if (period === "daily") {
-      const todayStr = toLocalISODate(new Date());
-      const targetDate = selectedDate || todayStr;
-      const targetRecord = records.find((r) => r.report_date === targetDate);
+      const targetRecord = records.find((r) => r.report_date === effectiveDate);
       return targetRecord ? toGaitData(targetRecord) : null;
     }
 
@@ -235,14 +233,14 @@ export const useHomeData = (
 
     const avg = avgRecords(windowRecords);
     return avg ? toGaitData(avg) : null;
-  }, [records, period, role, selectedDateRecord, selectedDate]);
+  }, [records, period, role, selectedDateRecord, effectiveDate]);
 
   const selectedDateGaitData = useMemo(() => {
     if (role === "caretaker") return null;
-    if (!selectedDate || records.length === 0) return null;
-    const record = records.find((r) => r.report_date === selectedDate);
+    if (records.length === 0) return null;
+    const record = records.find((r) => r.report_date === effectiveDate);
     return record ? toGaitData(record) : null;
-  }, [records, selectedDate, role]);
+  }, [records, effectiveDate, role]);
 
   const availableDates = useMemo(
     () => records.map((r) => r.report_date),
