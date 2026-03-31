@@ -175,7 +175,7 @@ export const useHomeData = (
       setError(null);
       caretakerApi
         .getFallAnalysis(selectedPatient.username, fallDate, token)
-        .then((res: any) => setFallAnalysis(res.data))
+        .then((res: any) => setFallAnalysis(res.data ?? res))
         .catch((e: Error) => {
           if (!e.message.includes("404")) setError(e.message);
           setFallAnalysis(null);
@@ -187,7 +187,7 @@ export const useHomeData = (
       setError(null);
       patientApi
         .getFallAnalysis(fallDate, token)
-        .then((res: any) => setFallAnalysis(res.data))
+        .then((res: any) => setFallAnalysis(res.data ?? res))
         .catch((e: Error) => {
           if (!e.message.includes("404")) setError(e.message);
           setFallAnalysis(null);
