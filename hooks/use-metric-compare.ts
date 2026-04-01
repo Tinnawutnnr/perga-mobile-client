@@ -9,12 +9,10 @@ import { useAuth } from "@/context/auth-context";
 
 // Maps the navigation label param → API metric name
 const LABEL_TO_METRIC_NAME: Record<string, string> = {
-  Cadence: "cadence",
-  "Total Steps": "total_steps",
-  Calories: "total_calories",
+  "Swing Time": "avg_swing_time",
   "Swing Speed": "avg_max_gyr_ms",
   "Heel Impact": "avg_val_gyr_hs",
-  "Step Duration": "avg_step_duration",
+  "Stance Time": "avg_stance_time",
   Stability: "avg_stride_cv",
 };
 
