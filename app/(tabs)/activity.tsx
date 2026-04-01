@@ -1,4 +1,5 @@
 import { sessionApi } from "@/api/session";
+import { patientApi } from "@/api/patient";
 import { CumulativeStatsCard } from "@/components/activity/CumulativeStatsCard";
 import { WindowStatCard } from "@/components/activity/WindowStatCard";
 import { useMqtt } from "@/hooks/use-mqtt";
@@ -7,7 +8,6 @@ import { WindowReport } from "@/types/metric";
 import {
   createEmptySessionTotals,
   formatDuration,
-  generateMockWindowReport,
 } from "@/utils/activity-session";
 import { tokenStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
@@ -28,27 +28,17 @@ import { ThemedView } from "../../components/themed-view";
 import { useThemeColor } from "../../hooks/use-theme-color";
 
 const WINDOW_REPORT_INTERVAL_MS = 30_000;
-const MOCK_PATIENT_ID = 1; // temporary until window report API is available
 
 const addAlphaToHex = (hex: string, alpha: number) => {
-  // If the color is not a 6- or 8-digit hex, return it unchanged.
-  if (!hex || !hex.startsWith("#") || (hex.length !== 7 && hex.length !== 9)) {
-    return hex;
-  }
-
+  if (!hex || !hex.startsWith("#")) return hex;
   const alphaInt = Math.round(Math.min(Math.max(alpha, 0), 1) * 255);
   const alphaHex = alphaInt.toString(16).padStart(2, "0");
-
-  // If hex already has alpha, replace it; otherwise, append it.
-  return hex.length === 7
-    ? `${hex}${alphaHex}`
-    : `${hex.slice(0, 7)}${alphaHex}`;
+  return `${hex.slice(0, 7)}${alphaHex}`;
 };
 
 const ActivityScreen = () => {
-  // ── Global BLE state (Zustand) ──
+  // ── Global BLE & MQTT state ──
   const connectedDevice = useBleStore((s) => s.connectedDevice);
-  const lastBleData = useBleStore((s) => s.lastBleData);
   const pendingBatch = useBleStore((s) => s.pendingBatch);
   const startStreaming = useBleStore((s) => s.startStreaming);
   const stopStreaming = useBleStore((s) => s.stopStreaming);
@@ -60,61 +50,34 @@ const ActivityScreen = () => {
     isConnected: isMqttConnected,
   } = useMqtt();
 
-  // ── Local state ──
+  // ── Local recording state ──
   const [isRecording, setIsRecording] = useState(false);
   const [isWaitingForData, setIsWaitingForData] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [batchSentCount, setBatchSentCount] = useState(0);
 
-  // Duration timer
+  // ── Duration timer ──
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // WindowReport polling
+  // ── WindowReport polling ──
   const [latestReport, setLatestReport] = useState<WindowReport | null>(null);
   const [reportCount, setReportCount] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [sessionTotals, setSessionTotals] = useState(createEmptySessionTotals);
+  const [sessionTotals, setSessionTotals] = useState(createEmptySessionTotals());
 
-  // ── Theme ──
+  // ── Theme colors ──
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
 
-  // ── Start / stop duration timer ──
-  const startTimer = useCallback(() => {
-    setElapsed(0);
-    timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
-  }, []);
-
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  }, []);
-
-  // ── Start / stop WindowReport polling ──
-  const startPolling = useCallback(() => {
-    setLatestReport(null);
-    setReportCount(0);
-    setSessionTotals(createEmptySessionTotals());
-
-    const fetchReport = () => {
-      const report = generateMockWindowReport(MOCK_PATIENT_ID);
-      setLatestReport(report);
-      setSessionTotals((prev) => ({
-        steps: prev.steps + report.steps,
-        distanceM: prev.distanceM + report.distance_m,
-        kcal: prev.kcal + report.calories,
-      }));
-      setReportCount((c) => c + 1);
-    };
-
-    fetchReport();
-    pollRef.current = setInterval(fetchReport, WINDOW_REPORT_INTERVAL_MS);
   }, []);
 
   const stopPolling = useCallback(() => {
@@ -124,281 +87,188 @@ const ActivityScreen = () => {
     }
   }, []);
 
-  // ── Auto-Connect MQTT & Cleanup on unmount ──
-  useEffect(() => {
-    connectMqtt().catch((error) => {
-      console.error("Failed to auto-connect MQTT:", error);
-    });
+  /**
+   * API Polling Logic
+   * Fetches latest window report and handles null/404 scenarios.
+   */
+  const fetchWindowData = async (isRecordingActive: boolean) => {
+    try {
+      const token = await tokenStorage.get();
+      if (!token) return;
 
-    return () => {
-      disconnectMqtt();
-      if (timerRef.current) clearInterval(timerRef.current);
-      if (pollRef.current) clearInterval(pollRef.current);
-    };
-  }, []);
-
-  // Keep latest report visible even when not recording.
-  useEffect(() => {
-    const fetchLatestReport = () => {
-      if (!isRecording && !isWaitingForData) {
-        setLatestReport(generateMockWindowReport(MOCK_PATIENT_ID));
-      }
-    };
-
-    fetchLatestReport();
-    const idleReportInterval = setInterval(
-      fetchLatestReport,
-      WINDOW_REPORT_INTERVAL_MS,
-    );
-    return () => clearInterval(idleReportInterval);
-  }, [isRecording, isWaitingForData]);
-
-  // ── Publish BLE batch & Catch First Batch ──
-  useEffect(() => {
-    if (
-      (isRecording || isWaitingForData) &&
-      pendingBatch.length > 0 &&
-      isMqttConnected
-    ) {
-      if (isWaitingForData) {
-        setIsWaitingForData(false);
-        setIsRecording(true);
-        startTimer();
-        startPolling();
-      }
-
-      publishGaitData(pendingBatch);
-      setBatchSentCount((prev) => {
-        const next = prev + 1;
-        return next;
-      });
-    }
-  }, [
-    pendingBatch,
-    isRecording,
-    isWaitingForData,
-    isMqttConnected,
-    startTimer,
-    startPolling,
-    publishGaitData,
-  ]);
-
-  // ── Main action handler ──
-  const handleToggleActivity = async () => {
-    if (!isRecording && !isWaitingForData) {
-      if (!connectedDevice) {
-        Alert.alert(
-          "No Device",
-          "Please connect to ESP32 in the BLE tab first.",
-        );
+      const response = await patientApi.getWindowReport(token);
+      
+      // Check if response itself is null or undefined first
+      if (!response) {
         return;
       }
 
-      const newSid = uuidv4();
-      setSessionId(newSid);
-      setBatchSentCount(0);
+      // Safe extraction of data (handles axios vs direct response)
+      const report = (response as any).data || response;
 
-      setIsWaitingForData(true);
-
-      try {
-        if (!isMqttConnected) {
-          console.log("MQTT", "Not connected yet, trying now...");
-          await connectMqtt();
+      if (report) {
+        setLatestReport(report);
+        // Only accumulate if a recording session is actually active
+        if (isRecordingActive) {
+          setSessionTotals((prev) => ({
+            steps: prev.steps + (report.steps ?? 0),
+            distanceM: prev.distanceM + (report.distance_m ?? 0),
+            kcal: prev.kcal + (report.calories ?? 0),
+          }));
+          setReportCount((c) => c + 1);
         }
+      }
+    } catch (error: any) {
+      // Ignore 404 errors as they just mean "no data found for this user yet"
+      if (error?.status === 404 || error?.response?.status === 404) return;
+      console.error("Polling error:", error);
+    }
+  };
 
+  const startPolling = useCallback(() => {
+    stopPolling();
+    fetchWindowData(true);
+    pollRef.current = setInterval(() => fetchWindowData(true), WINDOW_REPORT_INTERVAL_MS);
+  }, []);
+
+  // ── Lifecycle: Initial Setup ──
+  useEffect(() => {
+    connectMqtt().catch((err) => console.error("MQTT Auto-connect failed:", err));
+    
+    // Fetch initial data even before recording to show latest state from DB
+    fetchWindowData(false);
+
+    return () => {
+      disconnectMqtt();
+      stopTimer();
+      stopPolling();
+    };
+  }, []);
+
+  // ── Lifecycle: BLE to MQTT Bridge ──
+  useEffect(() => {
+    if ((isRecording || isWaitingForData) && pendingBatch.length > 0 && isMqttConnected) {
+      if (isWaitingForData) {
+        setIsWaitingForData(false);
+        setIsRecording(true);
+        setElapsed(0);
+        timerRef.current = setInterval(() => setElapsed((e) => e + 1), 1000);
+        startPolling();
+      }
+      publishGaitData(pendingBatch);
+      setBatchSentCount((prev) => prev + 1);
+    }
+  }, [pendingBatch, isRecording, isWaitingForData, isMqttConnected, startPolling]);
+
+  // ── UI Handlers ──
+  const handleToggleActivity = async () => {
+    if (!isRecording && !isWaitingForData) {
+      if (!connectedDevice) {
+        Alert.alert("No Device", "Please connect to the wearable device first.");
+        return;
+      }
+      setSessionId(uuidv4());
+      setBatchSentCount(0);
+      setReportCount(0);
+      setSessionTotals(createEmptySessionTotals());
+      setIsWaitingForData(true);
+      try {
+        if (!isMqttConnected) await connectMqtt();
         startStreaming();
       } catch (error) {
-        console.error("Failed to start BLE streaming:", error);
+        console.error("Start streaming failed:", error);
         setIsWaitingForData(false);
-        setSessionId(null);
       }
     } else {
-      console.log("Stopping activity...");
-
       stopStreaming();
       stopTimer();
       stopPolling();
-
       setIsRecording(false);
       setIsWaitingForData(false);
 
-      tokenStorage.get().then((token) => {
-        if (token) {
-          sessionApi
-            .stopSession(token)
-            .then(() => console.log("Summary triggered successfully"))
-            .catch((err) => console.error("Summary trigger failed", err));
-        }
-      });
+      const token = await tokenStorage.get();
+      if (token) {
+        sessionApi.stopSession(token).catch((err) => console.error("Session stop failed:", err));
+      }
 
       Alert.alert(
-        "Success",
-        `Gait session saved!\nDuration: ${formatDuration(elapsed || 0)}\nTotal batches sent: ${batchSentCount || 0}\nReports received: ${reportCount || 0}`,
+        "Session Finished",
+        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nBatches: ${batchSentCount}\nReports: ${reportCount}`
       );
-
-      // clear state
-      setSessionTotals(createEmptySessionTotals());
-      setReportCount(0);
       setSessionId(null);
     }
   };
 
   const successColor = useThemeColor({}, "success");
   const warningColor = useThemeColor({}, "warning");
-  const mqttBadgeTextColor = isMqttConnected ? successColor : warningColor;
-  const mqttBadgeBackgroundColor = addAlphaToHex(
-    isMqttConnected ? successColor : warningColor,
-    0.125, // Approximate previous 0x20 alpha (~12.5%)
-  );
+  const mqttBadgeColor = isMqttConnected ? successColor : warningColor;
+  const mqttBadgeBg = addAlphaToHex(mqttBadgeColor, 0.12);
 
   return (
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
-      <ScrollView style={styles.container}>
-        {/* Header */}
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <ThemedView style={styles.header}>
-          <ThemedText type="title" style={{ fontSize: 24, fontWeight: "700" }}>
-            Gait Analysis
-          </ThemedText>
-          <ThemedView
-            style={[
-              styles.badge,
-              {
-                backgroundColor: mqttBadgeBackgroundColor,
-              },
-            ]}
-          >
-            <ThemedText
-              style={{
-                color: mqttBadgeTextColor,
-                fontSize: 12,
-                fontWeight: "bold",
-              }}
-            >
+          <ThemedText type="title" style={styles.titleText}>Gait Analysis</ThemedText>
+          <ThemedView style={[styles.badge, { backgroundColor: mqttBadgeBg }]}>
+            <ThemedText style={[styles.badgeText, { color: mqttBadgeColor }]}>
               {isMqttConnected ? "MQTT Online" : "MQTT Offline"}
             </ThemedText>
           </ThemedView>
         </ThemedView>
 
-        {/* Action Button */}
         <TouchableOpacity
+          activeOpacity={0.8}
           style={[
             styles.mainButton,
-            {
-              backgroundColor: isWaitingForData
-                ? mutedColor
-                : isRecording
-                  ? "#FF5252"
-                  : tintColor,
-            },
+            { backgroundColor: isWaitingForData ? mutedColor : isRecording ? "#FF5252" : tintColor },
           ]}
           onPress={handleToggleActivity}
           disabled={isWaitingForData}
         >
           {isWaitingForData ? (
-            <ActivityIndicator
-              size="small"
-              color="#FFF"
-              style={{ marginRight: 10 }}
-            />
+            <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 10 }} />
           ) : (
-            <Ionicons
-              name={isRecording ? "stop-circle" : "play-circle"}
-              size={32}
-              color="#FFF"
-              style={{ marginRight: 10 }}
-            />
+            <Ionicons name={isRecording ? "stop-circle" : "play-circle"} size={32} color="#FFF" style={{ marginRight: 10 }} />
           )}
-          <ThemedText
-            style={{ color: "#FFF", fontSize: 20, fontWeight: "bold" }}
-          >
-            {isWaitingForData
-              ? "Waiting for Sensor..."
-              : isRecording
-                ? "Stop Activity"
-                : "Start Tracking"}
+          <ThemedText style={styles.buttonText}>
+            {isWaitingForData ? "Waiting for Sensor..." : isRecording ? "Stop Activity" : "Start Tracking"}
           </ThemedText>
         </TouchableOpacity>
-        {!connectedDevice && !isRecording && (
-          <ThemedText
-            type="muted"
-            style={{
-              textAlign: "center",
-              marginTop: 20,
-              marginBottom: 20,
-              fontSize: 14,
-            }}
-          >
-            No BLE device connected. Please connect to ESP32 in the BLE tab
-            first.
-          </ThemedText>
-        )}
 
-        {/* Duration + Status Card */}
+        {/* RECORDING STATUS CARD */}
         {isRecording && (
-          <ThemedView
-            style={[
-              styles.statusCard,
-              { backgroundColor: cardColor, borderColor: tintColor },
-            ]}
-          >
-            <View style={{ marginRight: 15, alignItems: "center" }}>
+          <ThemedView style={[styles.statusCard, { backgroundColor: cardColor, borderColor: tintColor }]}>
+            <View style={styles.liveIndicator}>
               <Ionicons name="recording" size={28} color={tintColor} />
-              <ThemedText
-                style={{
-                  fontSize: 10,
-                  color: tintColor,
-                  marginTop: 4,
-                  fontWeight: "bold",
-                }}
-              >
-                LIVE
-              </ThemedText>
+              <ThemedText style={[styles.liveText, { color: tintColor }]}>LIVE</ThemedText>
             </View>
             <ThemedView transparent style={{ flex: 1 }}>
-              <ThemedText
-                style={{ fontWeight: "700", color: tintColor, fontSize: 16 }}
-              >
-                Recording in Progress
-              </ThemedText>
-              <ThemedText type="muted" style={{ fontSize: 12, marginTop: 4 }}>
-                ID: {sessionId?.split("-")[0]}...
-              </ThemedText>
+              <ThemedText style={[styles.recordingTitle, { color: tintColor }]}>Recording In Progress</ThemedText>
+              <ThemedText type="muted" style={{ fontSize: 12 }}>ID: {sessionId?.split("-")[0]}...</ThemedText>
             </ThemedView>
-            {/* Duration counter */}
             <ThemedView transparent style={{ alignItems: "flex-end" }}>
-              <ThemedText
-                style={{ fontSize: 24, fontWeight: "bold", color: tintColor }}
-              >
-                {formatDuration(elapsed)}
-              </ThemedText>
-              <ThemedText type="muted" style={{ fontSize: 10 }}>
-                Duration
-              </ThemedText>
+              <ThemedText style={[styles.timerText, { color: tintColor }]}>{formatDuration(elapsed)}</ThemedText>
+              <ThemedText type="muted" style={{ fontSize: 10 }}>Duration</ThemedText>
             </ThemedView>
           </ThemedView>
         )}
 
-        {/* Session cumulative totals (reset after stop) */}
-        {isRecording && (
-          <CumulativeStatsCard
-            totals={sessionTotals}
-            tintColor={tintColor}
-            cardColor={cardColor}
-            borderColor={borderColor}
-          />
-        )}
+        {/* CUMULATIVE STATS CARD (Always visible) */}
+        <CumulativeStatsCard 
+          totals={sessionTotals} 
+          tintColor={tintColor} 
+          cardColor={cardColor} 
+          borderColor={borderColor} 
+        />
+        
+        {/* LATEST WINDOW CARD (Always visible) */}
+        <WindowStatCard 
+          report={latestReport} 
+          cardColor={cardColor} 
+          borderColor={borderColor} 
+          tintColor={tintColor} 
+        />
 
-        {/* Latest WindowReport card */}
-        {latestReport && (
-          <WindowStatCard
-            report={latestReport}
-            cardColor={cardColor}
-            borderColor={borderColor}
-            tintColor={tintColor}
-          />
-        )}
-
-        {/* Bottom spacer */}
         <View style={{ height: 40 }} />
       </ScrollView>
     </SafeAreaView>
@@ -408,48 +278,17 @@ const ActivityScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 20 },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 20,
-    marginTop: 10,
-  },
+  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 20, marginTop: 10 },
+  titleText: { fontSize: 24, fontWeight: "700" },
   badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  card: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  statusCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 16,
-    padding: 16,
-    marginBottom: 24,
-    borderWidth: 1,
-    borderLeftWidth: 6,
-  },
-  mainButton: {
-    height: 65,
-    borderRadius: 32,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 10,
-    marginBottom: 30,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.15,
-    shadowRadius: 10,
-    elevation: 5,
-  },
+  badgeText: { fontSize: 12, fontWeight: "bold" },
+  mainButton: { height: 65, borderRadius: 32, flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 30, elevation: 4 },
+  buttonText: { color: "#FFF", fontSize: 20, fontWeight: "bold" },
+  statusCard: { flexDirection: "row", alignItems: "center", borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderLeftWidth: 6 },
+  liveIndicator: { marginRight: 15, alignItems: "center" },
+  liveText: { fontSize: 10, marginTop: 4, fontWeight: "bold" },
+  recordingTitle: { fontWeight: "700", fontSize: 16 },
+  timerText: { fontSize: 24, fontWeight: "bold" },
 });
 
 export default ActivityScreen;

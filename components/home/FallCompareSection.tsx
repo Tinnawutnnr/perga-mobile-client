@@ -1,7 +1,8 @@
 import CompareCard from "@/components/home/CompareCard";
 import SummaryBanner from "@/components/home/SummaryBanner";
 import { ThemedText } from "@/components/themed-text";
-import { CompareDuration, CompareMetric } from "@/hooks/use-home-data";
+import { FallAnalysisResponse } from "@/types/report";
+import { CompareDuration } from "@/hooks/use-home-data";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
@@ -14,11 +15,84 @@ const DURATION_OPTIONS: { key: CompareDuration; label: string }[] = [
   { key: "year", label: "Year" },
 ];
 
-const DURATION_DAYS: Record<CompareDuration, number> = {
-  week: 7,
-  month: 30,
-  year: 365,
-};
+// ─── Types ────────────────────────────────────────────────────────────────────
+
+// Fields to be displayed in CompareCard — mapped directly from previous/latest
+interface CompareRow {
+  label: string;
+  unit: string;
+  previous: number | null;
+  latest: number | null;
+  higherIsBetter: boolean;
+  disclaimer?: string;
+}
+
+// ─── Helper: Transform previous/latest record → CompareRow[] ─────────────────
+
+function buildRows(
+  previous: Record<string, any> | null,
+  latest: Record<string, any> | null,
+): CompareRow[] {
+  return [
+    {
+      label: "Swing Speed",
+      unit: "rad/s",
+      previous: previous?.avg_max_gyr_ms ?? null,
+      latest: latest?.avg_max_gyr_ms ?? null,
+      higherIsBetter: true,
+      disclaimer: "Decrease indicates muscle weakness/onset of shuffling gait",
+    },
+    {
+      label: "Heel Impact",
+      unit: "rad/s",
+      previous: previous?.avg_val_gyr_hs ?? null,
+      latest: latest?.avg_val_gyr_hs ?? null,
+      higherIsBetter: false,
+      disclaimer:
+        "Spike indicates foot slapping; drop indicates antalgic gait/limping",
+    },
+    {
+      label: "Swing Time",
+      unit: "s",
+      previous: previous?.avg_swing_time ?? null,
+      latest: latest?.avg_swing_time ?? null,
+      higherIsBetter: false,
+      disclaimer: "Decrease correlates with shortened step/dragging",
+    },
+    {
+      label: "Stance Time",
+      unit: "s",
+      previous: previous?.avg_stance_time ?? null,
+      latest: latest?.avg_stance_time ?? null,
+      higherIsBetter: false,
+      disclaimer:
+        "Increase indicates cautious walking; sudden drop indicates pain avoidance",
+    },
+    {
+      label: "Stride CV",
+      unit: "%",
+      previous:
+        previous?.avg_stride_cv != null
+          ? +(previous.avg_stride_cv * 100).toFixed(1)
+          : null,
+      latest:
+        latest?.avg_stride_cv != null
+          ? +(latest.avg_stride_cv * 100).toFixed(1)
+          : null,
+      higherIsBetter: false,
+      disclaimer: "High value is a predictor of future falls",
+    },
+    {
+      label: "Anomalies",
+      unit: "",
+      previous: previous?.anomaly_count ?? null,
+      latest: latest?.anomaly_count ?? null,
+      higherIsBetter: false,
+    },
+  ];
+}
+
+// ─── Props ────────────────────────────────────────────────────────────────────
 
 interface FallCompareSectionProps {
   fallDate: Date | null;
@@ -26,9 +100,11 @@ interface FallCompareSectionProps {
   onFallDateClear: () => void;
   duration: CompareDuration;
   onDurationChange: (duration: CompareDuration) => void;
-  comparison: CompareMetric[];
+  fallAnalysis: FallAnalysisResponse | null;
   loading: boolean;
 }
+
+// ─── Component ────────────────────────────────────────────────────────────────
 
 export function FallCompareSection({
   fallDate,
@@ -36,20 +112,24 @@ export function FallCompareSection({
   onFallDateClear,
   duration,
   onDurationChange,
-  comparison,
+  fallAnalysis,
   loading,
 }: FallCompareSectionProps) {
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
-  const days = DURATION_DAYS[duration];
+
+  // Select previous/latest based on the duration selected by the user
+  const report = fallAnalysis?.[duration] ?? null;
+  const rows =
+    report ? buildRows(report.previous, report.latest) : [];
+  const hasData = rows.length > 0 && (report?.previous != null || report?.latest != null);
 
   return (
     <>
       <ThemedText style={styles.sectionTitle}>Before vs After Fall</ThemedText>
       <ThemedText type="muted" style={styles.sectionDesc}>
-        Compares {days}-day average before the fall date vs the latest {days}
-        -day post-fall data.
+        Compares the period before the fall date vs the latest period after.
       </ThemedText>
 
       <DatePickerField
@@ -86,16 +166,16 @@ export function FallCompareSection({
         })}
       </View>
 
-      {fallDate && comparison.length > 0 && (
+      {fallDate && hasData && (
         <View style={styles.compareList}>
-          <SummaryBanner comparison={comparison} />
-          {comparison.map((item) => (
-            <CompareCard key={item.label} item={item} />
+          <SummaryBanner rows={rows} />
+          {rows.map((row) => (
+            <CompareCard key={row.label} item={row} />
           ))}
         </View>
       )}
 
-      {fallDate && comparison.length === 0 && !loading && (
+      {fallDate && !hasData && !loading && (
         <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
           <Ionicons name="bar-chart-outline" size={32} color={mutedColor} />
           <ThemedText

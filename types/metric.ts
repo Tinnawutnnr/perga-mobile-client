@@ -9,6 +9,7 @@ export interface GaitData {
   swingTime: number;
   stanceTime: number;
   stability: number;
+  totalSteps: number;
 }
 
 export interface Metric {
@@ -39,39 +40,40 @@ export interface MetricDetailData {
   iconName: IconName;
 }
 
+// Fields are nullable to match the backend (DailyAverageSchema)
 export interface DailyAverage {
   daily_report_id: string;
   patient_id: number;
   report_date: string; // "YYYY-MM-DD"
-  total_windows_analyzed: number;
-  total_steps: number;
-  total_calories: number;
-  total_distance_m: number;
-  avg_max_gyr_ms: number; // swing speed
-  avg_val_gyr_hs: number; // heel impact
-  avg_swing_time: number;
-  avg_stance_time: number;
-  avg_stride_cv: number; // stride variability (lower = more stable)
-  anomaly_count: number;
+  total_windows_analyzed: number | null;
+  total_steps: number | null;
+  total_calories: number | null;
+  total_distance_m: number | null;
+  avg_max_gyr_ms: number | null; // swing speed
+  avg_val_gyr_hs: number | null; // heel impact
+  avg_swing_time: number | null;
+  avg_stance_time: number | null;
+  avg_stride_cv: number | null; // stride variability (lower = more stable)
+  anomaly_count: number | null;
 }
 
 export interface WindowReport {
   window_report_id: string;
   patient_id: number;
   timestamp: string;
-  status: string;
-  gait_health: string;
-  anomaly_score: number;
-  max_gyr_ms: number;
-  val_gyr_hs: number;
-  swing_time: number;
-  stance_time: number;
-  stride_time: number;
-  stride_cv: number;
-  n_strides: number;
-  steps: number;
-  calories: number;
-  distance_m: number;
+  status: string | null;
+  gait_health: string | null;
+  anomaly_score: number | null;
+  max_gyr_ms: number | null;
+  val_gyr_hs: number | null;
+  swing_time: number | null;
+  stance_time: number | null;
+  stride_time: number | null;
+  stride_cv: number | null;
+  n_strides: number | null;
+  steps: number | null;
+  calories: number | null;
+  distance_m: number | null;
 }
 
 // ─── Compare API types ───────────────────────────────────────────────────────
@@ -79,17 +81,17 @@ export interface WindowReport {
 export type CompareRange = "day" | "week" | "month" | "year";
 
 export interface MetricInfo {
-  name: string; // e.g. "avg_swing_time"
-  display_name: string; // e.g. "Average Swing Time"
-  unit: string; // e.g. "seconds"
-  description: string; // Thai or English description
+  name: string; // e.g., "avg_swing_time"
+  display_name: string; // e.g., "Average Swing Time"
+  unit: string; // e.g., "seconds"
+  description: string; // Metric description
 }
 
 export interface ComparisonData {
   patient_current_avg: number;
   peer_group_avg: number;
   percentile?: number; // optional
-  peer_group_label: string; // e.g. "60-65 years old"
+  peer_group_label: string; // e.g., "60-65 years old"
 }
 
 export interface HistoryEntry {

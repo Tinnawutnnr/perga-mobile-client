@@ -3,38 +3,70 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { CompareMetric } from "@/hooks/use-home-data";
+import { CompareRow } from "@/types/report";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-const CompareCard = ({ item }: { item: CompareMetric }) => {
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+/**
+ * Calculates delta percentage from previous to latest.
+ */
+function calcDelta(previous: number | null, latest: number | null): number {
+  if (previous == null || latest == null) return 0;
+  if (previous === 0 && latest === 0) return 0;
+  if (previous === 0) return 100;
+  return Math.round(((latest - previous) / Math.abs(previous)) * 100);
+}
+
+/**
+ * MCID thresholds (Perera et al. 2006)
+ * < 5%  = Normal variance  → success
+ * 5–10% = Small change     → warning
+ * > 10% = Substantial      → error
+ */
+function evaluate(
+  deltaPercent: number,
+  higherIsBetter: boolean,
+): "success" | "warning" | "error" {
+  const abs = Math.abs(deltaPercent);
+  const isRegression = higherIsBetter ? deltaPercent < 0 : deltaPercent > 0;
+  if (!isRegression) return "success";
+  if (abs >= 10) return "error";
+  if (abs >= 5) return "warning";
+  return "success";
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+const CompareCard = ({ item }: { item: CompareRow }) => {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
-  // Map the new evaluation directly to colors based on biomechanical criteria:
-  // - "error" (Red/Alert): Critical regressions (e.g., sudden drop in Stance Time indicating pain avoidance, drop in Swing Time indicating shuffling, spiked Heel Impact indicating foot slapping)
-  // - "warning" (Orange/Caution): Compensatory behaviors (e.g., increased Stance Time indicating cautious walking/fear of falling, dropped Heel Impact indicating limping)
-  // - "success" (Green/Good): Stable or improving metrics
-  let deltaColor = colors.success; // Default green
-  let deltaIcon: keyof typeof Ionicons.glyphMap = "checkmark-circle-outline";
+  const deltaPercent = calcDelta(item.previous, item.latest);
+  const evaluation = evaluate(deltaPercent, item.higherIsBetter);
 
-  if (item.evaluation === "error") {
-    deltaColor = colors.error; // Red
+  let deltaColor = colors.success;
+  let deltaIcon: keyof typeof Ionicons.glyphMap = "trending-up-outline";
+
+  if (evaluation === "error") {
+    deltaColor = colors.error;
     deltaIcon = "trending-down-outline";
-  } else if (item.evaluation === "warning") {
-    deltaColor = colors.warning; // Orange color for warnings/cautions
+  } else if (evaluation === "warning") {
+    deltaColor = colors.warning;
     deltaIcon = "alert-circle-outline";
   } else {
-    deltaIcon = "trending-up-outline";
+    deltaIcon = "checkmark-circle-outline";
   }
 
-  const arrow = item.deltaPercent > 0 ? "▲" : item.deltaPercent < 0 ? "▼" : "–";
-
+  const arrow = deltaPercent > 0 ? "▲" : deltaPercent < 0 ? "▼" : "–";
   const beforeColor = scheme === "dark" ? "#5D7DDF" : "#4F7D81";
   const afterColor = deltaColor;
-  const maxVal =
-    Math.max(Math.abs(item.before), Math.abs(item.after)) * 1.15 || 1;
+
+  const prev = item.previous ?? 0;
+  const late = item.latest ?? 0;
+  const maxVal = Math.max(Math.abs(prev), Math.abs(late)) * 1.15 || 1;
   const fmtVal = (n: number) => `${n}${item.unit ? ` ${item.unit}` : ""}`;
 
   return (
@@ -46,14 +78,14 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
       <View style={styles.topRow}>
         <View style={{ flexDirection: "row", alignItems: "center", gap: 8 }}>
           <ThemedText style={styles.metricLabel}>{item.label}</ThemedText>
-          {item.evaluation === "warning" && (
+          {evaluation === "warning" && (
             <View style={[styles.pill, { backgroundColor: deltaColor + "22" }]}>
               <ThemedText style={[styles.pillText, { color: deltaColor }]}>
                 Caution
               </ThemedText>
             </View>
           )}
-          {item.evaluation === "error" && (
+          {evaluation === "error" && (
             <View style={[styles.pill, { backgroundColor: deltaColor + "22" }]}>
               <ThemedText style={[styles.pillText, { color: deltaColor }]}>
                 Alert
@@ -66,27 +98,26 @@ const CompareCard = ({ item }: { item: CompareMetric }) => {
         >
           <Ionicons name={deltaIcon} size={13} color={deltaColor} />
           <ThemedText style={[styles.deltaText, { color: deltaColor }]}>
-            {arrow} {Math.abs(item.deltaPercent)}%
+            {arrow} {Math.abs(deltaPercent)}%
           </ThemedText>
         </View>
       </View>
 
       <BarRow
         label="Before"
-        value={item.before}
+        value={prev}
         max={maxVal}
         color={beforeColor}
-        valueStr={fmtVal(item.before)}
+        valueStr={fmtVal(prev)}
       />
       <BarRow
         label="After"
-        value={item.after}
+        value={late}
         max={maxVal}
         color={afterColor}
-        valueStr={fmtVal(item.after)}
+        valueStr={fmtVal(late)}
       />
 
-      {/* Render the specific clinical disclaimer we passed */}
       {item.disclaimer ? (
         <ThemedText style={[styles.disclaimer, { color: deltaColor }]}>
           {item.disclaimer}

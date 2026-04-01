@@ -1,8 +1,8 @@
 import { WindowReport } from "@/types/metric";
 import {
-    healthColor,
-    healthLabel,
-    modelStatusLabel,
+  healthColor,
+  healthLabel,
+  modelStatusLabel,
 } from "@/utils/activity-session";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -10,7 +10,7 @@ import { ThemedText } from "../themed-text";
 import { ThemedView } from "../themed-view";
 
 type Props = {
-  report: WindowReport;
+  report: WindowReport | null; // Allow null from ActivityScreen
   cardColor: string;
   borderColor: string;
   tintColor: string;
@@ -22,6 +22,14 @@ export const WindowStatCard: React.FC<Props> = ({
   borderColor,
   tintColor,
 }) => {
+  // Helper function to display value or "--"
+  const val = (value: number | string | null | undefined, unit: string = "") => {
+    if (value === null || value === undefined) return "--";
+    return `${value}${unit}`;
+  };
+
+  const statusColor = healthColor(report?.gait_health ?? null);
+
   return (
     <ThemedView
       style={[styles.card, { backgroundColor: cardColor, borderColor }]}
@@ -32,7 +40,7 @@ export const WindowStatCard: React.FC<Props> = ({
           style={[
             styles.badge,
             {
-              backgroundColor: healthColor(report.gait_health) + "20",
+              backgroundColor: statusColor + "20",
               minWidth: 104,
               alignItems: "center",
             },
@@ -43,11 +51,11 @@ export const WindowStatCard: React.FC<Props> = ({
             style={[
               styles.badgeText,
               {
-                color: healthColor(report.gait_health),
+                color: statusColor,
               },
             ]}
           >
-            {healthLabel(report.gait_health)}
+            {healthLabel(report?.gait_health ?? null)}
           </ThemedText>
         </ThemedView>
       </View>
@@ -57,14 +65,16 @@ export const WindowStatCard: React.FC<Props> = ({
           Status
         </ThemedText>
         <ThemedText style={styles.metaValue}>
-          {modelStatusLabel(report.status)}
+          {modelStatusLabel(report?.status ?? null)}
         </ThemedText>
       </View>
       <View style={styles.metaRow}>
         <ThemedText type="muted" style={styles.metaLabel}>
           Anomaly Score
         </ThemedText>
-        <ThemedText style={styles.metaValue}>{report.anomaly_score}</ThemedText>
+        <ThemedText style={styles.metaValue}>
+          {val(report?.anomaly_score)}
+        </ThemedText>
       </View>
 
       <View style={[styles.divider, { backgroundColor: borderColor }]} />
@@ -72,34 +82,36 @@ export const WindowStatCard: React.FC<Props> = ({
       <View style={styles.grid}>
         <ReportStat
           label="Max Swing Velocity"
-          value={`${report.max_gyr_ms} deg/s`}
+          value={val(report?.max_gyr_ms, " deg/s")}
           color={tintColor}
         />
         <ReportStat
           label="Impact Intensity"
-          value={`${report.val_gyr_hs} deg/s`}
+          value={val(report?.val_gyr_hs, " deg/s")}
           color={tintColor}
         />
         <ReportStat
           label="Swing Time"
-          value={`${report.swing_time} sec`}
+          value={val(report?.swing_time, " sec")}
           color={tintColor}
         />
         <ReportStat
           label="Stance Time"
-          value={`${report.stance_time} sec`}
+          value={val(report?.stance_time, " sec")}
           color={tintColor}
         />
         <ReportStat
           label="Stride Variability"
-          value={`${report.stride_cv}%`}
+          value={val(report?.stride_cv, "%")}
           color={tintColor}
           fullWidth
         />
       </View>
 
       <ThemedText type="muted" style={styles.timestamp}>
-        {new Date(report.timestamp).toLocaleTimeString()}
+        {report?.timestamp 
+          ? new Date(report.timestamp).toLocaleTimeString() 
+          : "--:--:--"}
       </ThemedText>
     </ThemedView>
   );

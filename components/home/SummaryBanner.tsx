@@ -1,22 +1,52 @@
 import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
-import { CompareMetric } from "@/hooks/use-home-data";
+import { CompareRow } from "@/types/report";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
-const SummaryBanner = ({ comparison }: { comparison: CompareMetric[] }) => {
+// ─── Helpers (Mirroring logic in CompareCard) ────────────────────────────────
+
+/**
+ * Calculates the percentage change between two values.
+ */
+function calcDelta(previous: number | null, latest: number | null): number {
+  if (previous == null || latest == null) return 0;
+  if (previous === 0 && latest === 0) return 0;
+  if (previous === 0) return 100;
+  return Math.round(((latest - previous) / Math.abs(previous)) * 100);
+}
+
+/**
+ * Evaluates the status based on percentage delta and performance direction.
+ */
+function evaluate(
+  deltaPercent: number,
+  higherIsBetter: boolean,
+): "success" | "warning" | "error" {
+  const abs = Math.abs(deltaPercent);
+  const isRegression = higherIsBetter ? deltaPercent < 0 : deltaPercent > 0;
+  if (!isRegression) return "success";
+  if (abs >= 10) return "error";
+  if (abs >= 5) return "warning";
+  return "success";
+}
+
+// ─── Component ────────────────────────────────────────────────────────────────
+
+const SummaryBanner = ({ rows }: { rows: CompareRow[] }) => {
   const scheme = useColorScheme() ?? "light";
   const colors = Colors[scheme];
 
-  if (comparison.length === 0) return null;
+  if (rows.length === 0) return null;
 
-  // Count errors (Red/Alert) and warnings (Orange/Caution) based on the new evaluation flag
-  const errorCount = comparison.filter((m) => m.evaluation === "error").length;
-  const warningCount = comparison.filter(
-    (m) => m.evaluation === "warning",
-  ).length;
+  const evaluations = rows.map((row) =>
+    evaluate(calcDelta(row.previous, row.latest), row.higherIsBetter),
+  );
+
+  const errorCount = evaluations.filter((e) => e === "error").length;
+  const warningCount = evaluations.filter((e) => e === "warning").length;
   const badCount = errorCount + warningCount;
 
   let bgColor = colors.success + "22";
@@ -24,17 +54,13 @@ const SummaryBanner = ({ comparison }: { comparison: CompareMetric[] }) => {
   let icon: keyof typeof Ionicons.glyphMap = "checkmark-circle-outline";
   let message = "Gait recovery looks stable";
 
-  // If there are multiple errors, it's high risk
   if (errorCount >= 2) {
     bgColor = colors.error + "22";
     iconColor = colors.error;
     icon = "close-circle-outline";
-    message =
-      "High risk indicators detected — clinical follow-up strongly recommended";
-  }
-  // If there's 1 error, or just general warnings
-  else if (badCount > 0) {
-    bgColor = colors.warning + "22"; // Using the orange caution color
+    message = "High risk indicators detected — clinical follow-up strongly recommended";
+  } else if (badCount > 0) {
+    bgColor = colors.warning + "22";
     iconColor = colors.warning;
     icon = "alert-outline";
     message = `${badCount} ${badCount === 1 ? "metric" : "metrics"} showing concerning changes`;
