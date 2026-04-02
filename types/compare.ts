@@ -5,7 +5,7 @@ export interface SingleMetricPeriod {
     percentile: number | null;
     lower_bound?: number | null;
     upper_bound?: number | null;
-    lable: string | null;
+    label: string | null;
 }
 
 export interface AllMetricsBenchmarkSchema extends SingleMetricPeriod {
