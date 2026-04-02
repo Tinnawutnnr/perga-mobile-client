@@ -7,12 +7,15 @@ import {
   ComparisonData,
   MetricInfo,
 } from "@/types/metric";
+import { AllMetricsBenchmarkSchema } from "@/types/compare";
+import { BenchmarkBar } from "@/types/compare";
+import { patientApi } from "@/api/patient";
+import { useAuth } from "@/context/auth-context";
 import { mockCompareData } from "@/data/mockCompareData";
 
-// ─── API call ─────────────────────────────────────────────────────────────────
-// Swap the body of fetchMetricCompare() for your real fetch() when backend is ready.
+// ─── Metric name mapping ──────────────────────────────────────────────────────
 
-// Maps the navigation label param to the API metric name
+// Maps the navigation label param → API metric key (used for both mock & benchmark)
 const LABEL_TO_METRIC_NAME: Record<string, string> = {
   Cadence: "cadence",
   "Total Steps": "total_steps",
@@ -23,19 +26,16 @@ const LABEL_TO_METRIC_NAME: Record<string, string> = {
   Stability: "avg_stride_cv",
 };
 
-// ─── API call ─────────────────────────────────────────────────────────────────
-// Swap the body of this function for your real fetch() when the backend is ready.
+// ─── Self-compare history fetch (mock until backend ready) ────────────────────
 
 async function fetchMetricCompare(
   metricName: string,
   range: CompareRange
 ): Promise<MetricCompareResponse> {
-  await new Promise((r) => setTimeout(r, 400)); // simulate network latency
+  await new Promise((r) => setTimeout(r, 400));
 
   // Real implementation (uncomment when backend is ready):
-  // const res = await fetch(
-  //   `/api/metrics/compare?metric=${metricName}&range=${range}`
-  // );
+  // const res = await fetch(`/api/metrics/compare?metric=${metricName}&range=${range}`);
   // if (!res.ok) throw new Error("Network response was not ok");
   // return res.json();
 
@@ -48,7 +48,7 @@ async function fetchMetricCompare(
 export type CompareMode = "self" | "others";
 
 export interface SelfBar {
-  label: string;     // x-axis label derived from the history date
+  label: string;
   value: number;
   isLatest: boolean;
 }
@@ -56,7 +56,7 @@ export interface SelfBar {
 export interface OtherBar {
   selfValue: number;
   peerValue: number;
-  peerGroupLabel: string;    // e.g. "60-65 years old"
+  peerGroupLabel: string;
   percentile?: number;
 }
 
@@ -84,17 +84,33 @@ export interface UseMetricCompareResult {
 
   // other compare — shaped from comparison{}
   otherBar: OtherBar | null;
+
+  // benchmark compare — shaped from getBenchmark API
+  benchmarkBar: BenchmarkBar | null;
+  benchmarkLoading: boolean;
+  benchmarkError: string | null;
+  refetchBenchmark: () => void;
 }
 
 export const useMetricCompare = (): UseMetricCompareResult => {
   const { label } = useLocalSearchParams<{ label?: string }>();
+  const { token } = useAuth();
   const metricName = LABEL_TO_METRIC_NAME[label ?? ""] ?? "cadence";
 
   const [mode, setMode] = useState<CompareMode>("self");
   const [range, setRange] = useState<CompareRange>("day");
+
+  // ── Self compare state ──
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [data, setData] = useState<MetricCompareResponse | null>(null);
+
+  // ── Benchmark state ──
+  const [benchmarkData, setBenchmarkData] = useState<AllMetricsBenchmarkSchema | null>(null);
+  const [benchmarkLoading, setBenchmarkLoading] = useState(false);
+  const [benchmarkError, setBenchmarkError] = useState<string | null>(null);
+
+  // ── Loaders ──────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -109,11 +125,25 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     }
   }, [metricName, range]);
 
-  useEffect(() => {
-    load();
-  }, [load]);
+  const loadBenchmark = useCallback(async () => {
+    if (!token) return;
+    setBenchmarkLoading(true);
+    setBenchmarkError(null);
+    try {
+      const result = await patientApi.getBenchmark(token);
+      setBenchmarkData(result);
+    } catch {
+      setBenchmarkError("Failed to load benchmark data. Please try again.");
+    } finally {
+      setBenchmarkLoading(false);
+    }
+  }, [token]);
 
-  // Shape history[] → SelfBar[]
+  useEffect(() => { load(); }, [load]);
+  useEffect(() => { loadBenchmark(); }, [loadBenchmark]);
+
+  // ── Shape: history[] → SelfBar[] ─────────────────────────────────────────
+
   const selfBars: SelfBar[] = (data?.history ?? []).map(
     (entry: HistoryEntry, i, arr) => ({
       label: formatDateLabel(entry.date, range),
@@ -124,7 +154,8 @@ export const useMetricCompare = (): UseMetricCompareResult => {
 
   const maxSelf = Math.max(...selfBars.map((b) => b.value), 1);
 
-  // Shape comparison{} → OtherBar
+  // ── Shape: comparison{} → OtherBar (existing mock-based) ─────────────────
+
   const otherBar: OtherBar | null = data?.comparison
     ? {
         selfValue: data.comparison.patient_current_avg,
@@ -133,6 +164,41 @@ export const useMetricCompare = (): UseMetricCompareResult => {
         percentile: data.comparison.percentile,
       }
     : null;
+
+  // ── Shape: benchmark API → BenchmarkBar ──────────────────────────────────
+  // Prefer per-metric entry from `metrics` map; fall back to top-level fields.
+
+  const benchmarkBar: BenchmarkBar | null = (() => {
+    if (!benchmarkData) return null;
+
+    const metricEntry = benchmarkData.metrics?.[metricName];
+    const source = metricEntry ?? benchmarkData;
+
+    const patientValue = source.patient_value;
+    const cohortAvg = source.cohort_avg;
+    const lowerBound = source.lower_bound;
+    const upperBound = source.upper_bound;
+
+    // All core values must be present
+    if (
+      patientValue == null ||
+      cohortAvg == null ||
+      lowerBound == null ||
+      upperBound == null
+    ) {
+      return null;
+    }
+
+    return {
+      patientValue,
+      cohortAvg,
+      lowerBound,
+      upperBound,
+      percentile: source.percentile ?? null,
+      cohortAgeRange: benchmarkData.cohort_age_range,
+      label: source.lable ?? null,      // note: typo "lable" matches the API schema
+    };
+  })();
 
   return {
     mode,
@@ -147,6 +213,10 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     selfBars,
     maxSelf,
     otherBar,
+    benchmarkBar,
+    benchmarkLoading,
+    benchmarkError,
+    refetchBenchmark: loadBenchmark,
   };
 };
 
