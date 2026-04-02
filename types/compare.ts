@@ -13,3 +13,13 @@ export interface AllMetricsBenchmarkSchema extends SingleMetricPeriod {
     cohort_age_range: string;
     metrics: Record<string, SingleMetricPeriod>;
 }
+
+export interface BenchmarkBar {
+    patientValue: number;
+    cohortAvg: number;
+    lowerBound: number;
+    upperBound: number;
+    percentile: number | null;
+    cohortAgeRange: string;
+    label: string | null;
+}
