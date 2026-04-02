@@ -3,6 +3,7 @@ import { apiClient } from "./client";
 import { DailyAverage } from "@/types/metric";
 import { FallAnalysisResponse } from "@/types/report";
 import { PatientBrief, PatientProfile } from "@/types/patient";
+import { AllMetricsBenchmarkSchema } from "@/types/compare";
 
 export const caretakerApi = {
   getPatients: (token: string) =>
@@ -24,6 +25,9 @@ export const caretakerApi = {
 
   getFallAnalysis: (username: string, fallDate: string, token: string) =>
     apiClient.get<FallAnalysisResponse>(`/caretakers/patients/fallAnalysis/${username}?date_str=${fallDate}`, token),
+
+  getPatientBenchmark: (username: string, token: string) =>
+    apiClient.get<AllMetricsBenchmarkSchema>(`/caretakers/patients/benchmark/${username}`, token),
 
 };
 export { PatientBrief, PatientProfile };

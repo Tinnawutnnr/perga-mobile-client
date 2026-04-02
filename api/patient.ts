@@ -1,5 +1,6 @@
 import { FallAnalysisResponse, DailyAverage } from "@/types/report";
 import { WindowReport } from "@/types/metric";
+import { AllMetricsBenchmarkSchema } from "@/types/compare";
 import { apiClient } from "./client";
 
 export const patientApi = {
@@ -18,5 +19,8 @@ export const patientApi = {
 
     // GET /patients/me/windowReport
     getWindowReport: (token: string) =>
-        apiClient.get<WindowReport>("/patients/me/windowReport", token)
+        apiClient.get<WindowReport>("/patients/me/windowReport", token),
+
+    getBenchmark: (token: string) =>
+        apiClient.get<AllMetricsBenchmarkSchema>("/patients/me/benchmark", token),
 };  
