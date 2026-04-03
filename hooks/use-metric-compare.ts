@@ -7,23 +7,35 @@ import {
   ComparisonData,
   MetricInfo,
 } from "@/types/metric";
-import { AllMetricsBenchmarkSchema } from "@/types/compare";
-import { BenchmarkBar } from "@/types/compare";
+import { AllMetricsBenchmarkSchema, BenchmarkBar } from "@/types/compare";
 import { patientApi } from "@/api/patient";
+import { caretakerApi } from "@/api/caretaker";
 import { useAuth } from "@/context/auth-context";
+import { patientStorage } from "@/utils/token-storage";
 import { mockCompareData } from "@/data/mockCompareData";
 
 // ─── Metric name mapping ──────────────────────────────────────────────────────
 
-// Maps the navigation label param → API metric key (used for both mock & benchmark)
 const LABEL_TO_METRIC_NAME: Record<string, string> = {
-  Cadence: "cadence",
-  "Total Steps": "total_steps",
-  Calories: "total_calories",
-  "Swing Speed": "avg_max_gyr_ms",
-  "Heel Impact": "avg_val_gyr_hs",
-  "Step Duration": "avg_step_duration",
-  Stability: "avg_stride_cv",
+  Cadence:        "avg_cadence",
+  "Total Steps":  "total_steps",
+  "Swing Speed":  "avg_max_gyr_ms",
+  "Heel Impact":  "avg_val_gyr_hs",
+  "Swing Time":   "avg_swing_time",
+  "Stance Time":  "avg_stance_time",
+  Stability:      "avg_stride_cv",
+};
+
+// ─── Unit map ─────────────────────────────────────────────────────────────────
+
+const METRIC_UNIT: Record<string, string> = {
+  avg_cadence:     "steps/min",
+  total_steps:     "steps",
+  avg_max_gyr_ms:  "deg/s",
+  avg_val_gyr_hs:  "g",
+  avg_swing_time:  "s",
+  avg_stance_time: "s",
+  avg_stride_cv:   "%",
 };
 
 // ─── Self-compare history fetch (mock until backend ready) ────────────────────
@@ -33,12 +45,6 @@ async function fetchMetricCompare(
   range: CompareRange
 ): Promise<MetricCompareResponse> {
   await new Promise((r) => setTimeout(r, 400));
-
-  // Real implementation (uncomment when backend is ready):
-  // const res = await fetch(`/api/metrics/compare?metric=${metricName}&range=${range}`);
-  // if (!res.ok) throw new Error("Network response was not ok");
-  // return res.json();
-
   const metricData = mockCompareData[metricName] ?? mockCompareData["cadence"];
   return metricData[range];
 }
@@ -63,39 +69,32 @@ export interface OtherBar {
 // ─── Hook ─────────────────────────────────────────────────────────────────────
 
 export interface UseMetricCompareResult {
-  // ui state
   mode: CompareMode;
   setMode: (m: CompareMode) => void;
   range: CompareRange;
   setRange: (r: CompareRange) => void;
-
-  // async state
   isLoading: boolean;
   error: string | null;
   refetch: () => void;
-
-  // metadata from API
   metricInfo: MetricInfo | null;
   comparison: ComparisonData | null;
-
-  // self compare — shaped from history[]
   selfBars: SelfBar[];
   maxSelf: number;
-
-  // other compare — shaped from comparison{}
   otherBar: OtherBar | null;
-
-  // benchmark compare — shaped from getBenchmark API
   benchmarkBar: BenchmarkBar | null;
   benchmarkLoading: boolean;
   benchmarkError: string | null;
   refetchBenchmark: () => void;
+  unit: string;
 }
 
 export const useMetricCompare = (): UseMetricCompareResult => {
   const { label } = useLocalSearchParams<{ label?: string }>();
-  const { token } = useAuth();
-  const metricName = LABEL_TO_METRIC_NAME[label ?? ""] ?? "cadence";
+  const { token, role } = useAuth();
+  const metricName = LABEL_TO_METRIC_NAME[label ?? ""] ?? "avg_cadence";
+  const unit = METRIC_UNIT[metricName] ?? "";
+
+  const isCaretaker = role === "caretaker";
 
   const [mode, setMode] = useState<CompareMode>("self");
   const [range, setRange] = useState<CompareRange>("day");
@@ -127,17 +126,25 @@ export const useMetricCompare = (): UseMetricCompareResult => {
 
   const loadBenchmark = useCallback(async () => {
     if (!token) return;
+
     setBenchmarkLoading(true);
     setBenchmarkError(null);
     try {
-      const result = await patientApi.getBenchmark(token);
+      let result: AllMetricsBenchmarkSchema;
+      if (isCaretaker) {
+        const patientUsername = await patientStorage.getUsername();
+        if (!patientUsername) throw new Error("No patient selected");
+        result = await caretakerApi.getPatientBenchmark(patientUsername, token);
+      } else {
+        result = await patientApi.getBenchmark(token);
+      }
       setBenchmarkData(result);
     } catch {
       setBenchmarkError("Failed to load benchmark data. Please try again.");
     } finally {
       setBenchmarkLoading(false);
     }
-  }, [token]);
+  }, [token, isCaretaker]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadBenchmark(); }, [loadBenchmark]);
@@ -154,7 +161,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
 
   const maxSelf = Math.max(...selfBars.map((b) => b.value), 1);
 
-  // ── Shape: comparison{} → OtherBar (existing mock-based) ─────────────────
+  // ── Shape: comparison{} → OtherBar ───────────────────────────────────────
 
   const otherBar: OtherBar | null = data?.comparison
     ? {
@@ -166,7 +173,6 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     : null;
 
   // ── Shape: benchmark API → BenchmarkBar ──────────────────────────────────
-  // Prefer per-metric entry from `metrics` map; fall back to top-level fields.
 
   const benchmarkBar: BenchmarkBar | null = (() => {
     if (!benchmarkData) return null;
@@ -179,7 +185,6 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     const lowerBound = source.lower_bound;
     const upperBound = source.upper_bound;
 
-    // All core values must be present
     if (
       patientValue == null ||
       cohortAvg == null ||
@@ -196,7 +201,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
       upperBound,
       percentile: source.percentile ?? null,
       cohortAgeRange: benchmarkData.cohort_age_range,
-      label: source.lable ?? null,      // note: typo "lable" matches the API schema
+      label: source.label ?? null, // typo "lable" matches API schema
     };
   })();
 
@@ -217,6 +222,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     benchmarkLoading,
     benchmarkError,
     refetchBenchmark: loadBenchmark,
+    unit
   };
 };
 

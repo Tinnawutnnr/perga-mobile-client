@@ -30,7 +30,7 @@ const METRIC_INFO: Record<string, MetricInfo> = {
   avg_val_gyr_hs: {
     name: "avg_val_gyr_hs",
     display_name: "Heel Impact",
-    unit: "g",
+    unit: "rad/s",
     description: "The force when your heel hits the ground. Lower is better — it means you are walking more gently and safely.",
   },
   avg_step_duration: {
@@ -38,6 +38,12 @@ const METRIC_INFO: Record<string, MetricInfo> = {
     display_name: "Step Duration",
     unit: "s",
     description: "How long it takes to complete one full step. Lower means a quicker, more efficient walking pace.",
+  },
+  avg_swing_time: {
+    name: "avg_swing_time",
+    display_name: "Swing Time",
+    unit: "s",
+    description: "How long your foot is in the air during a step. A balanced swing time helps maintain a steady walking rhythm.",
   },
   avg_stride_cv: {
     name: "avg_stride_cv",
