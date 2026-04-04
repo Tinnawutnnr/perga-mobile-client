@@ -9,6 +9,7 @@ export interface BaseAverage {
     avg_swing_time: number | null;
     avg_stance_time: number | null;
     avg_stride_cv: number | null;
+    avg_cadence?: number | null;
     anomaly_count: number | null;
 }
 
@@ -56,3 +57,9 @@ export interface CompareRow {
     higherIsBetter: boolean;
     disclaimer?: string;
 }
+
+// Export for list responses
+export type DailyAverageListResponse = DailyAverage[];
+export type WeeklyAverageListResponse = WeeklyAverage[];
+export type MonthlyAverageListResponse = MonthlyAverage[];
+export type YearlyAverageListResponse = YearlyAverage[];
