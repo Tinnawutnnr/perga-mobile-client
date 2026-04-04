@@ -2,17 +2,15 @@ import { useCallback, useEffect, useState } from "react";
 import { useLocalSearchParams } from "expo-router";
 import {
   CompareRange,
-  MetricCompareResponse,
-  HistoryEntry,
   ComparisonData,
   MetricInfo,
 } from "@/types/metric";
 import { AllMetricsBenchmarkSchema, BenchmarkBar } from "@/types/compare";
+import { DailyAverage, WeeklyAverage, MonthlyAverage, YearlyAverage } from "@/types/report";
 import { patientApi } from "@/api/patient";
 import { caretakerApi } from "@/api/caretaker";
 import { useAuth } from "@/context/auth-context";
 import { patientStorage } from "@/utils/token-storage";
-import { mockCompareData } from "@/data/mockCompareData";
 
 // ─── Metric name mapping ──────────────────────────────────────────────────────
 
@@ -38,17 +36,6 @@ const METRIC_UNIT: Record<string, string> = {
   avg_stride_cv:   "%",
 };
 
-// ─── Self-compare history fetch (mock until backend ready) ────────────────────
-
-async function fetchMetricCompare(
-  metricName: string,
-  range: CompareRange
-): Promise<MetricCompareResponse> {
-  await new Promise((r) => setTimeout(r, 400));
-  const metricData = mockCompareData[metricName] ?? mockCompareData["cadence"];
-  return metricData[range];
-}
-
 // ─── Bar types ────────────────────────────────────────────────────────────────
 
 export type CompareMode = "self" | "others";
@@ -64,6 +51,35 @@ export interface OtherBar {
   peerValue: number;
   peerGroupLabel: string;
   percentile?: number;
+}
+
+// ─── Date label helpers ───────────────────────────────────────────────────────
+
+/** "2024-04-01" → "Mon" */
+function formatDailyLabel(reportDate: string): string {
+  const d = new Date(reportDate);
+  return isNaN(d.getTime())
+    ? reportDate
+    : ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
+}
+
+/** "2024-14" (YYYY-WW) → "W14" */
+function formatWeekLabel(reportWeek: string): string {
+  const parts = reportWeek.split("-");
+  return parts.length >= 2 ? `W${parts[1]}` : reportWeek;
+}
+
+/** "2024-04" (YYYY-MM) → "Apr" */
+function formatMonthLabel(reportMonth: string): string {
+  const d = new Date(`${reportMonth}-01`);
+  return isNaN(d.getTime())
+    ? reportMonth
+    : d.toLocaleString("en", { month: "short" });
+}
+
+/** Pull a metric value safely from any average row */
+function pickMetric(row: unknown, metricName: string): number {
+  return Number((row as Record<string, unknown>)[metricName] ?? 0);
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -102,7 +118,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
   // ── Self compare state ──
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [data, setData] = useState<MetricCompareResponse | null>(null);
+  const [selfBars, setSelfBars] = useState<SelfBar[]>([]);
 
   // ── Benchmark state ──
   const [benchmarkData, setBenchmarkData] = useState<AllMetricsBenchmarkSchema | null>(null);
@@ -112,17 +128,68 @@ export const useMetricCompare = (): UseMetricCompareResult => {
   // ── Loaders ──────────────────────────────────────────────────────────────
 
   const load = useCallback(async () => {
+    if (!token) return;
+
     setIsLoading(true);
     setError(null);
     try {
-      const result = await fetchMetricCompare(metricName, range);
-      setData(result);
-    } catch {
+      const patientUsername = isCaretaker
+        ? await patientStorage.getUsername()
+        : null;
+
+      if (isCaretaker && !patientUsername) {
+        throw new Error("No patient selected");
+      }
+
+      let bars: SelfBar[];
+
+      // ── Fetch + map per time-range ────────────────────────────────────────
+      if (range === "day") {
+        const rows: DailyAverage[] = isCaretaker
+          ? await caretakerApi.getPatientDailyAverages(patientUsername!, token)
+          : await patientApi.getDailyAverages(token);
+        bars = rows.map((row, i, arr) => ({
+          label: formatDailyLabel(row.report_date),
+          value: pickMetric(row, metricName),
+          isLatest: i === arr.length - 1,
+        }));
+      } else if (range === "week") {
+        const rows: WeeklyAverage[] = isCaretaker
+          ? await caretakerApi.getPatientWeeklyAverage(patientUsername!, token)
+          : await patientApi.getWeeklyAverage(token);
+        bars = rows.map((row, i, arr) => ({
+          label: formatWeekLabel(row.report_week),
+          value: pickMetric(row, metricName),
+          isLatest: i === arr.length - 1,
+        }));
+      } else if (range === "month") {
+        const rows: MonthlyAverage[] = isCaretaker
+          ? await caretakerApi.getPatientMonthlyAverage(patientUsername!, token)
+          : await patientApi.getMonthlyAverage(token);
+        bars = rows.map((row, i, arr) => ({
+          label: formatMonthLabel(row.report_month),
+          value: pickMetric(row, metricName),
+          isLatest: i === arr.length - 1,
+        }));
+      } else {
+        // "year"
+        const rows: YearlyAverage[] = isCaretaker
+          ? await caretakerApi.getPatientYearlyAverage(patientUsername!, token)
+          : await patientApi.getYearlyAverage(token);
+        bars = rows.map((row, i, arr) => ({
+          label: String(row.report_year),
+          value: pickMetric(row, metricName),
+          isLatest: i === arr.length - 1,
+        }));
+      }
+
+      setSelfBars(bars);
+    } catch (e) {
       setError("Failed to load comparison data. Please try again.");
     } finally {
       setIsLoading(false);
     }
-  }, [metricName, range]);
+  }, [token, isCaretaker, range, metricName]);
 
   const loadBenchmark = useCallback(async () => {
     if (!token) return;
@@ -149,28 +216,9 @@ export const useMetricCompare = (): UseMetricCompareResult => {
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadBenchmark(); }, [loadBenchmark]);
 
-  // ── Shape: history[] → SelfBar[] ─────────────────────────────────────────
-
-  const selfBars: SelfBar[] = (data?.history ?? []).map(
-    (entry: HistoryEntry, i, arr) => ({
-      label: formatDateLabel(entry.date, range),
-      value: entry.value,
-      isLatest: i === arr.length - 1,
-    })
-  );
+  // ── Derived values ────────────────────────────────────────────────────────
 
   const maxSelf = Math.max(...selfBars.map((b) => b.value), 1);
-
-  // ── Shape: comparison{} → OtherBar ───────────────────────────────────────
-
-  const otherBar: OtherBar | null = data?.comparison
-    ? {
-        selfValue: data.comparison.patient_current_avg,
-        peerValue: data.comparison.peer_group_avg,
-        peerGroupLabel: data.comparison.peer_group_label,
-        percentile: data.comparison.percentile,
-      }
-    : null;
 
   // ── Shape: benchmark API → BenchmarkBar ──────────────────────────────────
 
@@ -201,7 +249,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
       upperBound,
       percentile: source.percentile ?? null,
       cohortAgeRange: benchmarkData.cohort_age_range,
-      label: source.label ?? null, // typo "lable" matches API schema
+      label: source.label ?? null,
     };
   })();
 
@@ -213,39 +261,15 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     isLoading,
     error,
     refetch: load,
-    metricInfo: data?.metric_info ?? null,
-    comparison: data?.comparison ?? null,
+    metricInfo: null,       // not returned by average endpoints; extend if needed
+    comparison: null,       // not returned by average endpoints; extend if needed
     selfBars,
     maxSelf,
-    otherBar,
+    otherBar: null,         // not returned by average endpoints; extend if needed
     benchmarkBar,
     benchmarkLoading,
     benchmarkError,
     refetchBenchmark: loadBenchmark,
-    unit
+    unit,
   };
 };
-
-// ─── Helpers ──────────────────────────────────────────────────────────────────
-
-function formatDateLabel(dateStr: string, range: CompareRange): string {
-  const d = new Date(dateStr);
-  switch (range) {
-    case "day":
-      return ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"][d.getDay()];
-    case "week":
-      return `W${getISOWeek(d)}`;
-    case "month":
-      return d.toLocaleString("en", { month: "short" });
-    case "year":
-      return `Q${Math.ceil((d.getMonth() + 1) / 3)}`;
-  }
-}
-
-function getISOWeek(date: Date): number {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  d.setDate(d.getDate() + 4 - (d.getDay() || 7));
-  const yearStart = new Date(d.getFullYear(), 0, 1);
-  return Math.ceil(((d.getTime() - yearStart.getTime()) / 86400000 + 1) / 7);
-}
