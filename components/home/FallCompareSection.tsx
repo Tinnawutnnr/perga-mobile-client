@@ -1,9 +1,9 @@
 import CompareCard from "@/components/home/CompareCard";
 import SummaryBanner from "@/components/home/SummaryBanner";
 import { ThemedText } from "@/components/themed-text";
-import { FallAnalysisResponse } from "@/types/report";
 import { CompareDuration } from "@/hooks/use-home-data";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { FallAnalysisResponse } from "@/types/report";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, TouchableOpacity, View } from "react-native";
@@ -35,41 +35,43 @@ function buildRows(
 ): CompareRow[] {
   return [
     {
-      label: "Swing Speed",
+      label: "Leg Swing Speed",
       unit: "rad/s",
       previous: previous?.avg_max_gyr_ms ?? null,
       latest: latest?.avg_max_gyr_ms ?? null,
       higherIsBetter: true,
-      disclaimer: "Decrease indicates muscle weakness/onset of shuffling gait",
+      disclaimer:
+        "A slower swing often means weaker muscles or a shuffling walk.",
     },
     {
-      label: "Heel Impact",
+      label: "Foot Landing Force",
       unit: "rad/s",
       previous: previous?.avg_val_gyr_hs ?? null,
       latest: latest?.avg_val_gyr_hs ?? null,
-      higherIsBetter: false,
+      higherIsBetter: false, // Adjusted based on context; usually, a "normal" range is best.
       disclaimer:
-        "Spike indicates foot slapping; drop indicates antalgic gait/limping",
+        "High values suggest 'foot slapping', low values suggest limping or favoring one side.",
     },
     {
-      label: "Swing Time",
+      label: "Time Foot is in Air",
       unit: "s",
       previous: previous?.avg_swing_time ?? null,
       latest: latest?.avg_swing_time ?? null,
       higherIsBetter: false,
-      disclaimer: "Decrease correlates with shortened step/dragging",
+      disclaimer:
+        "A shorter time in the air often happens when dragging feet or taking small steps.",
     },
     {
-      label: "Stance Time",
+      label: "Time Foot is on Ground",
       unit: "s",
       previous: previous?.avg_stance_time ?? null,
       latest: latest?.avg_stance_time ?? null,
       higherIsBetter: false,
       disclaimer:
-        "Increase indicates cautious walking; sudden drop indicates pain avoidance",
+        "Spending more time on the ground suggests a cautious walk, a sudden drop can indicate pain.",
     },
     {
-      label: "Stride CV",
+      label: "Step Consistency",
       unit: "%",
       previous:
         previous?.avg_stride_cv != null
@@ -80,14 +82,16 @@ function buildRows(
           ? +(latest.avg_stride_cv * 100).toFixed(1)
           : null,
       higherIsBetter: false,
-      disclaimer: "High value is a predictor of future falls",
+      disclaimer:
+        "Higher percentages mean steps are less regular, which increases the risk of a fall.",
     },
     {
-      label: "Anomalies",
+      label: "Irregular Movements",
       unit: "",
       previous: previous?.anomaly_count ?? null,
       latest: latest?.anomaly_count ?? null,
       higherIsBetter: false,
+      disclaimer: "The number of unexpected or anomalous movements detected.",
     },
   ];
 }
@@ -121,9 +125,9 @@ export function FallCompareSection({
 
   // Select previous/latest based on the duration selected by the user
   const report = fallAnalysis?.[duration] ?? null;
-  const rows =
-    report ? buildRows(report.previous, report.latest) : [];
-  const hasData = rows.length > 0 && (report?.previous != null || report?.latest != null);
+  const rows = report ? buildRows(report.previous, report.latest) : [];
+  const hasData =
+    rows.length > 0 && (report?.previous != null || report?.latest != null);
 
   return (
     <>

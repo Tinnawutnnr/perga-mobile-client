@@ -8,10 +8,10 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Total Steps",
       infoText:
-        "Shows how much you walk each day. A significant drop means you might be feeling tired or afraid of falling.",
+        "Total count of steps today. A sudden decrease may indicate fatigue, recovery needs, or a decrease in overall mobility.",
       value: (data.totalSteps ?? 0).toLocaleString(),
       subValue: "steps",
-      status: data.distance > 6 ? "Reached Goal" : "Keep going",
+      status: data.totalSteps > 5000 ? "Active Day" : "Keep moving",
       statusColor: "info",
       iconName: "walk-outline",
       onPress: () =>
@@ -23,15 +23,15 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Cadence",
       infoText:
-        "Shows your walking rhythm. A steady speed helps you walk safely without getting tired quickly.",
-      value: data.cadence.toString(),
+        "The number of steps you take per minute. 100 steps/min is the 'Gold Standard' for healthy",
+      value: data.cadence.toFixed(1),
       subValue: "steps/min",
       status:
         data.cadence < 90
           ? "Slow Pace"
-          : data.cadence <= 115
+          : data.cadence <= 130
             ? "Optimal"
-            : "Brisk Walk",
+            : "Brisk/Fast",
       statusColor: data.cadence < 90 ? "warning" : "success",
       iconName: "timer-outline",
       onPress: () =>
@@ -43,11 +43,11 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Swing Speed",
       infoText:
-        "Measures how fast you swing your leg forward. A slow swing means your muscles might be weak, which makes you drag your feet.",
-      value: data.swingSpeed.toString(),
+        "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or a 'guarded' walk.",
+      value: data.swingSpeed.toFixed(2),
       subValue: "rad/s",
-      status: data.swingSpeed < 3.0 ? "Low Lift" : "Active Swing",
-      statusColor: data.swingSpeed < 3.0 ? "warning" : "success",
+      status: data.swingSpeed < 4.5 ? "Low Power" : "Strong Drive",
+      statusColor: data.swingSpeed < 4.5 ? "warning" : "success",
       iconName: "speedometer-outline",
       onPress: () =>
         router.push({
@@ -58,17 +58,17 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Heel Impact",
       infoText:
-        "Measures how hard your foot hits the ground. Hitting too hard hurts your joints. A very light step means you might be limping to avoid pain.",
-      value: data.heelImpact.toString(),
+        "Measures how the leg absorbs shock. If this is close to zero (e.g., > -1.5), you are likely 'placing' your foot down gingerly to avoid pain.",
+      value: data.heelImpact.toFixed(2),
       subValue: "rad/s",
       status:
-        data.heelImpact < -3.5
-          ? "Hard Strike"
-          : data.heelImpact > -1.0
-            ? "Limping"
+        data.heelImpact < -4.5
+          ? "Heavy Strike"
+          : data.heelImpact > -1.5
+            ? "Guarded/Limp"
             : "Controlled",
       statusColor:
-        data.heelImpact < -3.5 || data.heelImpact > -1.0
+        data.heelImpact < -4.5 || data.heelImpact > -1.5
           ? "warning"
           : "success",
       iconName: "footsteps-outline",
@@ -81,11 +81,17 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Swing Time",
       infoText:
-        "Measures how long your foot is in the air. A short time means you are taking tiny steps or dragging your feet, which can cause a trip.",
-      value: data.swingTime.toString(),
+        "How long your foot stays in the air. A consistent time between 0.35s and 0.50s indicates a healthy, clearing stride.",
+      value: data.swingTime.toFixed(3),
       subValue: "s",
-      status: data.swingTime < 0.35 ? "Shuffling" : "Normal",
-      statusColor: data.swingTime < 0.35 ? "error" : "success",
+      status:
+        data.swingTime < 0.35
+          ? "Shuffling"
+          : data.swingTime > 0.55
+            ? "Slow Swing"
+            : "Normal",
+      statusColor:
+        data.swingTime < 0.35 || data.swingTime > 0.55 ? "error" : "success",
       iconName: "hourglass-outline",
       onPress: () =>
         router.push({
@@ -96,19 +102,19 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Stance Time",
       infoText:
-        "Measures how long your foot rests on the ground. Resting too long means you are walking stiffly. Lifting it too fast means your leg hurts.",
-      value: data.stanceTime.toString(),
+        "The time your foot is weight-bearing. Values over 0.95s indicate a 'shuffling' gait often used to compensate for poor balance.",
+      value: data.stanceTime.toFixed(3),
       subValue: "s",
       status:
-        data.stanceTime > 0.7
-          ? "Cautious"
-          : data.stanceTime < 0.5
-            ? "Pain Avoidance"
+        data.stanceTime > 0.95
+          ? "Stiff/Cautious"
+          : data.stanceTime < 0.55
+            ? "Brief Contact"
             : "Normal",
       statusColor:
-        data.stanceTime > 0.7
+        data.stanceTime > 0.95
           ? "warning"
-          : data.stanceTime < 0.5
+          : data.stanceTime < 0.55
             ? "error"
             : "success",
       iconName: "footsteps",
@@ -121,11 +127,21 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Stability",
       infoText:
-        "Measures how steady your steps are. If your steps are uneven, you have a high risk of falling.",
-      value: data.stability + "%",
+        "Measures rhythm consistency. Values above 8.8% indicate severe instability and an elevated risk of falling.",
+      value: data.stability.toFixed(1) + "%",
       subValue: "CV",
-      status: data.stability > 10 ? "Unstable" : "Balanced",
-      statusColor: data.stability > 10 ? "error" : "success",
+      status:
+        data.stability > 8.8
+          ? "High Fall Risk"
+          : data.stability > 5.5
+            ? "Unsteady"
+            : "Stable",
+      statusColor:
+        data.stability > 8.8
+          ? "error"
+          : data.stability > 5.5
+            ? "warning"
+            : "success",
       iconName: "analytics-outline",
       onPress: () =>
         router.push({

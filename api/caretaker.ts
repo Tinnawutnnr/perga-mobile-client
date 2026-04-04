@@ -1,8 +1,12 @@
 import { apiClient } from "./client";
 
-import { DailyAverage } from "@/types/metric";
-import { FallAnalysisResponse } from "@/types/report";
+import { FallAnalysisResponse,
+    DailyAverage,
+    MonthlyAverage, 
+    WeeklyAverage, 
+    YearlyAverage } from "@/types/report";
 import { PatientBrief, PatientProfile } from "@/types/patient";
+import { AllMetricsBenchmarkSchema } from "@/types/compare";
 
 export const caretakerApi = {
   getPatients: (token: string) =>
@@ -24,6 +28,25 @@ export const caretakerApi = {
 
   getFallAnalysis: (username: string, fallDate: string, token: string) =>
     apiClient.get<FallAnalysisResponse>(`/caretakers/patients/fallAnalysis/${username}?date_str=${fallDate}`, token),
+
+  getPatientBenchmark: (username: string, token: string) =>
+    apiClient.get<AllMetricsBenchmarkSchema>(`/caretakers/patients/benchmark/${username}`, token),
+
+   // GET /patients/me/dailyAverage
+  getPatientDailyAverages: (username: string, token: string) =>
+    apiClient.get<DailyAverage[]>(`/caretakers/patients/dailyAverage/${username}`, token),
+  
+  // GET /patients/me/weeklyAverage
+  getPatientWeeklyAverage: (username: string, token: string) =>
+    apiClient.get<WeeklyAverage[]>(`/caretakers/patients/weeklyAverage/${username}`, token),
+  
+  // GET /patients/me/monthlyAverage
+  getPatientMonthlyAverage: (username: string, token: string) =>
+    apiClient.get<MonthlyAverage[]>(`/caretakers/patients/monthlyAverage/${username}`, token),
+  
+  // GET /patients/me/yearlyAverage
+  getPatientYearlyAverage: (username: string, token: string) =>
+      apiClient.get<YearlyAverage[]>(`/caretakers/patients/yearlyAverage/${username}`, token),
 
 };
 export { PatientBrief, PatientProfile };

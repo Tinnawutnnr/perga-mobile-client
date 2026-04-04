@@ -1,5 +1,6 @@
 import ArticleCard from "@/components/metric-detail/ArticleCard";
 import HeroCard from "@/components/metric-detail/HeroCard";
+import ComparisonCard from "@/components/metric-detail/ComparisonCard";
 import OtherCompareCard from "@/components/metric-detail/OtherCompareCard";
 import SelfCompareCard from "@/components/metric-detail/SelfCompareCard";
 import { ThemedText } from "@/components/themed-text";
@@ -135,13 +136,22 @@ const MetricCompareSection = () => {
     isLoading,
     error,
     refetch,
-    metricInfo,
     selfBars,
     maxSelf,
-    otherBar,
+    unit,
+    // benchmark (peer compare)
+    benchmarkBar,
+    benchmarkLoading,
+    benchmarkError,
+    refetchBenchmark,
   } = useMetricCompare();
 
   const mutedColor = useThemeColor({}, "muted");
+
+  // ── Loading / error state — pick the right one per active mode ──
+  const activeLoading = mode === "self" ? isLoading : benchmarkLoading;
+  const activeError   = mode === "self" ? error      : benchmarkError;
+  const activeRetry   = mode === "self" ? refetch     : refetchBenchmark;
 
   return (
     <>
@@ -152,21 +162,30 @@ const MetricCompareSection = () => {
           : "How you compare to your peer group"}
       </ThemedText>
 
-      {isLoading ? (
+      {activeLoading ? (
         <LoadingCard />
-      ) : error ? (
-        <ErrorCard message={error} onRetry={refetch} />
+      ) : activeError ? (
+        <ErrorCard message={activeError} onRetry={activeRetry} />
       ) : mode === "self" ? (
+        /* ── Self compare ── */
         <SelfCompareCard
           bars={selfBars}
           maxValue={maxSelf}
-          unit={metricInfo?.unit ?? ""}
+          unit={unit}
           range={range}
           onRangeChange={setRange}
         />
-      ) : otherBar ? (
-        <OtherCompareCard bar={otherBar} unit={metricInfo?.unit ?? ""} />
-      ) : null}
+      ) : benchmarkBar ? (
+        /* ── Peer compare — both cards, stacked ── */
+        <>
+          <OtherCompareCard bar={benchmarkBar} unit={unit} />
+          <ComparisonCard bar={benchmarkBar} unit={unit} />
+        </>
+      ) : (
+        <ThemedText style={[styles.emptyText, { color: mutedColor }]}>
+          No benchmark data available.
+        </ThemedText>
+      )}
 
       <View style={{ height: 20 }} />
     </>
@@ -253,5 +272,10 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: "#5D7DDF",
+  },
+  emptyText: {
+    fontSize: 13,
+    textAlign: "center",
+    marginVertical: 24,
   },
 });
