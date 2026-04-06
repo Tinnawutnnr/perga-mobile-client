@@ -4,7 +4,7 @@ export interface AnomalyLog {
     patient_id: number;
     timestamp: string; // ISO 8601 format
     anomaly_score: number | null;
-    root_cause_features: string | null;
+    root_cause_feature: string | null;
     z_score: number | null;
     current_val: number | null;
     normal_ref: number | null;
