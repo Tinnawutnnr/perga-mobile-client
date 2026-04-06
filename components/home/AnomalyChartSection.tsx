@@ -16,7 +16,7 @@ import { AnomalyLog } from "@/types/anomaly";
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const CHART_H = 160;
 const CHART_PADDING_X = 16;
-const CHART_PADDING_Y = 12;
+const CHART_PADDING_Y = 16;
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -85,7 +85,10 @@ const scaleStyles = StyleSheet.create({
   label: { fontSize: 12, fontWeight: "600" },
 });
 
-// ─── Line Chart ───────────────────────────────────────────────────────────────
+// ─── Pure-RN Line Chart (no SVG) ──────────────────────────────────────────────
+//
+// Draws line segments as absolutely-positioned Views rotated to connect each
+// pair of data points. No external lib required.
 
 interface LineChartProps {
   data: AnomalyChartPoint[];
@@ -95,19 +98,28 @@ interface LineChartProps {
 }
 
 const LineChart: React.FC<LineChartProps> = ({ data, tintColor, cardColor, onPress }) => {
-  const chartWidth = SCREEN_WIDTH - 40 - CHART_PADDING_X * 2;
+  const chartWidth = SCREEN_WIDTH - 40 - CHART_PADDING_X * 2; // account for card + inner padding
+  const plotH = CHART_H - CHART_PADDING_Y * 2;
   const maxCount = Math.max(...data.map((d) => d.count), 1);
-  const stepX = data.length > 1 ? chartWidth / (data.length - 1) : chartWidth;
+  const stepX = data.length > 1 ? chartWidth / (data.length - 1) : chartWidth / 2;
 
-  const points = data.map((d, i) => ({
+  const pts = data.map((d, i) => ({
     x: CHART_PADDING_X + i * stepX,
-    y: CHART_PADDING_Y + (1 - d.count / maxCount) * (CHART_H - CHART_PADDING_Y * 2),
+    y: CHART_PADDING_Y + (1 - d.count / maxCount) * plotH,
     ...d,
   }));
 
-  const polyline = points.map((p) => `${p.x},${p.y}`).join(" ");
-  const yLabels = [maxCount, Math.round(maxCount / 2), 0];
+  // Build line segments between consecutive points
+  const segments = pts.slice(0, -1).map((a, i) => {
+    const b = pts[i + 1];
+    const dx = b.x - a.x;
+    const dy = b.y - a.y;
+    const length = Math.sqrt(dx * dx + dy * dy);
+    const angle = Math.atan2(dy, dx) * (180 / Math.PI);
+    return { x: a.x, y: a.y, length, angle };
+  });
 
+  // X-axis indices (at most 5)
   const xIndices =
     data.length <= 5
       ? data.map((_, i) => i)
@@ -116,81 +128,125 @@ const LineChart: React.FC<LineChartProps> = ({ data, tintColor, cardColor, onPre
 
   return (
     <View style={{ marginTop: 8 }}>
+      {/* Chart drawing area */}
       <View style={{ height: CHART_H, position: "relative" }}>
-        {/* Grid lines */}
-        {yLabels.map((val, i) => {
-          const yPos = CHART_PADDING_Y + (1 - val / maxCount) * (CHART_H - CHART_PADDING_Y * 2);
+
+        {/* Horizontal grid lines */}
+        {[1, 0.5, 0].map((ratio, i) => (
+          <View
+            key={i}
+            style={{
+              position: "absolute",
+              top: CHART_PADDING_Y + (1 - ratio) * plotH,
+              left: CHART_PADDING_X,
+              right: CHART_PADDING_X,
+              height: 1,
+              backgroundColor: "rgba(128,128,128,0.12)",
+            }}
+          />
+        ))}
+
+        {/* Y-axis value labels */}
+        {[maxCount, Math.round(maxCount / 2), 0].map((val, i) => (
+          <ThemedText
+            key={i}
+            style={{
+              position: "absolute",
+              top: CHART_PADDING_Y + (1 - val / maxCount) * plotH - 8,
+              left: 0,
+              fontSize: 9,
+              opacity: 0.35,
+              width: CHART_PADDING_X - 2,
+              textAlign: "right",
+            }}
+          >
+            {val}
+          </ThemedText>
+        ))}
+
+        {/* Area fill under the line — stacked vertical bars */}
+        {pts.map((p, i) => {
+          const barBottom = CHART_PADDING_Y + plotH;
+          const barHeight = barBottom - p.y;
+          if (i === pts.length - 1) return null; // skip last (handled by segments)
+          const nextP = pts[i + 1];
+          const barWidth = nextP.x - p.x;
           return (
             <View
-              key={i}
-              style={{ position: "absolute", top: yPos, left: 0, right: 0, height: 1, backgroundColor: "rgba(128,128,128,0.12)" }}
+              key={`area-${i}`}
+              style={{
+                position: "absolute",
+                left: p.x,
+                top: Math.min(p.y, nextP.y),
+                width: barWidth,
+                height: Math.max(p.y, nextP.y) - Math.min(p.y, nextP.y) + (barBottom - Math.max(p.y, nextP.y)),
+                backgroundColor: tintColor,
+                opacity: 0.07,
+              }}
             />
           );
         })}
 
-        {/* SVG line + area */}
-        <svg
-          style={{ position: "absolute", top: 0, left: 0 }}
-          width={chartWidth + CHART_PADDING_X * 2}
-          height={CHART_H}
-          viewBox={`0 0 ${chartWidth + CHART_PADDING_X * 2} ${CHART_H}`}
-        >
-          <defs>
-            <linearGradient id="areaGrad" x1="0" y1="0" x2="0" y2="1">
-              <stop offset="0%" stopColor={tintColor} stopOpacity="0.25" />
-              <stop offset="100%" stopColor={tintColor} stopOpacity="0" />
-            </linearGradient>
-          </defs>
-          {points.length > 1 && (
-            <>
-              <polygon
-                points={`${points[0].x},${CHART_H - CHART_PADDING_Y} ${polyline} ${points[points.length - 1].x},${CHART_H - CHART_PADDING_Y}`}
-                fill="url(#areaGrad)"
-              />
-              <polyline
-                points={polyline}
-                fill="none"
-                stroke={tintColor}
-                strokeWidth="2.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </>
-          )}
-        </svg>
-
-        {/* Tap dots */}
-        {points.map((p, i) => (
-          <TouchableOpacity
-            key={i}
-            onPress={() => onPress(p)}
-            hitSlop={{ top: 16, bottom: 16, left: 16, right: 16 }}
+        {/* Line segments */}
+        {segments.map((seg, i) => (
+          <View
+            key={`seg-${i}`}
             style={{
               position: "absolute",
-              left: p.x - 7,
-              top: p.y - 7,
-              width: 14,
-              height: 14,
-              borderRadius: 7,
+              left: seg.x,
+              top: seg.y - 1.25,
+              width: seg.length,
+              height: 2.5,
+              backgroundColor: tintColor,
+              borderRadius: 1.25,
+              transformOrigin: "0 50%",
+              transform: [{ rotate: `${seg.angle}deg` }],
+            }}
+          />
+        ))}
+
+        {/* Tap dots */}
+        {pts.map((p, i) => (
+          <TouchableOpacity
+            key={`dot-${i}`}
+            onPress={() => onPress(p)}
+            hitSlop={{ top: 18, bottom: 18, left: 18, right: 18 }}
+            style={{
+              position: "absolute",
+              left: p.x - 6,
+              top: p.y - 6,
+              width: 12,
+              height: 12,
+              borderRadius: 6,
               backgroundColor: tintColor,
               borderWidth: 2,
               borderColor: cardColor,
-              shadowColor: tintColor,
-              shadowOpacity: 0.45,
-              shadowRadius: 4,
-              elevation: 3,
             }}
           />
         ))}
       </View>
 
       {/* X-axis labels */}
-      <View style={{ flexDirection: "row", justifyContent: "space-between", paddingHorizontal: CHART_PADDING_X, marginTop: 4 }}>
-        {xIndices.map((idx) => (
-          <ThemedText key={idx} style={{ fontSize: 10, opacity: 0.5 }}>
-            {data[idx]?.label}
-          </ThemedText>
-        ))}
+      <View style={{ position: "relative", height: 16, marginTop: 4, marginHorizontal: CHART_PADDING_X }}>
+        {xIndices.map((idx) => {
+          const p = pts[idx];
+          if (!p) return null;
+          return (
+            <ThemedText
+              key={idx}
+              style={{
+                position: "absolute",
+                left: p.x - CHART_PADDING_X - 20,
+                width: 40,
+                textAlign: "center",
+                fontSize: 10,
+                opacity: 0.45,
+              }}
+            >
+              {data[idx]?.label}
+            </ThemedText>
+          );
+        })}
       </View>
     </View>
   );
@@ -211,7 +267,6 @@ const AnomalyModal: React.FC<AnomalyModalProps> = ({
 }) => {
   if (!point) return null;
 
-  // Group by root_cause_features (nullable string)
   const featureCounts: Record<string, number> = {};
   for (const e of point.entries) {
     const feat = e.root_cause_feature ?? "unknown";
@@ -240,7 +295,6 @@ const AnomalyModal: React.FC<AnomalyModalProps> = ({
             </TouchableOpacity>
           </View>
 
-          {/* Summary badges */}
           <View style={modalStyles.summaryRow}>
             <View style={[modalStyles.badge, { backgroundColor: tintColor + "22" }]}>
               <ThemedText style={[modalStyles.badgeCount, { color: tintColor }]}>{point.count}</ThemedText>
@@ -254,7 +308,6 @@ const AnomalyModal: React.FC<AnomalyModalProps> = ({
             </View>
           </View>
 
-          {/* Root cause breakdown */}
           <ThemedText style={modalStyles.sectionLabel}>Top Root Causes</ThemedText>
           {topFeatures.map(([feat, cnt]) => (
             <View key={feat} style={modalStyles.featureRow}>
@@ -273,7 +326,6 @@ const AnomalyModal: React.FC<AnomalyModalProps> = ({
             </View>
           ))}
 
-          {/* Recent entries */}
           <ThemedText style={[modalStyles.sectionLabel, { marginTop: 16 }]}>Recent Events</ThemedText>
           <ScrollView style={{ maxHeight: 220 }} showsVerticalScrollIndicator={false}>
             {[...point.entries]
@@ -293,22 +345,12 @@ const AnomalyModal: React.FC<AnomalyModalProps> = ({
                       <View style={[modalStyles.severityDot, { backgroundColor: sc }]} />
                       <ThemedText style={[modalStyles.severityTxt, { color: sc }]}>{sl}</ThemedText>
                     </View>
-                    <ThemedText style={modalStyles.entryTime}>
-                      {formatTimestamp(entry.timestamp)}
-                    </ThemedText>
+                    <ThemedText style={modalStyles.entryTime}>{formatTimestamp(entry.timestamp)}</ThemedText>
                     <View style={modalStyles.entryMetaRow}>
-                      <ThemedText style={modalStyles.entryMeta}>
-                        Score: {entry.anomaly_score?.toFixed(3) ?? "—"}
-                      </ThemedText>
-                      <ThemedText style={modalStyles.entryMeta}>
-                        Z: {entry.z_score?.toFixed(2) ?? "—"}
-                      </ThemedText>
-                      <ThemedText style={modalStyles.entryMeta}>
-                        Val: {entry.current_val?.toFixed(2) ?? "—"}
-                      </ThemedText>
-                      <ThemedText style={modalStyles.entryMeta}>
-                        Ref: {entry.normal_ref?.toFixed(2) ?? "—"}
-                      </ThemedText>
+                      <ThemedText style={modalStyles.entryMeta}>Score: {entry.anomaly_score?.toFixed(3) ?? "—"}</ThemedText>
+                      <ThemedText style={modalStyles.entryMeta}>Z: {entry.z_score?.toFixed(2) ?? "—"}</ThemedText>
+                      <ThemedText style={modalStyles.entryMeta}>Val: {entry.current_val?.toFixed(2) ?? "—"}</ThemedText>
+                      <ThemedText style={modalStyles.entryMeta}>Ref: {entry.normal_ref?.toFixed(2) ?? "—"}</ThemedText>
                     </View>
                   </View>
                 );

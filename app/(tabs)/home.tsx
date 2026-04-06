@@ -1,12 +1,14 @@
 import { DatePickerField } from "@/components/home/DatePickerField";
 import { FallCompareSection } from "@/components/home/FallCompareSection";
 import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
+import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CompareDuration, useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
+import { useAnomalyData } from "@/hooks/use-anomaly-data";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
@@ -63,10 +65,18 @@ const SummaryScreen = () => {
   const {
     periodGaitData,
     selectedDateGaitData,
-    fallAnalysis, // Updated from 'comparison' to match hook output
+    fallAnalysis,
     loading,
     error,
   } = useHomeData(fallDateStr, "daily", selectedViewDateStr);
+
+  // ── Anomaly data ──────────────────────────────────────────────────────────
+  const {
+    chartData: anomalyChartData,
+    loading: anomalyLoading,
+    scale: anomalyScale,
+    setScale: setAnomalyScale,
+  } = useAnomalyData(); // pass patientUsername here when in caretaker view
 
   const gaitData = periodGaitData;
   const hasData = periodGaitData !== null;
@@ -134,6 +144,14 @@ const SummaryScreen = () => {
           hasData={hasData}
         />
 
+        {/* ── Anomaly Activity Chart ─────────────────────────────────────── */}
+        <AnomalyChartSection
+          chartData={anomalyChartData}
+          scale={anomalyScale}
+          onScaleChange={setAnomalyScale}
+          loading={anomalyLoading}
+        />
+
         {/* Before / After Fall Analysis */}
         <FallCompareSection
           fallDate={fallDate}
@@ -141,7 +159,7 @@ const SummaryScreen = () => {
           onFallDateClear={() => setFallDate(null)}
           duration={compareDuration}
           onDurationChange={setCompareDuration}
-          fallAnalysis={fallAnalysis} // Updated to match state name
+          fallAnalysis={fallAnalysis}
           loading={loading}
         />
       </ScrollView>
