@@ -5,6 +5,7 @@ import { FallAnalysisResponse,
     YearlyAverage } from "@/types/report";
 import { WindowReport } from "@/types/metric";
 import { AllMetricsBenchmarkSchema } from "@/types/compare";
+import { AnomalyLogSchema } from "@/types/anomaly";
 import { apiClient } from "./client";
 
 export const patientApi = {
@@ -37,6 +38,11 @@ export const patientApi = {
     getWindowReport: (token: string) =>
         apiClient.get<WindowReport>("/patients/me/windowReport", token),
 
+    // GET /patients/me/benchmark
     getBenchmark: (token: string) =>
         apiClient.get<AllMetricsBenchmarkSchema>("/patients/me/benchmark", token),
+
+    // GET /patients/me/anomalyLog
+    getAnomalyLog: (token: string) =>
+        apiClient.get<AnomalyLogSchema>("/patients/me/anomalyLog", token),
 };  
