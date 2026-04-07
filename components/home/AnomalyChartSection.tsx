@@ -26,6 +26,28 @@ const RED_LINE = "rgba(239,68,68,0.55)";
 const RED_DIM = "rgba(239,68,68,0.15)";
 
 /**
+ * Human-readable mapping for feature keys
+ */
+const FEATURE_LABELS: Record<string, string> = {
+  max_gyr: "Swing Speed",
+  val_gyr: "Heel Impact",
+  swing_time: "Swing Time",
+  stance_time: "Stance Time",
+  stride_cv: "Stride CV",
+};
+
+/**
+ * Mapping of backend feature keys to clinical disclaimers
+ */
+const ROOT_CAUSE_DISCLAIMERS: Record<string, string> = {
+  max_gyr: "A slower swing often means weaker muscles or a shuffling walk.",
+  val_gyr: "High values suggest 'foot slapping', low values suggest limping or favoring one side.",
+  swing_time: "A shorter time in the air often happens when dragging feet or taking small steps.",
+  stance_time: "Spending more time on the ground suggests a cautious walk, a sudden drop can indicate pain.",
+  stride_cv: "Higher percentages mean steps are less regular, which increases the risk of a fall.",
+};
+
+/**
  * Formats ISO timestamp to a readable English string
  */
 function formatTimestamp(ts: string): string {
@@ -36,10 +58,10 @@ function formatTimestamp(ts: string): string {
 }
 
 /**
- * Converts snake_case keys to Title Case labels
+ * Helper to get mapped label or fallback to formatted key
  */
 function featureLabel(key: string): string {
-  return key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
+  return FEATURE_LABELS[key] || key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
 /**
@@ -55,7 +77,7 @@ function severityInfo(score: number): { label: string; color: string } {
 const SCALES: AnomalyScale[] = ["day", "week", "month", "year"];
 
 /**
- * Filter tabs for switching time scales (Day/Week/Month/Year)
+ * Filter tabs for switching time scales
  */
 const ScaleTabs: React.FC<{
   value: AnomalyScale;
@@ -107,14 +129,12 @@ const LineChart: React.FC<{
   const drawW = CHART_W - PAD_X * 2;
   const max = Math.max(...data.map((d) => d.count), 1);
 
-  // Map data points to X, Y coordinates
   const pts = data.map((d, i) => ({
     x: PAD_X + (data.length > 1 ? (i * drawW) / (data.length - 1) : drawW / 2),
     y: PAD_Y + (1 - d.count / max) * plotH,
     ...d,
   }));
 
-  // Calculate line segments between points (length and rotation)
   const segs = pts.slice(0, -1).map((a, i) => {
     const b = pts[i + 1];
     const dx = b.x - a.x;
@@ -124,7 +144,6 @@ const LineChart: React.FC<{
     return { x: a.x, y: a.y, len, ang };
   });
 
-  // Decide which labels to show on X-axis to avoid crowding
   const getFilteredIndices = () => {
     if (data.length <= 7) return data.map((_, i) => i);
     const step = Math.ceil(data.length / 6);
@@ -143,7 +162,6 @@ const LineChart: React.FC<{
   return (
     <View style={{ width: CHART_W }}>
       <View style={{ height: CHART_H, width: CHART_W }}>
-        {/* Horizontal Baseline */}
         <View style={{
           position: "absolute",
           bottom: PAD_Y,
@@ -152,7 +170,6 @@ const LineChart: React.FC<{
           backgroundColor: "rgba(128,128,128,0.15)",
         }} />
 
-        {/* Render lines */}
         {segs.map((s, i) => (
           <View key={i} style={{
             position: "absolute",
@@ -167,7 +184,6 @@ const LineChart: React.FC<{
           }} />
         ))}
 
-        {/* Render interactive dots */}
         {pts.map((p, i) => (
           <TouchableOpacity
             key={i}
@@ -197,7 +213,6 @@ const LineChart: React.FC<{
         ))}
       </View>
 
-      {/* X-Axis Labels */}
       <View style={{ height: 28, position: "relative", marginTop: 8 }}>
         {xIdx.map((idx) => {
           const p = pts[idx];
@@ -225,7 +240,7 @@ const LineChart: React.FC<{
 };
 
 /**
- * Modal Bottom Sheet showing details for selected anomaly point
+ * Modal Bottom Sheet for detail log
  */
 const AnomalyModal: React.FC<{
   visible: boolean;
@@ -236,7 +251,6 @@ const AnomalyModal: React.FC<{
 }> = ({ visible, point, onClose, sheetBg, tintColor }) => {
   if (!point) return null;
 
-  // Aggregate root causes for progress bars
   const featureCounts: Record<string, number> = {};
   for (const e of point.entries) {
     const f = e.root_cause_feature ?? "unknown";
@@ -244,7 +258,6 @@ const AnomalyModal: React.FC<{
   }
   const topFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
 
-  // Calculate average severity for the summary badge
   const scored = point.entries.filter((e) => e.anomaly_score !== null);
   const avg = scored.length
     ? scored.reduce((s, e) => s + (e.anomaly_score ?? 0), 0) / scored.length
@@ -265,7 +278,6 @@ const AnomalyModal: React.FC<{
             </TouchableOpacity>
           </View>
 
-          {/* Summary Badges (Count & Severity) */}
           <View style={ms.summaryRow}>
             <View style={[ms.badge, { backgroundColor: RED + "18" }]}>
               <ThemedText style={[ms.badgeNum, { color: RED }]}>{point.count}</ThemedText>
@@ -277,7 +289,6 @@ const AnomalyModal: React.FC<{
             </View>
           </View>
 
-          {/* Distribution of Features */}
           <ThemedText style={ms.secLabel}>Root Causes</ThemedText>
           {topFeatures.map(([feat, cnt]) => (
             <View key={feat} style={ms.featRow}>
@@ -288,13 +299,12 @@ const AnomalyModal: React.FC<{
                 }]} />
               </View>
               <ThemedText style={ms.featName}>
-                {feat !== "unknown" ? featureLabel(feat) : "Unknown"}
+                {featureLabel(feat)}
               </ThemedText>
               <ThemedText style={[ms.featCnt, { color: RED }]}>{cnt}</ThemedText>
             </View>
           ))}
 
-          {/* Individual Event Log */}
           <ThemedText style={[ms.secLabel, { marginTop: 16 }]}>Recent Events</ThemedText>
           <ScrollView style={{ maxHeight: 220 }} showsVerticalScrollIndicator={false}>
             {[...point.entries]
@@ -302,23 +312,30 @@ const AnomalyModal: React.FC<{
               .slice(0, 10)
               .map((e) => {
                 const { label: sl, color: sc } = severityInfo(e.anomaly_score ?? 0);
+                const disclaimer = e.root_cause_feature ? ROOT_CAUSE_DISCLAIMERS[e.root_cause_feature] : null;
+
                 return (
                   <View key={e.anomaly_id} style={ms.entryCard}>
                     <View style={ms.entryTop}>
                       <ThemedText style={ms.entryFeat}>
-                        {e.root_cause_feature ? featureLabel(e.root_cause_feature) : "Unknown feature"}
+                        {featureLabel(e.root_cause_feature ?? "unknown")}
                       </ThemedText>
                       <View style={[ms.dot, { backgroundColor: sc }]} />
                       <ThemedText style={[ms.sevTxt, { color: sc }]}>{sl}</ThemedText>
                     </View>
                     <ThemedText style={ms.entryTime}>{formatTimestamp(e.timestamp)}</ThemedText>
                     
-                    {/* Meta Row updated to show only Percent Difference */}
                     <View style={ms.metaRow}>
                       <ThemedText style={[ms.meta, { color: RED, fontWeight: "700", opacity: 1 }]}>
                         Difference: {calculatePercentDiff(e.current_val, e.normal_ref)}
                       </ThemedText>
                     </View>
+
+                    {disclaimer && (
+                      <ThemedText style={ms.disclaimerText}>
+                        {disclaimer}
+                      </ThemedText>
+                    )}
                   </View>
                 );
               })}
@@ -343,7 +360,7 @@ const ms = StyleSheet.create({
   featRow: { flexDirection: "row", alignItems: "center", marginBottom: 7, gap: 8 },
   barBg: { flex: 1, height: 4, borderRadius: 2, backgroundColor: "rgba(128,128,128,0.12)", overflow: "hidden" },
   barFill: { height: 4, borderRadius: 2 },
-  featName: { width: 110, fontSize: 12, opacity: 0.7 },
+  featName: { width: 150, fontSize: 12, opacity: 0.7 },
   featCnt: { fontSize: 13, fontWeight: "700", width: 22, textAlign: "right" },
   entryCard: { borderRadius: 10, backgroundColor: "rgba(128,128,128,0.06)", padding: 10, marginBottom: 7 },
   entryTop: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 2 },
@@ -351,8 +368,9 @@ const ms = StyleSheet.create({
   dot: { width: 6, height: 6, borderRadius: 3 },
   sevTxt: { fontSize: 11, fontWeight: "600" },
   entryTime: { fontSize: 11, opacity: 0.4, marginBottom: 4 },
-  metaRow: { flexDirection: "row", gap: 10 },
+  metaRow: { flexDirection: "row", gap: 10, marginBottom: 4 },
   meta: { fontSize: 11, opacity: 0.5 },
+  disclaimerText: { fontSize: 10, fontStyle: "italic", opacity: 0.6, marginTop: 2, lineHeight: 14 },
 });
 
 interface AnomalyChartSectionProps {
@@ -362,9 +380,6 @@ interface AnomalyChartSectionProps {
   loading?: boolean;
 }
 
-/**
- * Main Section exported to the Dashboard screen
- */
 export const AnomalyChartSection: React.FC<AnomalyChartSectionProps> = ({
   chartData, scale, onScaleChange, loading,
 }) => {
@@ -417,34 +432,9 @@ export const AnomalyChartSection: React.FC<AnomalyChartSectionProps> = ({
 };
 
 const card = StyleSheet.create({
-  wrap: {
-    borderRadius: 20,
-    paddingHorizontal: CARD_PADDING,
-    paddingTop: 16,
-    paddingBottom: 16,
-    marginBottom: 20,
-  },
-  statsRow: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 8,
-    flexWrap: "wrap",
-    gap: 8,
-  },
-  bigNum: {
-    fontSize: 42,
-    fontWeight: "800",
-    color: RED,
-    lineHeight: 44,
-    letterSpacing: -1,
-  },
-  bigLabel: {
-    fontSize: 10,
-    fontWeight: "700",
-    opacity: 0.4,
-    letterSpacing: 1,
-    marginTop: 2,
-  },
+  wrap: { borderRadius: 20, paddingHorizontal: CARD_PADDING, paddingTop: 16, paddingBottom: 16, marginBottom: 20 },
+  statsRow: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", marginBottom: 8, flexWrap: "wrap", gap: 8 },
+  bigNum: { fontSize: 42, fontWeight: "800", color: RED, lineHeight: 44, letterSpacing: -1 },
+  bigLabel: { fontSize: 10, fontWeight: "700", opacity: 0.4, letterSpacing: 1, marginTop: 2 },
   empty: { height: 80, justifyContent: "center", alignItems: "center" },
 });
