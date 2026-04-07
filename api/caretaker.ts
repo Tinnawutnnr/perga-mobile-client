@@ -7,6 +7,7 @@ import { FallAnalysisResponse,
     YearlyAverage } from "@/types/report";
 import { PatientBrief, PatientProfile } from "@/types/patient";
 import { AllMetricsBenchmarkSchema } from "@/types/compare";
+import { AnomalyLogSchema } from "@/types/anomaly";
 
 export const caretakerApi = {
   getPatients: (token: string) =>
@@ -47,6 +48,10 @@ export const caretakerApi = {
   // GET /patients/me/yearlyAverage
   getPatientYearlyAverage: (username: string, token: string) =>
       apiClient.get<YearlyAverage[]>(`/caretakers/patients/yearlyAverage/${username}`, token),
+
+  // GET /caretakers/patients/anomalylog
+  getPatientAnomalyLog: (username: string, token: string) =>
+    apiClient.get<AnomalyLogSchema>(`/caretakers/patients/anomalyLog/${username}`, token),
 
 };
 export { PatientBrief, PatientProfile };
