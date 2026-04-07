@@ -3,6 +3,7 @@ import { patientApi } from "@/api/patient";
 import { caretakerApi } from "@/api/caretaker";
 import { AnomalyLog, AnomalyLogSchema } from "@/types/anomaly";
 import { useAuth } from "@/context/auth-context";
+import { usePatientStore } from "@/store/patient-store";
 
 export function calculatePercentDiff(current: number | null, ref: number | null): string {
   if (current === null || ref === null || ref === 0) return "-";
@@ -93,12 +94,14 @@ interface UseAnomalyDataResult {
  * Fetches anomaly log for either the logged-in patient or a caretaker's patient.
  * Pass `patientUsername` for caretaker mode; omit for patient (self) mode.
  */
-export function useAnomalyData(patientUsername?: string): UseAnomalyDataResult {
+export function useAnomalyData(): UseAnomalyDataResult {
   const { token, role } = useAuth();
   const [rawEntries, setRawEntries] = useState<AnomalyLog[]>([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState<AnomalyScale>("day");
+  const {selectedPatient} = usePatientStore();
+  const patientUsername = selectedPatient?.username;
 
   useEffect(() => {
     if (!token) return;
