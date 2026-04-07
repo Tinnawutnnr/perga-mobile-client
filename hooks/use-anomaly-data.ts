@@ -4,6 +4,14 @@ import { caretakerApi } from "@/api/caretaker";
 import { AnomalyLog, AnomalyLogSchema } from "@/types/anomaly";
 import { useAuth } from "@/context/auth-context";
 
+export function calculatePercentDiff(current: number | null, ref: number | null): string {
+  if (current === null || ref === null || ref === 0) return "-";
+  const diff = current - ref;
+  const percent_diff = (diff / Math.abs(ref)) * 100;
+  const formatted = percent_diff.toFixed(1);
+  return diff > 0 ? `+${formatted}%` : `${formatted}%`;
+}
+
 export type AnomalyScale = "day" | "week" | "month" | "year";
 
 export interface AnomalyChartPoint {
