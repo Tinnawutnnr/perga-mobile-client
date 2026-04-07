@@ -52,7 +52,7 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Leg Swing Speed" },
+          params: { label: "Swing Speed" },
         }),
     },
     {
@@ -75,7 +75,7 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Foot Landing Force" },
+          params: { label: "Heel Impact" },
         }),
     },
     {
@@ -96,7 +96,7 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "In-Air Time" },
+          params: { label: "Swing Time" },
         }),
     },
     {
@@ -121,7 +121,7 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "On-Ground Time" },
+          params: { label: "Stance Time" },
         }),
     },
     {
@@ -146,7 +146,7 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Step Consistency" },
+          params: { label: "Stability" },
         }),
     },
   ];
