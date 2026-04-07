@@ -520,6 +520,7 @@ export const mockdata = {
   swingTime: 0.45,
   stanceTime: 0.65,
   stability: 98,
+  totalSteps: 6100,
 };
 
 export const mockMetricDetailData = {
