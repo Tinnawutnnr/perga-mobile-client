@@ -29,8 +29,8 @@ const LABEL_TO_METRIC_NAME: Record<string, string> = {
 const METRIC_UNIT: Record<string, string> = {
   avg_cadence:     "steps/min",
   total_steps:     "steps",
-  avg_max_gyr_ms:  "deg/s",
-  avg_val_gyr_hs:  "g",
+  avg_max_gyr_ms:  "rad/s",
+  avg_val_gyr_hs:  "rad/s",
   avg_swing_time:  "s",
   avg_stance_time: "s",
   avg_stride_cv:   "%",
