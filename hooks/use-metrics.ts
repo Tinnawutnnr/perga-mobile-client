@@ -41,7 +41,7 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Swing Speed",
+      label: "Leg Swing Speed",
       infoText:
         "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or a 'guarded' walk.",
       value: data.swingSpeed.toFixed(2),
@@ -52,11 +52,11 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Swing Speed" },
+          params: { label: "Leg Swing Speed" },
         }),
     },
     {
-      label: "Heel Impact",
+      label: "Foot Landing Force",
       infoText:
         "Measures how the leg absorbs shock. If this is close to zero (e.g., > -1.5), you are likely 'placing' your foot down gingerly to avoid pain.",
       value: data.heelImpact.toFixed(2),
@@ -75,11 +75,11 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Heel Impact" },
+          params: { label: "Foot Landing Force" },
         }),
     },
     {
-      label: "Swing Time",
+      label: "In-Air Time",
       infoText:
         "How long your foot stays in the air. A consistent time between 0.35s and 0.50s indicates a healthy, clearing stride.",
       value: data.swingTime.toFixed(3),
@@ -96,11 +96,11 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Swing Time" },
+          params: { label: "In-Air Time" },
         }),
     },
     {
-      label: "Stance Time",
+      label: "On-Ground Time",
       infoText:
         "The time your foot is weight-bearing. Values over 0.95s indicate a 'shuffling' gait often used to compensate for poor balance.",
       value: data.stanceTime.toFixed(3),
@@ -121,11 +121,11 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Stance Time" },
+          params: { label: "On-Ground Time" },
         }),
     },
     {
-      label: "Stability",
+      label: "Step Consistency",
       infoText:
         "Measures rhythm consistency. Values above 8.8% indicate severe instability and an elevated risk of falling.",
       value: data.stability.toFixed(1) + "%",
@@ -146,7 +146,7 @@ export const useMetrics = (data: GaitData) => {
       onPress: () =>
         router.push({
           pathname: "/(tabs)/metric-detail",
-          params: { label: "Stability" },
+          params: { label: "Step Consistency" },
         }),
     },
   ];
