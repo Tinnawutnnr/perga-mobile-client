@@ -9,14 +9,13 @@ import {
 } from "react-native";
 import { ThemedText } from "@/components/themed-text";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { AnomalyChartPoint, AnomalyScale } from "@/hooks/use-anomaly-data";
+// Note: Ensure calculatePercentDiff is exported from your use-anomaly-data hook
+import { AnomalyChartPoint, AnomalyScale, calculatePercentDiff } from "@/hooks/use-anomaly-data";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
-
 const CARD_MARGIN = 20;
 const CARD_PADDING = 16;
 const CHART_W = SCREEN_WIDTH - CARD_MARGIN * 2 - CARD_PADDING * 2;
-
 const CHART_H = 140;
 const PAD_Y = 16;
 const PAD_X = 14; 
@@ -26,6 +25,9 @@ const RED = "#EF4444";
 const RED_LINE = "rgba(239,68,68,0.55)";
 const RED_DIM = "rgba(239,68,68,0.15)";
 
+/**
+ * Formats ISO timestamp to a readable English string
+ */
 function formatTimestamp(ts: string): string {
   return new Date(ts).toLocaleString("en-GB", {
     day: "numeric", month: "short", year: "numeric",
@@ -33,10 +35,16 @@ function formatTimestamp(ts: string): string {
   });
 }
 
+/**
+ * Converts snake_case keys to Title Case labels
+ */
 function featureLabel(key: string): string {
   return key.split("_").map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" ");
 }
 
+/**
+ * Determines label and color based on anomaly score threshold
+ */
 function severityInfo(score: number): { label: string; color: string } {
   if (score >= 0.9) return { label: "Critical", color: "#EF4444" };
   if (score >= 0.75) return { label: "High", color: "#F97316" };
@@ -46,6 +54,9 @@ function severityInfo(score: number): { label: string; color: string } {
 
 const SCALES: AnomalyScale[] = ["day", "week", "month", "year"];
 
+/**
+ * Filter tabs for switching time scales (Day/Week/Month/Year)
+ */
 const ScaleTabs: React.FC<{
   value: AnomalyScale;
   onChange: (s: AnomalyScale) => void;
@@ -84,6 +95,9 @@ const tabS = StyleSheet.create({
   label: { fontSize: 10, fontWeight: "700", letterSpacing: 0.6 },
 });
 
+/**
+ * Custom SVG-like Line Chart using View components
+ */
 const LineChart: React.FC<{
   data: AnomalyChartPoint[];
   bgColor: string;
@@ -93,12 +107,14 @@ const LineChart: React.FC<{
   const drawW = CHART_W - PAD_X * 2;
   const max = Math.max(...data.map((d) => d.count), 1);
 
+  // Map data points to X, Y coordinates
   const pts = data.map((d, i) => ({
     x: PAD_X + (data.length > 1 ? (i * drawW) / (data.length - 1) : drawW / 2),
     y: PAD_Y + (1 - d.count / max) * plotH,
     ...d,
   }));
 
+  // Calculate line segments between points (length and rotation)
   const segs = pts.slice(0, -1).map((a, i) => {
     const b = pts[i + 1];
     const dx = b.x - a.x;
@@ -108,6 +124,7 @@ const LineChart: React.FC<{
     return { x: a.x, y: a.y, len, ang };
   });
 
+  // Decide which labels to show on X-axis to avoid crowding
   const getFilteredIndices = () => {
     if (data.length <= 7) return data.map((_, i) => i);
     const step = Math.ceil(data.length / 6);
@@ -126,6 +143,7 @@ const LineChart: React.FC<{
   return (
     <View style={{ width: CHART_W }}>
       <View style={{ height: CHART_H, width: CHART_W }}>
+        {/* Horizontal Baseline */}
         <View style={{
           position: "absolute",
           bottom: PAD_Y,
@@ -134,6 +152,7 @@ const LineChart: React.FC<{
           backgroundColor: "rgba(128,128,128,0.15)",
         }} />
 
+        {/* Render lines */}
         {segs.map((s, i) => (
           <View key={i} style={{
             position: "absolute",
@@ -148,6 +167,7 @@ const LineChart: React.FC<{
           }} />
         ))}
 
+        {/* Render interactive dots */}
         {pts.map((p, i) => (
           <TouchableOpacity
             key={i}
@@ -177,6 +197,7 @@ const LineChart: React.FC<{
         ))}
       </View>
 
+      {/* X-Axis Labels */}
       <View style={{ height: 28, position: "relative", marginTop: 8 }}>
         {xIdx.map((idx) => {
           const p = pts[idx];
@@ -203,6 +224,9 @@ const LineChart: React.FC<{
   );
 };
 
+/**
+ * Modal Bottom Sheet showing details for selected anomaly point
+ */
 const AnomalyModal: React.FC<{
   visible: boolean;
   point: AnomalyChartPoint | null;
@@ -212,6 +236,7 @@ const AnomalyModal: React.FC<{
 }> = ({ visible, point, onClose, sheetBg, tintColor }) => {
   if (!point) return null;
 
+  // Aggregate root causes for progress bars
   const featureCounts: Record<string, number> = {};
   for (const e of point.entries) {
     const f = e.root_cause_feature ?? "unknown";
@@ -219,6 +244,7 @@ const AnomalyModal: React.FC<{
   }
   const topFeatures = Object.entries(featureCounts).sort((a, b) => b[1] - a[1]);
 
+  // Calculate average severity for the summary badge
   const scored = point.entries.filter((e) => e.anomaly_score !== null);
   const avg = scored.length
     ? scored.reduce((s, e) => s + (e.anomaly_score ?? 0), 0) / scored.length
@@ -239,6 +265,7 @@ const AnomalyModal: React.FC<{
             </TouchableOpacity>
           </View>
 
+          {/* Summary Badges (Count & Severity) */}
           <View style={ms.summaryRow}>
             <View style={[ms.badge, { backgroundColor: RED + "18" }]}>
               <ThemedText style={[ms.badgeNum, { color: RED }]}>{point.count}</ThemedText>
@@ -250,6 +277,7 @@ const AnomalyModal: React.FC<{
             </View>
           </View>
 
+          {/* Distribution of Features */}
           <ThemedText style={ms.secLabel}>Root Causes</ThemedText>
           {topFeatures.map(([feat, cnt]) => (
             <View key={feat} style={ms.featRow}>
@@ -266,6 +294,7 @@ const AnomalyModal: React.FC<{
             </View>
           ))}
 
+          {/* Individual Event Log */}
           <ThemedText style={[ms.secLabel, { marginTop: 16 }]}>Recent Events</ThemedText>
           <ScrollView style={{ maxHeight: 220 }} showsVerticalScrollIndicator={false}>
             {[...point.entries]
@@ -283,11 +312,12 @@ const AnomalyModal: React.FC<{
                       <ThemedText style={[ms.sevTxt, { color: sc }]}>{sl}</ThemedText>
                     </View>
                     <ThemedText style={ms.entryTime}>{formatTimestamp(e.timestamp)}</ThemedText>
+                    
+                    {/* Meta Row updated to show only Percent Difference */}
                     <View style={ms.metaRow}>
-                      <ThemedText style={ms.meta}>Score: {e.anomaly_score?.toFixed(3) ?? "—"}</ThemedText>
-                      <ThemedText style={ms.meta}>Z: {e.z_score?.toFixed(2) ?? "—"}</ThemedText>
-                      <ThemedText style={ms.meta}>Val: {e.current_val?.toFixed(2) ?? "—"}</ThemedText>
-                      <ThemedText style={ms.meta}>Ref: {e.normal_ref?.toFixed(2) ?? "—"}</ThemedText>
+                      <ThemedText style={[ms.meta, { color: RED, fontWeight: "700", opacity: 1 }]}>
+                        Difference: {calculatePercentDiff(e.current_val, e.normal_ref)}
+                      </ThemedText>
                     </View>
                   </View>
                 );
@@ -332,6 +362,9 @@ interface AnomalyChartSectionProps {
   loading?: boolean;
 }
 
+/**
+ * Main Section exported to the Dashboard screen
+ */
 export const AnomalyChartSection: React.FC<AnomalyChartSectionProps> = ({
   chartData, scale, onScaleChange, loading,
 }) => {
