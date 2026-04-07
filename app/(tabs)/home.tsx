@@ -5,11 +5,13 @@ import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CompareDuration, useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
 import { useAnomalyData } from "@/hooks/use-anomaly-data";
 import { useThemeColor } from "@/hooks/use-theme-color";
+import { usePatientStore } from "@/store/patient-store";
 import { Ionicons } from "@expo/vector-icons";
 import { router } from "expo-router";
 import React, { useState } from "react";
@@ -51,6 +53,13 @@ const SummaryScreen = () => {
   const scheme = useColorScheme() ?? "light";
 
   const insets = useSafeAreaInsets();
+
+  // ── Auth / role ────────────────────────────────────────────────────────────
+  const { role, username } = useAuth();
+  const { selectedPatient } = usePatientStore();
+
+  const headerName =
+    role === "caretaker" ? selectedPatient?.username : username;
 
   const [fallDate, setFallDate] = useState<Date | null>(null);
   const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(new Date());
@@ -108,12 +117,20 @@ const SummaryScreen = () => {
               Gait analysis dashboard
             </ThemedText>
           </View>
+
           <TouchableOpacity
-            style={[styles.avatar, { backgroundColor: cardColor }]}
+            style={styles.avatarRow}
             onPress={() => router.push("/profile")}
             activeOpacity={0.8}
           >
-            <Ionicons name="person" size={24} color={tintColor} />
+            {!!headerName && (
+              <ThemedText style={styles.patientName} numberOfLines={1}>
+                {headerName}
+              </ThemedText>
+            )}
+            <View style={[styles.avatar, { backgroundColor: cardColor }]}>
+              <Ionicons name="person" size={24} color={tintColor} />
+            </View>
           </TouchableOpacity>
         </ThemedView>
 
@@ -181,6 +198,18 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: "700", lineHeight: 28 },
   subtitle: { fontSize: 13, marginTop: 2 },
+  avatarRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    maxWidth: 180,
+  },
+  patientName: {
+    fontSize: 14,
+    fontWeight: "600",
+    flexShrink: 1,
+    textAlign: "right",
+  },
   avatar: {
     width: 40,
     height: 40,
