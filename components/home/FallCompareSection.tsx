@@ -53,7 +53,7 @@ function buildRows(
         "High values suggest 'foot slapping', low values suggest limping or favoring one side.",
     },
     {
-      label: "Time Foot is in Air",
+      label: "In-Air Time",
       unit: "s",
       previous: previous?.avg_swing_time ?? null,
       latest: latest?.avg_swing_time ?? null,
@@ -62,7 +62,7 @@ function buildRows(
         "A shorter time in the air often happens when dragging feet or taking small steps.",
     },
     {
-      label: "Time Foot is on Ground",
+      label: "On-Ground Time",
       unit: "s",
       previous: previous?.avg_stance_time ?? null,
       latest: latest?.avg_stance_time ?? null,

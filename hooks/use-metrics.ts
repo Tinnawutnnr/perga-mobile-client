@@ -1,5 +1,6 @@
 import { GaitData, Metric } from "@/types/metric";
 import { useRouter } from "expo-router";
+import { fmt } from "@/utils/format";
 
 export const useMetrics = (data: GaitData) => {
   const router = useRouter();
@@ -24,7 +25,7 @@ export const useMetrics = (data: GaitData) => {
       label: "Cadence",
       infoText:
         "The number of steps you take per minute. 100 steps/min is the 'Gold Standard' for healthy",
-      value: data.cadence.toFixed(1),
+      value: fmt(data.cadence, 1),
       subValue: "steps/min",
       status:
         data.cadence < 90
@@ -41,10 +42,10 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Swing Speed",
+      label: "Leg Swing Speed",
       infoText:
         "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or a 'guarded' walk.",
-      value: data.swingSpeed.toFixed(2),
+      value: fmt(data.swingSpeed, 2),
       subValue: "rad/s",
       status: data.swingSpeed < 4.5 ? "Low Power" : "Strong Drive",
       statusColor: data.swingSpeed < 4.5 ? "warning" : "success",
@@ -56,10 +57,10 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Heel Impact",
+      label: "Foot Landing Force",
       infoText:
         "Measures how the leg absorbs shock. If this is close to zero (e.g., > -1.5), you are likely 'placing' your foot down gingerly to avoid pain.",
-      value: data.heelImpact.toFixed(2),
+      value: fmt(data.heelImpact, 2),
       subValue: "rad/s",
       status:
         data.heelImpact < -4.5
@@ -79,10 +80,10 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Swing Time",
+      label: "In-Air Time",
       infoText:
         "How long your foot stays in the air. A consistent time between 0.35s and 0.50s indicates a healthy, clearing stride.",
-      value: data.swingTime.toFixed(3),
+      value: fmt(data.swingTime, 3),
       subValue: "s",
       status:
         data.swingTime < 0.35
@@ -100,10 +101,10 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Stance Time",
+      label: "On-Ground Time",
       infoText:
         "The time your foot is weight-bearing. Values over 0.95s indicate a 'shuffling' gait often used to compensate for poor balance.",
-      value: data.stanceTime.toFixed(3),
+      value: fmt(data.stanceTime, 3),
       subValue: "s",
       status:
         data.stanceTime > 0.95
@@ -125,10 +126,10 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Stability",
+      label: "Step Consistency",
       infoText:
         "Measures rhythm consistency. Values above 8.8% indicate severe instability and an elevated risk of falling.",
-      value: data.stability.toFixed(1) + "%",
+      value: fmt(data.stability, 1) + "%",
       subValue: "CV",
       status:
         data.stability > 8.8
