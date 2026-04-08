@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { SelfBar } from "@/hooks/use-metric-compare";
 import { CompareRange } from "@/types/metric";
+import { fmt } from "@/utils/format";
 import React from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -112,10 +113,14 @@ const SelfCompareCard = ({
                 Math.round(((bar.value - minValue) / chartRange) * 100),
                 5,
               );
+
+              const displayValue = unit === "%" 
+                ? Number(fmt(100 - bar.value * 100, 1))
+                : bar.value;
               return (
                 <View key={index} style={styles.barCol}>
                   <ThemedText style={[styles.valueLabel, { color: mutedColor }]}>
-                    {bar.value}
+                    {displayValue}
                   </ThemedText>
                   <View style={[styles.barTrack, { backgroundColor: borderColor }]}>
                     <View
