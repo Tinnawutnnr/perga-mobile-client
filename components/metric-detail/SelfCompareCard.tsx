@@ -37,6 +37,16 @@ const SelfCompareCard = ({
   const borderColor = useThemeColor({}, "border");
   const mutedColor  = useThemeColor({}, "muted");
 
+  const actualMin = bars.length > 0 ? Math.min(...bars.map((b) => b.value)) : 0;
+  const actualMax = bars.length > 0 ? Math.max(...bars.map((b) => b.value)) : 1;
+
+  const diff = actualMax - actualMin;
+  const padding = diff === 0 ? actualMin * 0.1 : diff * 0.5; 
+
+  const minValue   = Math.max(0, actualMin - padding);
+  const chartMax   = actualMax + padding;
+  const chartRange = chartMax - minValue || 1;
+
   return (
     <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
       <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
@@ -98,7 +108,10 @@ const SelfCompareCard = ({
           {/* ── Bar chart ── */}
           <View style={styles.chartWrap}>
             {bars.map((bar, index) => {
-              const heightPct = Math.round((bar.value / maxValue) * 100);
+              const heightPct = Math.max(
+                Math.round(((bar.value - minValue) / chartRange) * 100),
+                5,
+              );
               return (
                 <View key={index} style={styles.barCol}>
                   <ThemedText style={[styles.valueLabel, { color: mutedColor }]}>
