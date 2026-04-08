@@ -3,17 +3,41 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MetricDetailData } from "@/types/metric";
 import { Ionicons } from "@expo/vector-icons";
-import React from "react";
-import { StyleSheet, View } from "react-native";
+import React, { useEffect, useRef, useState } from "react";
+import { Animated, StyleSheet, View } from "react-native";
+
+const STATUS_COLOR: Record<string, string> = {
+  success: "#4CAF50",
+  warning: "#FF9800",
+  error:   "#F44336",
+  info:    "#2196F3",
+};
+
+const resolveColor = (color: string): string => STATUS_COLOR[color] ?? color;
 
 const HeroCard = ({ data }: { data: MetricDetailData }) => {
   const borderColor = useThemeColor({}, "border");
   const mutedColor = useThemeColor({}, "muted");
+  const [trackWidth, setTrackWidth] = useState(0);
+  const animatedWidth = useRef(new Animated.Value(0)).current;
+
+  const clampedProgress = Math.min(Math.max(data.progress, 0), 1);
+  const statusColor = resolveColor(data.statusColor);
+
+  useEffect(() => {
+    if (trackWidth > 0) {
+      Animated.timing(animatedWidth, {
+        toValue: trackWidth * clampedProgress,
+        duration: 600,
+        useNativeDriver: false,
+      }).start();
+    }
+  }, [trackWidth, clampedProgress]);
 
   return (
     <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
       <View style={styles.valueWrap}>
-        <Ionicons name={data.iconName} size={28} color={data.statusColor} />
+        <Ionicons name={data.iconName} size={28} color={statusColor} />
         <View style={styles.valueTextWrap}>
           <ThemedText type="title" style={{ fontSize: 24, lineHeight: 34 }}>
             {data.value}
@@ -28,20 +52,22 @@ const HeroCard = ({ data }: { data: MetricDetailData }) => {
 
       <ThemedText
         type="defaultSemiBold"
-        style={[styles.statusText, { color: data.statusColor }]}
+        style={[styles.statusText, { color: statusColor }]}
       >
         {data.status}
       </ThemedText>
 
-      <View style={[styles.progressTrack, { backgroundColor: borderColor }]}>
-        <View
-          style={[
-            styles.progressFill,
-            {
-              width: `${Math.min(data.progress * 100, 100)}%`,
-              backgroundColor: data.statusColor,
-            },
-          ]}
+      <View
+        style={[styles.progressTrack, { backgroundColor: borderColor }]}
+        onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
+      >
+        <Animated.View
+          style={{
+            width: animatedWidth,
+            height: 12,
+            backgroundColor: statusColor,
+            borderRadius: 6,
+          }}
         />
       </View>
 
@@ -72,8 +98,10 @@ const styles = StyleSheet.create({
     marginTop: 6,
     marginBottom: 14,
   },
-  progressTrack: { height: 12, borderRadius: 6, overflow: "hidden" },
-  progressFill: { height: "100%", borderRadius: 6 },
+  progressTrack: {
+    height: 12,
+    borderRadius: 6,
+  },
   rangeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
