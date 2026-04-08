@@ -116,7 +116,7 @@ const SelfCompareCard = ({
 
               const displayValue = unit === "%" 
                 ? Number(fmt(100 - bar.value * 100, 1))
-                : bar.value;
+                : Number(fmt(bar.value, 2));
               return (
                 <View key={index} style={styles.barCol}>
                   <ThemedText style={[styles.valueLabel, { color: mutedColor }]}>
