@@ -120,7 +120,7 @@ export const useMetricDetail = () => {
     heelImpact: apiData?.avg_val_gyr_hs ?? 0,
     swingTime: apiData?.avg_swing_time ?? 0,
     stanceTime: apiData?.avg_stance_time ?? 0,
-    stability: (apiData?.avg_stride_cv ?? 0) * 100,
+    stability: 100 - (apiData?.avg_stride_cv ?? 0) * 100,
     distance: apiData?.total_distance_m ?? 0,
   };
 
