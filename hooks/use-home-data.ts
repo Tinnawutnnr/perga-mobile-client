@@ -6,7 +6,9 @@ import { caretakerApi } from "@/api/caretaker";
 import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
-import { DailyAverage, GaitData } from "@/types/metric";
+import { GaitData } from "@/types/metric";
+import { DailyAverage } from "@/types/report";
+import { fmt } from "@/utils/format";
 import { useEffect, useMemo, useState } from "react";
 
 export type Period = "daily" | "weekly" | "yearly";
@@ -84,11 +86,11 @@ function toGaitData(r: DailyAverage): GaitData {
   
   return {
     distance:    (r.total_distance_m ?? 0) / 1000,
-    cadence:     swingTime > 0 ? Math.round(60 / (swingTime + stanceTime)) : 0,
-    swingSpeed:  Math.round(r.avg_max_gyr_ms ?? 0),
-    heelImpact:  +(r.avg_val_gyr_hs ?? 0).toFixed(2),
-    swingTime:   +swingTime.toFixed(2),
-    stanceTime:  +stanceTime.toFixed(2),
+    cadence:     (r.avg_cadence ?? 0),
+    swingSpeed:  Number(fmt(r.avg_max_gyr_ms ?? 0, 2)),
+    heelImpact:  Number(fmt(r.avg_val_gyr_hs ?? 0, 2)),
+    swingTime:   Number(fmt(swingTime, 2)),
+    stanceTime:  Number(fmt(stanceTime, 2)),
     stability:   Math.max(0, Math.round((1 - (r.avg_stride_cv ?? 0)) * 100)),
     totalSteps:  r.total_steps ?? 0,
   };

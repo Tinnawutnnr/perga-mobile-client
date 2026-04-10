@@ -3,6 +3,7 @@ import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { SelfBar } from "@/hooks/use-metric-compare";
 import { CompareRange } from "@/types/metric";
+import { fmt } from "@/utils/format";
 import React from "react";
 import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
 
@@ -36,6 +37,16 @@ const SelfCompareCard = ({
 }: Props) => {
   const borderColor = useThemeColor({}, "border");
   const mutedColor  = useThemeColor({}, "muted");
+
+  const actualMin = bars.length > 0 ? Math.min(...bars.map((b) => b.value)) : 0;
+  const actualMax = bars.length > 0 ? Math.max(...bars.map((b) => b.value)) : 1;
+
+  const diff = actualMax - actualMin;
+  const padding = diff === 0 ? actualMin * 0.1 : diff * 0.5; 
+
+  const minValue   = Math.max(0, actualMin - padding);
+  const chartMax   = actualMax + padding;
+  const chartRange = chartMax - minValue || 1;
 
   return (
     <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
@@ -98,11 +109,18 @@ const SelfCompareCard = ({
           {/* ── Bar chart ── */}
           <View style={styles.chartWrap}>
             {bars.map((bar, index) => {
-              const heightPct = Math.round((bar.value / maxValue) * 100);
+              const heightPct = Math.max(
+                Math.round(((bar.value - minValue) / chartRange) * 100),
+                5,
+              );
+
+              const displayValue = unit === "%" 
+                ? Number(fmt(100 - bar.value * 100, 1))
+                : Number(fmt(bar.value, 2));
               return (
                 <View key={index} style={styles.barCol}>
                   <ThemedText style={[styles.valueLabel, { color: mutedColor }]}>
-                    {bar.value}
+                    {displayValue}
                   </ThemedText>
                   <View style={[styles.barTrack, { backgroundColor: borderColor }]}>
                     <View
