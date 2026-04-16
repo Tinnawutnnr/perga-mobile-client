@@ -77,6 +77,16 @@ function severityInfo(score: number): { label: string; color: string } {
 const SCALES: AnomalyScale[] = ["day", "week", "month", "year"];
 
 /**
+ * Human-readable label for the current-period stat headline
+ */
+const SCALE_LABELS: Record<AnomalyScale, { period: string; sub: string }> = {
+  day:   { period: "Today",      sub: "Anomalies Today" },
+  week:  { period: "This Week",  sub: "Anomalies This Week" },
+  month: { period: "This Month", sub: "Anomalies This Month" },
+  year:  { period: "This Year",  sub: "Anomalies This Year" },
+};
+
+/**
  * Filter tabs for switching time scales
  */
 const ScaleTabs: React.FC<{
@@ -390,14 +400,15 @@ export const AnomalyChartSection: React.FC<AnomalyChartSectionProps> = ({
   const [selected, setSelected] = useState<AnomalyChartPoint | null>(null);
   const [modal, setModal] = useState(false);
 
-  const total = chartData.reduce((s, d) => s + d.count, 0);
+  const latestCount = chartData.length > 0 ? chartData[chartData.length - 1].count : 0;
+  const { sub: scaleSub } = SCALE_LABELS[scale];
 
   return (
     <View style={[card.wrap, { backgroundColor: cardColor }]}>
       <View style={card.statsRow}>
         <View>
-          <ThemedText style={card.bigNum}>{total}</ThemedText>
-          <ThemedText style={[card.bigLabel, { color: textColor }]}>ANOMALIES</ThemedText>
+          <ThemedText style={card.bigNum}>{latestCount}</ThemedText>
+          <ThemedText style={[card.bigLabel, { color: textColor }]}>{scaleSub.toUpperCase()}</ThemedText>
         </View>
         <ScaleTabs value={scale} onChange={onScaleChange} textColor={textColor} />
       </View>
