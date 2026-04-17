@@ -12,8 +12,13 @@ export const useMetrics = (data: GaitData) => {
         "Total count of steps today. A sudden decrease may indicate fatigue, recovery needs, or a decrease in overall mobility.",
       value: (data.totalSteps ?? 0).toLocaleString(),
       subValue: "steps",
-      status: data.totalSteps > 5000 ? "Active Day" : "Keep moving",
-      statusColor: "info",
+      status:
+        data.totalSteps < 500
+          ? "Very Low Activity"
+          : data.totalSteps < 5000
+            ? "Keep moving"
+            : "Active Day",
+      statusColor: data.totalSteps < 5000 ? "warning" : "success",
       iconName: "walk-outline",
       onPress: () =>
         router.push({
@@ -24,16 +29,21 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Cadence",
       infoText:
-        "The number of steps you take per minute. 100 steps/min is the 'Gold Standard' for healthy",
+        "The number of steps you take per minute. 100 steps/min is the 'Gold Standard' for healthy walking.", // Fixed typo here
       value: fmt(data.cadence, 1),
       subValue: "steps/min",
       status:
-        data.cadence < 90
-          ? "Slow Pace"
-          : data.cadence <= 130
-            ? "Optimal"
-            : "Brisk/Fast",
-      statusColor: data.cadence < 90 ? "warning" : "success",
+        data.cadence < 70
+          ? "Out-of-Range Slow"
+          : data.cadence < 90
+            ? "Slow Pace"
+            : data.cadence <= 130
+              ? "Optimal"
+              : data.cadence <= 150
+                ? "Brisk/Fast"
+                : "Out-of-Range Fast",
+      statusColor:
+        data.cadence < 90 || data.cadence > 130 ? "warning" : "success", // Kept Brisk/Fast as a warning for elderly fall-risk
       iconName: "timer-outline",
       onPress: () =>
         router.push({
@@ -44,11 +54,21 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Leg Swing Speed",
       infoText:
-        "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or a dragging feet instead of lifting them.",
+        "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or dragging feet instead of lifting them.",
       value: fmt(data.swingSpeed, 2),
       subValue: "rad/s",
-      status: data.swingSpeed < 4.5 ? "Low Power" : "Strong Drive",
-      statusColor: data.swingSpeed < 4.5 ? "warning" : "success",
+      status:
+        data.swingSpeed < 2
+          ? "Out-of-Range Low"
+          : data.swingSpeed < 4.5
+            ? "Low Power"
+            : data.swingSpeed <= 10
+              ? "Strong Drive"
+              : data.swingSpeed <= 12
+                ? "Atypically High"
+                : "Out-of-Range High",
+      statusColor:
+        data.swingSpeed < 4.5 || data.swingSpeed > 10 ? "warning" : "success",
       iconName: "speedometer-outline",
       onPress: () =>
         router.push({
@@ -63,11 +83,15 @@ export const useMetrics = (data: GaitData) => {
       value: fmt(data.heelImpact, 2),
       subValue: "rad/s",
       status:
-        data.heelImpact < -4.5
-          ? "Landing Heavily"
-          : data.heelImpact > -1.5
-            ? "Limping/Guarding"
-            : "Controlled",
+        data.heelImpact < -6
+          ? "Out-of-Range Heavy"
+          : data.heelImpact < -4.5
+            ? "Landing Heavily"
+            : data.heelImpact <= -1.5
+              ? "Controlled"
+              : data.heelImpact <= -0.5
+                ? "Limping/Guarding"
+                : "Out-of-Range Guarding",
       statusColor:
         data.heelImpact < -4.5 || data.heelImpact > -1.5
           ? "warning"
@@ -86,13 +110,17 @@ export const useMetrics = (data: GaitData) => {
       value: fmt(data.swingTime, 3),
       subValue: "s",
       status:
-        data.swingTime < 0.35
-          ? "Dragging Feet"
-          : data.swingTime > 0.55
-            ? "Slow Swing"
-            : "Normal",
+        data.swingTime < 0.25
+          ? "Out-of-Range Short"
+          : data.swingTime < 0.35
+            ? "Dragging Feet"
+            : data.swingTime <= 0.55
+              ? "Normal"
+              : data.swingTime <= 0.75
+                ? "Slow Swing"
+                : "Out-of-Range Long",
       statusColor:
-        data.swingTime < 0.35 || data.swingTime > 0.55 ? "error" : "success",
+        data.swingTime < 0.35 || data.swingTime > 0.55 ? "warning" : "success",
       iconName: "hourglass-outline",
       onPress: () =>
         router.push({
@@ -107,17 +135,19 @@ export const useMetrics = (data: GaitData) => {
       value: fmt(data.stanceTime, 3),
       subValue: "s",
       status:
-        data.stanceTime > 0.95
-          ? "Stiff/Cautious"
+        data.stanceTime < 0.45
+          ? "Out-of-Range Short"
           : data.stanceTime < 0.55
             ? "Brief Contact"
-            : "Normal",
+            : data.stanceTime <= 0.95
+              ? "Normal"
+              : data.stanceTime <= 1.2
+                ? "Stiff/Cautious"
+                : "Out-of-Range Long",
       statusColor:
-        data.stanceTime > 0.95
+        data.stanceTime < 0.55 || data.stanceTime > 0.95
           ? "warning"
-          : data.stanceTime < 0.55
-            ? "error"
-            : "success",
+          : "success",
       iconName: "footsteps",
       onPress: () =>
         router.push({
@@ -132,17 +162,15 @@ export const useMetrics = (data: GaitData) => {
       value: fmt(data.stability, 1) + "%",
       subValue: "CV",
       status:
-        data.stability > 8.8
-          ? "High Fall Risk"
-          : data.stability > 5.5
-            ? "Unsteady"
-            : "Stable",
+        data.stability < 0
+          ? "Out-of-Range"
+          : data.stability > 8.8
+            ? "High Fall Risk"
+            : data.stability > 5.5
+              ? "Unsteady"
+              : "Stable",
       statusColor:
-        data.stability > 8.8
-          ? "error"
-          : data.stability > 5.5
-            ? "warning"
-            : "success",
+        data.stability < 0 || data.stability > 5.5 ? "warning" : "success",
       iconName: "analytics-outline",
       onPress: () =>
         router.push({
