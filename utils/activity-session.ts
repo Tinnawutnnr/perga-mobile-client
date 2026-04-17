@@ -25,7 +25,7 @@ export const createEmptySessionTotals = (): SessionTotals => ({
  */
 export function generateMockWindowReport(patientId: number): WindowReport {
   const anomalyScore = +(Math.random() * 0.5).toFixed(3);
-  
+
   // Logic to determine gait health based on anomaly score thresholds
   let health = "healthy";
   if (anomalyScore > 0.4) health = "at_risk";
@@ -55,7 +55,9 @@ export function generateMockWindowReport(patientId: number): WindowReport {
  * Formats duration from total seconds to MM:SS string
  */
 export const formatDuration = (seconds: number): string => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, "0");
   const s = (seconds % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 };
@@ -73,11 +75,20 @@ export const modelStatusLabel = (status: string | null): string => {
  * Maps gait health status to consistent theme colors
  */
 export const healthColor = (health: string | null): string => {
-  switch (health) {
-    case "healthy":  return "#4CAF50"; // Success Green
-    case "moderate": return "#FF9800"; // Warning Orange
-    case "at_risk":  return "#FF5252"; // Danger Red
-    default:         return "#999999"; // Muted Gray
+  const normalized = (health ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  switch (normalized) {
+    case "healthy":
+    case "normal":
+      return "#4CAF50";
+    case "anomaly_detected":
+    case "anomaly":
+      return "#EF4444";
+    default:
+      return "#999999";
   }
 };
 
@@ -85,9 +96,16 @@ export const healthColor = (health: string | null): string => {
  * Formats gait health status for display
  */
 export const healthLabel = (health: string | null): string => {
-  if (!health) return "UNKNOWN";
-  if (health === "at_risk") return "AT-RISK";
-  if (health === "moderate") return "MODERATE";
-  if (health === "healthy") return "HEALTHY";
-  return health.replace(/_/g, " ").toUpperCase();
+  const normalized = (health ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (!normalized) return "UNKNOWN";
+  if (normalized === "at_risk") return "AT-RISK";
+  if (normalized === "moderate") return "MODERATE";
+  if (normalized === "healthy") return "HEALTHY";
+  if (normalized === "normal") return "NORMAL";
+  if (normalized === "anomaly_detected") return "ANOMALY DETECTED";
+  return normalized.replace(/_/g, " ").toUpperCase();
 };

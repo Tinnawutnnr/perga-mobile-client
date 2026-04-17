@@ -1,20 +1,20 @@
+import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { DatePickerField } from "@/components/home/DatePickerField";
 import { FallCompareSection } from "@/components/home/FallCompareSection";
 import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
-import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
+import { useAnomalyData } from "@/hooks/use-anomaly-data";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CompareDuration, useHomeData } from "@/hooks/use-home-data";
 import { useMetrics } from "@/hooks/use-metrics";
-import { useAnomalyData } from "@/hooks/use-anomaly-data";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { usePatientStore } from "@/store/patient-store";
 import { Ionicons } from "@expo/vector-icons";
-import { router } from "expo-router";
-import React, { useState } from "react";
+import { router, useFocusEffect } from "expo-router";
+import React, { useCallback, useState } from "react";
 import {
   ActivityIndicator,
   ScrollView,
@@ -59,10 +59,12 @@ const SummaryScreen = () => {
   const { selectedPatient } = usePatientStore();
 
   const headerName =
-    role === "caretaker" ? selectedPatient?.username : username;
+    role === "caregiver" ? selectedPatient?.username : username;
 
   const [fallDate, setFallDate] = useState<Date | null>(null);
-  const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(new Date());
+  const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(
+    new Date(),
+  );
   const [compareDuration, setCompareDuration] =
     useState<CompareDuration>("week");
 
@@ -77,6 +79,7 @@ const SummaryScreen = () => {
     fallAnalysis,
     loading,
     error,
+    refresh: refreshHomeData,
   } = useHomeData(fallDateStr, "daily", selectedViewDateStr);
 
   // ── Anomaly data ──────────────────────────────────────────────────────────
@@ -85,7 +88,15 @@ const SummaryScreen = () => {
     loading: anomalyLoading,
     scale: anomalyScale,
     setScale: setAnomalyScale,
-  } = useAnomalyData(); // pass patientUsername here when in caretaker view
+    refresh: refreshAnomalyData,
+  } = useAnomalyData(); // pass patientUsername here when in caregiver view
+
+  useFocusEffect(
+    useCallback(() => {
+      refreshHomeData();
+      refreshAnomalyData();
+    }, [refreshHomeData, refreshAnomalyData]),
+  );
 
   const gaitData = periodGaitData;
   const hasData = periodGaitData !== null;
@@ -94,10 +105,18 @@ const SummaryScreen = () => {
     ? `Gait Metrics - ${formatDate(selectedViewDate)}`
     : "Today's Gait Metrics";
 
-  const metrics = useMetrics(gaitData ?? {
-    distance: 0, cadence: 0, swingSpeed: 0,
-    heelImpact: 0, swingTime: 0, stanceTime: 0, stability: 0, totalSteps: 0,
-  });
+  const metrics = useMetrics(
+    gaitData ?? {
+      distance: 0,
+      cadence: 0,
+      swingSpeed: 0,
+      heelImpact: 0,
+      swingTime: 0,
+      stanceTime: 0,
+      stability: 0,
+      totalSteps: 0,
+    },
+  );
 
   return (
     <View style={[styles.safeArea, { backgroundColor }]}>

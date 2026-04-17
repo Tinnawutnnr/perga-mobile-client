@@ -63,7 +63,7 @@ const ProfileScreen = () => {
       subtitle: "Edit your details",
       onPress: () => router.push("/(tabs)/my-info"),
     },
-    ...(role === "caretaker"
+    ...(role === "caregiver"
       ? [
           {
             icon: "people-outline" as const,

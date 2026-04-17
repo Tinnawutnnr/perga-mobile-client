@@ -67,7 +67,8 @@ const CompareCard = ({ item }: { item: CompareRow }) => {
   const prev = item.previous ?? 0;
   const late = item.latest ?? 0;
   const maxVal = Math.max(Math.abs(prev), Math.abs(late)) * 1.15 || 1;
-  const fmtVal = (n: number) => `${n}${item.unit ? ` ${item.unit}` : ""}`;
+  const fmtVal = (n: number) =>
+    `${parseFloat(n.toFixed(2))}${item.unit ? ` ${item.unit}` : ""}`;
 
   return (
     <ThemedView

@@ -41,7 +41,7 @@ function buildRows(
       latest: latest?.avg_max_gyr_ms ?? null,
       higherIsBetter: true,
       disclaimer:
-        "A slower swing often means weaker muscles or a shuffling walk.",
+        "A slower swing often means dragging feet instead of lifting them.",
     },
     {
       label: "Foot Landing Force",
@@ -50,7 +50,7 @@ function buildRows(
       latest: latest?.avg_val_gyr_hs ?? null,
       higherIsBetter: false, // Adjusted based on context; usually, a "normal" range is best.
       disclaimer:
-        "High values suggest 'foot slapping', low values suggest limping or favoring one side.",
+        "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favoring one side.",
     },
     {
       label: "In-Air Time",
@@ -75,12 +75,10 @@ function buildRows(
       unit: "%",
       previous:
         previous?.avg_stride_cv != null
-          ? +(previous.avg_stride_cv * 100).toFixed(1)
+          ? +previous.avg_stride_cv.toFixed(1)
           : null,
       latest:
-        latest?.avg_stride_cv != null
-          ? +(latest.avg_stride_cv * 100).toFixed(1)
-          : null,
+        latest?.avg_stride_cv != null ? +latest.avg_stride_cv.toFixed(1) : null,
       higherIsBetter: false,
       disclaimer:
         "Higher percentages mean steps are less regular, which increases the risk of a fall.",

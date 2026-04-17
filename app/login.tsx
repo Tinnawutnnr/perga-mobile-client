@@ -52,7 +52,7 @@ const LoginScreen = () => {
       const status = await profileApi.getStatus(res.access_token);
       await saveRole(status.role);
       await saveUsername(data.username);
-      if (status.role === "caretaker") {
+      if (status.role === "caregiver") {
         router.replace("/(tabs)/patient-selection");
       } else {
         router.replace("/(tabs)/home");

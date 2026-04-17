@@ -9,49 +9,49 @@ import { PatientBrief, PatientProfile } from "@/types/patient";
 import { AllMetricsBenchmarkSchema } from "@/types/compare";
 import { AnomalyLogSchema } from "@/types/anomaly";
 
-export const caretakerApi = {
+export const caregiverApi = {
   getPatients: (token: string) =>
-    apiClient.get<PatientBrief[]>("/caretakers/patients", token),
+    apiClient.get<PatientBrief[]>("/caregivers/patients", token),
 
   getPatient: (username: string, token: string) =>
-    apiClient.get<PatientProfile>(`/caretakers/patients/${username}`, token),
+    apiClient.get<PatientProfile>(`/caregivers/patients/${username}`, token),
 
   linkPatient: (username: string, token: string) =>
-    apiClient.post<PatientBrief>("/caretakers/patients", { username }, token),
+    apiClient.post<PatientBrief>("/caregivers/patients", { username }, token),
 
   unlinkPatient: (username: string, token: string) =>
-    apiClient.delete<void>(`/caretakers/patients/${username}`, token),
+    apiClient.delete<void>(`/caregivers/patients/${username}`, token),
 
   getDailyAverageByDate: (username: string, date: string, token: string) => {
-    const path = `/caretakers/patients/dailyAverage/byDate/${username}?date_str=${date}`;
+    const path = `/caregivers/patients/dailyAverage/byDate/${username}?date_str=${date}`;
     return apiClient.get<DailyAverage | null>(path, token);
   },
 
   getFallAnalysis: (username: string, fallDate: string, token: string) =>
-    apiClient.get<FallAnalysisResponse>(`/caretakers/patients/fallAnalysis/${username}?date_str=${fallDate}`, token),
+    apiClient.get<FallAnalysisResponse>(`/caregivers/patients/fallAnalysis/${username}?date_str=${fallDate}`, token),
 
   getPatientBenchmark: (username: string, token: string) =>
-    apiClient.get<AllMetricsBenchmarkSchema>(`/caretakers/patients/benchmark/${username}`, token),
+    apiClient.get<AllMetricsBenchmarkSchema>(`/caregivers/patients/benchmark/${username}`, token),
 
    // GET /patients/me/dailyAverage
   getPatientDailyAverages: (username: string, token: string) =>
-    apiClient.get<DailyAverage[]>(`/caretakers/patients/dailyAverage/${username}`, token),
+    apiClient.get<DailyAverage[]>(`/caregivers/patients/dailyAverage/${username}`, token),
   
   // GET /patients/me/weeklyAverage
   getPatientWeeklyAverage: (username: string, token: string) =>
-    apiClient.get<WeeklyAverage[]>(`/caretakers/patients/weeklyAverage/${username}`, token),
+    apiClient.get<WeeklyAverage[]>(`/caregivers/patients/weeklyAverage/${username}`, token),
   
   // GET /patients/me/monthlyAverage
   getPatientMonthlyAverage: (username: string, token: string) =>
-    apiClient.get<MonthlyAverage[]>(`/caretakers/patients/monthlyAverage/${username}`, token),
+    apiClient.get<MonthlyAverage[]>(`/caregivers/patients/monthlyAverage/${username}`, token),
   
   // GET /patients/me/yearlyAverage
   getPatientYearlyAverage: (username: string, token: string) =>
-      apiClient.get<YearlyAverage[]>(`/caretakers/patients/yearlyAverage/${username}`, token),
+      apiClient.get<YearlyAverage[]>(`/caregivers/patients/yearlyAverage/${username}`, token),
 
-  // GET /caretakers/patients/anomalylog
+  // GET /caregivers/patients/anomalylog
   getPatientAnomalyLog: (username: string, token: string) =>
-    apiClient.get<AnomalyLogSchema>(`/caretakers/patients/anomalyLog/${username}`, token),
+    apiClient.get<AnomalyLogSchema>(`/caregivers/patients/anomalyLog/${username}`, token),
 
 };
 export { PatientBrief, PatientProfile };

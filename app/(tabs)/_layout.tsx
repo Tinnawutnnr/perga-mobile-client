@@ -5,7 +5,7 @@ import { useThemeColor } from "../../hooks/use-theme-color";
 
 export default function TabLayout() {
   const { role, isLoading } = useAuth();
-  const hideRestrictedTabs = isLoading || role === "caretaker";
+  const hideRestrictedTabs = isLoading || role === "caregiver";
   const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const tabIconDefault = useThemeColor({}, "tabIconDefault");

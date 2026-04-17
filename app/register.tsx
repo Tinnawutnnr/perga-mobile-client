@@ -30,7 +30,7 @@ const registerSchema = z
       .max(20, "Username must be at most 20 characters"),
     password: z.string().min(8, "Password must be at least 8 characters"),
     confirmPassword: z.string(),
-    role: z.enum(["caretaker", "patient"]),
+    role: z.enum(["caregiver", "patient"]),
     agreeToTerms: z.boolean(),
   })
   .refine((data) => data.password === data.confirmPassword, {
@@ -63,7 +63,7 @@ const RegisterScreen = () => {
       username: "",
       password: "",
       confirmPassword: "",
-      role: "caretaker",
+      role: "caregiver",
       agreeToTerms: false,
     },
   });
@@ -137,7 +137,7 @@ const RegisterScreen = () => {
             <View style={styles.roleContainer}>
               <Text style={styles.roleLabel}>Role</Text>
               <View style={styles.roleToggle}>
-                {(["caretaker", "patient"] as const).map((option) => (
+                {(["caregiver", "patient"] as const).map((option) => (
                   <TouchableOpacity
                     key={option}
                     style={[

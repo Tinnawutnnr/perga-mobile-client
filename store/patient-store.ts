@@ -1,4 +1,4 @@
-import { PatientProfile } from "@/api/caretaker";
+import { PatientProfile } from "@/api/caregiver";
 import { create } from "zustand";
 
 type SelectedPatient = PatientProfile & { username: string };

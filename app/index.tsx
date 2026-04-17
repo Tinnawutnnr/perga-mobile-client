@@ -1,4 +1,4 @@
-import { caretakerApi } from "@/api/caretaker";
+import { caregiverApi } from "@/api/caregiver";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
 import { patientStorage } from "@/utils/token-storage";
@@ -31,14 +31,14 @@ export default function Index() {
         return () => clearTimeout(timer);
       }
 
-      if (role === "caretaker") {
+      if (role === "caregiver") {
         let cancelled = false;
         patientStorage.getId().then(async (savedId) => {
           if (cancelled) return;
           const savedUsername = await patientStorage.getUsername();
           if (savedId && savedUsername) {
             try {
-              const profile = await caretakerApi.getPatient(
+              const profile = await caregiverApi.getPatient(
                 savedUsername,
                 token,
               );
