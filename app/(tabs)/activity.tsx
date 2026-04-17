@@ -288,14 +288,19 @@ const ActivityScreen = () => {
             ]}
           >
             <View style={styles.liveIndicator}>
-              <Ionicons name="recording" size={28} color={tintColor} />
+              <Ionicons
+                name={reportCount === 0 ? "hardware-chip-outline" : "recording"}
+                size={28}
+                color={tintColor}
+              />
               <ThemedText style={[styles.liveText, { color: tintColor }]}>
-                LIVE
+                {reportCount === 0 ? "WAIT" : "LIVE"}
               </ThemedText>
             </View>
             <ThemedView transparent style={{ flex: 1 }}>
+              {/* Check reportCount here */}
               <ThemedText style={[styles.recordingTitle, { color: tintColor }]}>
-                Recording In Progress
+                {reportCount === 0 ? "Calibrating" : "Monitoring"}
               </ThemedText>
               <ThemedText type="muted" style={{ fontSize: 12 }}>
                 ID: {sessionId?.split("-")[0]}...

@@ -1,11 +1,14 @@
-import { useEffect, useState } from "react";
-import { patientApi } from "@/api/patient";
 import { caretakerApi } from "@/api/caretaker";
-import { AnomalyLog, AnomalyLogSchema } from "@/types/anomaly";
+import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
+import { AnomalyLog, AnomalyLogSchema } from "@/types/anomaly";
+import { useEffect, useState } from "react";
 
-export function calculatePercentDiff(current: number | null, ref: number | null): string {
+export function calculatePercentDiff(
+  current: number | null,
+  ref: number | null,
+): string {
   if (current === null || ref === null || ref === 0) return "-";
   const diff = current - ref;
   const percent_diff = (diff / Math.abs(ref)) * 100;
@@ -16,45 +19,68 @@ export function calculatePercentDiff(current: number | null, ref: number | null)
 export type AnomalyScale = "day" | "week" | "month" | "year";
 
 export interface AnomalyChartPoint {
-  label: string;           // display label on X-axis
-  count: number;           // number of anomalies in that bucket
-  entries: AnomalyLog[];   // raw entries for detail modal
+  label: string; // display label on X-axis
+  count: number; // number of anomalies in that bucket
+  entries: AnomalyLog[]; // raw entries for detail modal
 }
 
 /**
- * Groups a flat list of AnomalyLog into chart buckets based on the chosen scale.
+ * Filters the flat list of AnomalyLogs to a specific timeframe
+ * and groups them into chart buckets.
  */
 function groupAnomalies(
   entries: AnomalyLog[],
-  scale: AnomalyScale
+  scale: AnomalyScale,
 ): AnomalyChartPoint[] {
   const bucketMap: Map<string, AnomalyLog[]> = new Map();
 
-  for (const entry of entries) {
+  const now = new Date();
+  const todayStart = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+
+  // 1. Filter entries into correct timeframe
+  const filteredEntries = entries.filter((entry) => {
+    const d = new Date(entry.timestamp);
+    if (scale === "day") {
+      // Must be today
+      return d.getTime() >= todayStart.getTime();
+    } else if (scale === "week") {
+      // Must be within last 7 days
+      const weekAgo = new Date(todayStart.getTime() - 6 * 24 * 60 * 60 * 1000);
+      return d.getTime() >= weekAgo.getTime();
+    } else if (scale === "month") {
+      // Must be within last 30 days
+      const monthAgo = new Date(
+        todayStart.getTime() - 29 * 24 * 60 * 60 * 1000,
+      );
+      return d.getTime() >= monthAgo.getTime();
+    } else if (scale === "year") {
+      // Must be this year
+      return d.getFullYear() === now.getFullYear();
+    }
+    return true;
+  });
+
+  // 2. Group the filtered entries into buckets
+  for (const entry of filteredEntries) {
     const d = new Date(entry.timestamp);
     let key: string;
 
     switch (scale) {
-      case "day": {
-        key = d.toISOString().slice(0, 10); // "YYYY-MM-DD"
+      case "day":
+        // Group by hour: "08:00"
+        key = String(d.getHours()).padStart(2, "0") + ":00";
         break;
-      }
-      case "week": {
-        const jan4 = new Date(d.getFullYear(), 0, 4);
-        const weekNum = Math.ceil(
-          ((d.getTime() - jan4.getTime()) / 86400000 + jan4.getDay() + 1) / 7
-        );
-        key = `${d.getFullYear()}-W${String(weekNum).padStart(2, "0")}`;
+      case "week":
+      case "month":
+        // Group by date: "2026-03-25"
+        key = d.toISOString().slice(0, 10);
         break;
-      }
-      case "month": {
-        key = d.toISOString().slice(0, 7); // "YYYY-MM"
+      case "year":
+        // Group by month: "2026-03"
+        key = d.toISOString().slice(0, 7);
         break;
-      }
-      case "year": {
-        key = String(d.getFullYear());
-        break;
-      }
+      default:
+        key = d.toISOString().slice(0, 10);
     }
 
     if (!bucketMap.has(key)) bucketMap.set(key, []);
@@ -63,19 +89,35 @@ function groupAnomalies(
 
   const sortedKeys = Array.from(bucketMap.keys()).sort();
 
+  // 3. Format into ChartPoint array and format X-axis labels
   return sortedKeys.map((key) => {
     const items = bucketMap.get(key)!;
     let label = key;
 
-    if (scale === "day") {
+    if (scale === "week" || scale === "month") {
+      // Create user-friendly label (e.g. 25/03)
       const [, mm, dd] = key.split("-");
       label = `${dd}/${mm}`;
-    } else if (scale === "month") {
+    } else if (scale === "year") {
+      // e.g. "Mar 2026"
       const [yyyy, mm] = key.split("-");
-      const monthNames = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+      const monthNames = [
+        "Jan",
+        "Feb",
+        "Mar",
+        "Apr",
+        "May",
+        "Jun",
+        "Jul",
+        "Aug",
+        "Sep",
+        "Oct",
+        "Nov",
+        "Dec",
+      ];
       label = `${monthNames[parseInt(mm) - 1]} ${yyyy}`;
     }
-    // week → "2026-W14", year → "2026" — keep as-is
+    // "day" keeps key as label (e.g., "08:00")
 
     return { label, count: items.length, entries: items };
   });
@@ -100,7 +142,7 @@ export function useAnomalyData(): UseAnomalyDataResult {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [scale, setScale] = useState<AnomalyScale>("day");
-  const {selectedPatient} = usePatientStore();
+  const { selectedPatient } = usePatientStore();
   const patientUsername = selectedPatient?.username;
 
   useEffect(() => {

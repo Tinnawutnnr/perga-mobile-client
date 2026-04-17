@@ -1,6 +1,6 @@
 import { GaitData, Metric } from "@/types/metric";
-import { useRouter } from "expo-router";
 import { fmt } from "@/utils/format";
+import { useRouter } from "expo-router";
 
 export const useMetrics = (data: GaitData) => {
   const router = useRouter();
@@ -44,7 +44,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Leg Swing Speed",
       infoText:
-        "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or a 'guarded' walk.",
+        "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or a dragging feet instead of lifting them.",
       value: fmt(data.swingSpeed, 2),
       subValue: "rad/s",
       status: data.swingSpeed < 4.5 ? "Low Power" : "Strong Drive",
@@ -59,14 +59,14 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Foot Landing Force",
       infoText:
-        "Measures how the leg absorbs shock. If this is close to zero (e.g., > -1.5), you are likely 'placing' your foot down gingerly to avoid pain.",
+        "Measures how the leg absorbs shock. If this is close to zero (e.g., > -1.5), you are likely placing your foot down cautiously to avoid pain.",
       value: fmt(data.heelImpact, 2),
       subValue: "rad/s",
       status:
         data.heelImpact < -4.5
-          ? "Heavy Strike"
+          ? "Landing Heavily"
           : data.heelImpact > -1.5
-            ? "Guarded/Limp"
+            ? "Limping / Favoring side"
             : "Controlled",
       statusColor:
         data.heelImpact < -4.5 || data.heelImpact > -1.5
@@ -87,7 +87,7 @@ export const useMetrics = (data: GaitData) => {
       subValue: "s",
       status:
         data.swingTime < 0.35
-          ? "Shuffling"
+          ? "Dragging Feet"
           : data.swingTime > 0.55
             ? "Slow Swing"
             : "Normal",
@@ -103,7 +103,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "On-Ground Time",
       infoText:
-        "The time your foot is weight-bearing. Values over 0.95s indicate a 'shuffling' gait often used to compensate for poor balance.",
+        "The time your foot is weight-bearing. Values over 0.95s indicate a cautious walk or dragging feet, often used to compensate for poor balance.",
       value: fmt(data.stanceTime, 3),
       subValue: "s",
       status:
