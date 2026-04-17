@@ -75,7 +75,12 @@ export const modelStatusLabel = (status: string | null): string => {
  * Maps gait health status to consistent theme colors
  */
 export const healthColor = (health: string | null): string => {
-  switch (health) {
+  const normalized = (health ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  switch (normalized) {
     case "healthy":
     case "normal":
       return "#4CAF50";
@@ -91,9 +96,16 @@ export const healthColor = (health: string | null): string => {
  * Formats gait health status for display
  */
 export const healthLabel = (health: string | null): string => {
-  if (!health) return "UNKNOWN";
-  if (health === "at_risk") return "AT-RISK";
-  if (health === "moderate") return "MODERATE";
-  if (health === "healthy") return "HEALTHY";
-  return health.replace(/_/g, " ").toUpperCase();
+  const normalized = (health ?? "")
+    .trim()
+    .toLowerCase()
+    .replace(/[\s-]+/g, "_");
+
+  if (!normalized) return "UNKNOWN";
+  if (normalized === "at_risk") return "AT-RISK";
+  if (normalized === "moderate") return "MODERATE";
+  if (normalized === "healthy") return "HEALTHY";
+  if (normalized === "normal") return "NORMAL";
+  if (normalized === "anomaly_detected") return "ANOMALY DETECTED";
+  return normalized.replace(/_/g, " ").toUpperCase();
 };
