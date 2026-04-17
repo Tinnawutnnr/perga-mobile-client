@@ -59,7 +59,7 @@ const SummaryScreen = () => {
   const { selectedPatient } = usePatientStore();
 
   const headerName =
-    role === "caretaker" ? selectedPatient?.username : username;
+    role === "caregiver" ? selectedPatient?.username : username;
 
   const [fallDate, setFallDate] = useState<Date | null>(null);
   const [selectedViewDate, setSelectedViewDate] = useState<Date | null>(new Date());
@@ -85,7 +85,7 @@ const SummaryScreen = () => {
     loading: anomalyLoading,
     scale: anomalyScale,
     setScale: setAnomalyScale,
-  } = useAnomalyData(); // pass patientUsername here when in caretaker view
+  } = useAnomalyData(); // pass patientUsername here when in caregiver view
 
   const gaitData = periodGaitData;
   const hasData = periodGaitData !== null;

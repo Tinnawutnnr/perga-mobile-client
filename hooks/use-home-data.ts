@@ -2,7 +2,7 @@ import {
   ComparisonReport,
   FallAnalysisResponse,
 } from "@/types/report";
-import { caretakerApi } from "@/api/caretaker";
+import { caregiverApi } from "@/api/caregiver";
 import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
@@ -127,7 +127,7 @@ export const useHomeData = (
       return;
     }
 
-    if (role === "caretaker") {
+    if (role === "caregiver") {
       if (!selectedPatient?.username) {
         setRecords([]);
         setSelectedDateRecord(null);
@@ -136,7 +136,7 @@ export const useHomeData = (
 
       setLoading(true);
       setError(null);
-      caretakerApi
+      caregiverApi
         .getDailyAverageByDate(selectedPatient.username, effectiveDate, token)
         .then((response: any) => {
           setSelectedDateRecord(response?.data ?? response ?? null);
@@ -170,12 +170,12 @@ export const useHomeData = (
       return;
     }
 
-    if (role === "caretaker") {
+    if (role === "caregiver") {
       if (!selectedPatient?.username) return;
 
       setLoading(true);
       setError(null);
-      caretakerApi
+      caregiverApi
         .getFallAnalysis(selectedPatient.username, fallDate, token)
         .then((res: any) => setFallAnalysis(res.data ?? res))
         .catch((e: Error) => {
@@ -211,7 +211,7 @@ export const useHomeData = (
   );
 
   const periodGaitData = useMemo(() => {
-    if (role === "caretaker") {
+    if (role === "caregiver") {
       return selectedDateRecord ? toGaitData(selectedDateRecord) : null;
     }
 
@@ -238,7 +238,7 @@ export const useHomeData = (
   }, [records, period, role, selectedDateRecord, effectiveDate]);
 
   const selectedDateGaitData = useMemo(() => {
-    if (role === "caretaker") return null;
+    if (role === "caregiver") return null;
     if (records.length === 0) return null;
     const record = records.find((r) => r.report_date === effectiveDate);
     return record ? toGaitData(record) : null;

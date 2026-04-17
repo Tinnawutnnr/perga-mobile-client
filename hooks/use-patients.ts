@@ -1,4 +1,4 @@
-import { caretakerApi, PatientBrief } from "@/api/caretaker";
+import { caregiverApi, PatientBrief } from "@/api/caregiver";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
 import { patientStorage } from "@/utils/token-storage";
@@ -16,7 +16,7 @@ export const usePatientSelection = () => {
 
   useEffect(() => {
     if (!token) return;
-    caretakerApi
+    caregiverApi
       .getPatients(token)
       .then((data) => {
         console.log("Patients from API:", JSON.stringify(data));
@@ -34,7 +34,7 @@ export const usePatientSelection = () => {
 
     setIsConfirming(true);
     try {
-      const profile = await caretakerApi.getPatient(brief.username, token);
+      const profile = await caregiverApi.getPatient(brief.username, token);
       setSelectedPatient({ ...profile, username: brief.username });
       await patientStorage.save(profile.id, brief.username);
       router.replace("/(tabs)/home");
@@ -47,8 +47,8 @@ export const usePatientSelection = () => {
 
   const handleAddPatient = async (username: string) => {
     if (!token) return;
-    await caretakerApi.linkPatient(username, token);
-    const updated = await caretakerApi.getPatients(token);
+    await caregiverApi.linkPatient(username, token);
+    const updated = await caregiverApi.getPatients(token);
     setPatients(updated);
     setShowAddModal(false);
   };
@@ -56,7 +56,7 @@ export const usePatientSelection = () => {
   const handleDeletePatient = async (patient: PatientBrief) => {
     if (!token) return;
     try {
-      await caretakerApi.unlinkPatient(patient.username, token);
+      await caregiverApi.unlinkPatient(patient.username, token);
       setPatients((prev) => prev.filter((p) => p.id !== patient.id));
       if (selectedId === patient.id) setSelectedId(null);
     } catch (err) {

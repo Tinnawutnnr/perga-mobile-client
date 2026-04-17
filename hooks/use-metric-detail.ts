@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useLocalSearchParams } from "expo-router";
 import { useAuth } from "@/context/auth-context";
 import { patientApi } from "@/api/patient";
-import { caretakerApi } from "@/api/caretaker";
+import { caregiverApi } from "@/api/caregiver";
 import { patientStorage } from "@/utils/token-storage";
 import { useMetrics } from "@/hooks/use-metrics";
 import { useMetricCompare } from "@/hooks/use-metric-compare";
@@ -86,10 +86,10 @@ export const useMetricDetail = () => {
       const today = getLocalDateString();
       
       let response: DailyAverage | null = null;
-      if (role === "caretaker") {
+      if (role === "caregiver") {
         const patientUsername = await patientStorage.getUsername();
         if (patientUsername) {
-          response = await caretakerApi.getDailyAverageByDate(patientUsername, today, token);
+          response = await caregiverApi.getDailyAverageByDate(patientUsername, today, token);
         }
       } else {
         response = await patientApi.getDailyAverageByDate(today, token);

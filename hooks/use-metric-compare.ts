@@ -8,7 +8,7 @@ import {
 import { AllMetricsBenchmarkSchema, BenchmarkBar } from "@/types/compare";
 import { DailyAverage, WeeklyAverage, MonthlyAverage, YearlyAverage } from "@/types/report";
 import { patientApi } from "@/api/patient";
-import { caretakerApi } from "@/api/caretaker";
+import { caregiverApi } from "@/api/caregiver";
 import { useAuth } from "@/context/auth-context";
 import { patientStorage } from "@/utils/token-storage";
 
@@ -110,7 +110,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
   const metricName = LABEL_TO_METRIC_NAME[label ?? ""] ?? "avg_cadence";
   const unit = METRIC_UNIT[metricName] ?? "";
 
-  const isCaretaker = role === "caretaker";
+  const isCaregiver = role === "caregiver";
 
   const [mode, setMode] = useState<CompareMode>("self");
   const [range, setRange] = useState<CompareRange>("day");
@@ -133,11 +133,11 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     setIsLoading(true);
     setError(null);
     try {
-      const patientUsername = isCaretaker
+      const patientUsername = isCaregiver
         ? await patientStorage.getUsername()
         : null;
 
-      if (isCaretaker && !patientUsername) {
+      if (isCaregiver && !patientUsername) {
         throw new Error("No patient selected");
       }
 
@@ -145,8 +145,8 @@ export const useMetricCompare = (): UseMetricCompareResult => {
 
       // ── Fetch + map per time-range ────────────────────────────────────────
       if (range === "day") {
-        const rows: DailyAverage[] = isCaretaker
-          ? await caretakerApi.getPatientDailyAverages(patientUsername!, token)
+        const rows: DailyAverage[] = isCaregiver
+          ? await caregiverApi.getPatientDailyAverages(patientUsername!, token)
           : await patientApi.getDailyAverages(token);
         bars = rows.map((row, i, arr) => ({
           label: formatDailyLabel(row.report_date),
@@ -154,8 +154,8 @@ export const useMetricCompare = (): UseMetricCompareResult => {
           isLatest: i === arr.length - 1,
         }));
       } else if (range === "week") {
-        const rows: WeeklyAverage[] = isCaretaker
-          ? await caretakerApi.getPatientWeeklyAverage(patientUsername!, token)
+        const rows: WeeklyAverage[] = isCaregiver
+          ? await caregiverApi.getPatientWeeklyAverage(patientUsername!, token)
           : await patientApi.getWeeklyAverage(token);
         bars = rows.map((row, i, arr) => ({
           label: formatWeekLabel(row.report_week),
@@ -163,8 +163,8 @@ export const useMetricCompare = (): UseMetricCompareResult => {
           isLatest: i === arr.length - 1,
         }));
       } else if (range === "month") {
-        const rows: MonthlyAverage[] = isCaretaker
-          ? await caretakerApi.getPatientMonthlyAverage(patientUsername!, token)
+        const rows: MonthlyAverage[] = isCaregiver
+          ? await caregiverApi.getPatientMonthlyAverage(patientUsername!, token)
           : await patientApi.getMonthlyAverage(token);
         bars = rows.map((row, i, arr) => ({
           label: formatMonthLabel(row.report_month),
@@ -173,8 +173,8 @@ export const useMetricCompare = (): UseMetricCompareResult => {
         }));
       } else {
         // "year"
-        const rows: YearlyAverage[] = isCaretaker
-          ? await caretakerApi.getPatientYearlyAverage(patientUsername!, token)
+        const rows: YearlyAverage[] = isCaregiver
+          ? await caregiverApi.getPatientYearlyAverage(patientUsername!, token)
           : await patientApi.getYearlyAverage(token);
         bars = rows.map((row, i, arr) => ({
           label: String(row.report_year),
@@ -189,7 +189,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     } finally {
       setIsLoading(false);
     }
-  }, [token, isCaretaker, range, metricName]);
+  }, [token, isCaregiver, range, metricName]);
 
   const loadBenchmark = useCallback(async () => {
     if (!token) return;
@@ -198,10 +198,10 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     setBenchmarkError(null);
     try {
       let result: AllMetricsBenchmarkSchema;
-      if (isCaretaker) {
+      if (isCaregiver) {
         const patientUsername = await patientStorage.getUsername();
         if (!patientUsername) throw new Error("No patient selected");
-        result = await caretakerApi.getPatientBenchmark(patientUsername, token);
+        result = await caregiverApi.getPatientBenchmark(patientUsername, token);
       } else {
         result = await patientApi.getBenchmark(token);
       }
@@ -211,7 +211,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     } finally {
       setBenchmarkLoading(false);
     }
-  }, [token, isCaretaker]);
+  }, [token, isCaregiver]);
 
   useEffect(() => { load(); }, [load]);
   useEffect(() => { loadBenchmark(); }, [loadBenchmark]);

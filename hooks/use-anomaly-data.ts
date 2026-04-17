@@ -1,4 +1,4 @@
-import { caretakerApi } from "@/api/caretaker";
+import { caregiverApi } from "@/api/caregiver";
 import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
@@ -133,8 +133,8 @@ interface UseAnomalyDataResult {
 }
 
 /**
- * Fetches anomaly log for either the logged-in patient or a caretaker's patient.
- * Pass `patientUsername` for caretaker mode; omit for patient (self) mode.
+ * Fetches anomaly log for either the logged-in patient or a caregiver's patient.
+ * Pass `patientUsername` for caregiver mode; omit for patient (self) mode.
  */
 export function useAnomalyData(): UseAnomalyDataResult {
   const { token, role } = useAuth();
@@ -152,8 +152,8 @@ export function useAnomalyData(): UseAnomalyDataResult {
     setError(null);
 
     const request: Promise<AnomalyLogSchema> =
-      role === "caretaker" && patientUsername
-        ? caretakerApi.getPatientAnomalyLog(patientUsername, token)
+      role === "caregiver" && patientUsername
+        ? caregiverApi.getPatientAnomalyLog(patientUsername, token)
         : patientApi.getAnomalyLog(token);
 
     request

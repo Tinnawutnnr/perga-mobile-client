@@ -1,4 +1,4 @@
-import { PatientBrief } from "@/api/caretaker";
+import { PatientBrief } from "@/api/caregiver";
 import AddPatientModal from "@/components/patient-component/add-patient-modal";
 import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
 import PatientCard from "@/components/patient-component/patient-card";

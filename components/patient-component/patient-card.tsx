@@ -1,4 +1,4 @@
-import { PatientBrief } from "@/api/caretaker";
+import { PatientBrief } from "@/api/caregiver";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
 import {
