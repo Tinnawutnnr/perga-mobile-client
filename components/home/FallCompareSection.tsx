@@ -75,12 +75,10 @@ function buildRows(
       unit: "%",
       previous:
         previous?.avg_stride_cv != null
-          ? +(previous.avg_stride_cv * 100).toFixed(1)
+          ? +previous.avg_stride_cv.toFixed(1)
           : null,
       latest:
-        latest?.avg_stride_cv != null
-          ? +(latest.avg_stride_cv * 100).toFixed(1)
-          : null,
+        latest?.avg_stride_cv != null ? +latest.avg_stride_cv.toFixed(1) : null,
       higherIsBetter: false,
       disclaimer:
         "Higher percentages mean steps are less regular, which increases the risk of a fall.",

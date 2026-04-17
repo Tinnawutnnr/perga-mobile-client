@@ -33,6 +33,8 @@ const RED_DIM = "rgba(239,68,68,0.15)";
  * Human-readable mapping for feature keys
  */
 const FEATURE_LABELS: Record<string, string> = {
+  max_gyr: "Leg Swing Speed",
+  val_gyr: "Foot Landing Force",
   max_gyr_ms: "Leg Swing Speed",
   val_gyr_hs: "Foot Landing Force",
   swing_time: "In-Air Time",
@@ -44,6 +46,9 @@ const FEATURE_LABELS: Record<string, string> = {
  * Mapping of backend feature keys to clinical disclaimers
  */
 const ROOT_CAUSE_DISCLAIMERS: Record<string, string> = {
+  max_gyr: "A slower swing often means dragging feet instead of lifting them.",
+  val_gyr:
+    "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favoring one side.",
   max_gyr_ms:
     "A slower swing often means dragging feet instead of lifting them.",
   val_gyr_hs:
@@ -350,7 +355,7 @@ const AnomalyModal: React.FC<{
                 {sevL}
               </ThemedText>
               <ThemedText style={ms.badgeSub}>
-                {avg > 0 ? `AVG ${avg.toFixed(2)}` : "NO SCORE"}
+                {scored.length > 0 ? `AVG ${avg.toFixed(2)}` : "NO SCORE"}
               </ThemedText>
             </View>
           </View>

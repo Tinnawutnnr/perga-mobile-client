@@ -1,8 +1,8 @@
 import { WindowReport } from "@/types/metric";
 import {
-  healthColor,
-  healthLabel,
-  modelStatusLabel,
+    healthColor,
+    healthLabel,
+    modelStatusLabel,
 } from "@/utils/activity-session";
 import React from "react";
 import { StyleSheet, View } from "react-native";
@@ -23,8 +23,14 @@ export const WindowStatCard: React.FC<Props> = ({
   tintColor,
 }) => {
   // Helper function to display value or "--"
-  const val = (value: number | string | null | undefined, unit: string = "") => {
+  const val = (
+    value: number | string | null | undefined,
+    unit: string = "",
+  ) => {
     if (value === null || value === undefined) return "--";
+    if (typeof value === "number") {
+      return `${parseFloat(value.toFixed(2))}${unit}`;
+    }
     return `${value}${unit}`;
   };
 
@@ -109,8 +115,8 @@ export const WindowStatCard: React.FC<Props> = ({
       </View>
 
       <ThemedText type="muted" style={styles.timestamp}>
-        {report?.timestamp 
-          ? new Date(report.timestamp).toLocaleTimeString() 
+        {report?.timestamp
+          ? new Date(report.timestamp).toLocaleTimeString()
           : "--:--:--"}
       </ThemedText>
     </ThemedView>

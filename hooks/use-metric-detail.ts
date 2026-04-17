@@ -1,14 +1,14 @@
-import { useEffect, useState, useCallback } from "react";
-import { useLocalSearchParams } from "expo-router";
-import { useAuth } from "@/context/auth-context";
-import { patientApi } from "@/api/patient";
 import { caregiverApi } from "@/api/caregiver";
-import { patientStorage } from "@/utils/token-storage";
-import { useMetrics } from "@/hooks/use-metrics";
+import { patientApi } from "@/api/patient";
+import { useAuth } from "@/context/auth-context";
 import { useMetricCompare } from "@/hooks/use-metric-compare";
-import { mockMetricDetailData } from "../data/mockGaitData";
-import { IconName, MetricDetailData, GaitData } from "../types/metric";
+import { useMetrics } from "@/hooks/use-metrics";
 import { DailyAverage } from "@/types/report";
+import { patientStorage } from "@/utils/token-storage";
+import { useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
+import { mockMetricDetailData } from "../data/mockGaitData";
+import { GaitData, IconName, MetricDetailData } from "../types/metric";
 
 /** Get today's date in YYYY-MM-DD using local timezone (not UTC) */
 function getLocalDateString(): string {
@@ -24,13 +24,13 @@ function getLocalDateString(): string {
  * to the label used inside useMetrics — so we can find the correct baseMetric.
  */
 const MOCK_KEY_TO_METRICS_LABEL: Record<string, string> = {
-  "Cadence":      "Cadence",
-  "Total Steps":  "Total Steps",
-  "Swing Speed":  "Leg Swing Speed",
-  "Heel Impact":  "Foot Landing Force",
-  "Swing Time":   "In-Air Time",
-  "Stance Time":  "On-Ground Time",
-  "Stability":    "Step Consistency",
+  Cadence: "Cadence",
+  "Total Steps": "Total Steps",
+  "Swing Speed": "Leg Swing Speed",
+  "Heel Impact": "Foot Landing Force",
+  "Swing Time": "In-Air Time",
+  "Stance Time": "On-Ground Time",
+  Stability: "Step Consistency",
 };
 
 /**
@@ -63,7 +63,11 @@ function parseRangeLabel(label: string): number {
  * Compute a 0–1 progress value from a metric's current value
  * relative to its min/max range labels.
  */
-function computeProgress(value: string, minLabel: string, maxLabel: string): number {
+function computeProgress(
+  value: string,
+  minLabel: string,
+  maxLabel: string,
+): number {
   const v = parseFloat(value.replace(/,/g, "").replace(/%/g, ""));
   const minVal = parseRangeLabel(minLabel);
   const maxVal = parseRangeLabel(maxLabel);
@@ -75,7 +79,7 @@ export const useMetricDetail = () => {
   const { label } = useLocalSearchParams<{ label?: string }>();
   const { token, role } = useAuth();
   const { unit } = useMetricCompare();
-  
+
   const [apiData, setApiData] = useState<DailyAverage | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
@@ -84,12 +88,16 @@ export const useMetricDetail = () => {
     setIsLoading(true);
     try {
       const today = getLocalDateString();
-      
+
       let response: DailyAverage | null = null;
       if (role === "caregiver") {
         const patientUsername = await patientStorage.getUsername();
         if (patientUsername) {
-          response = await caregiverApi.getDailyAverageByDate(patientUsername, today, token);
+          response = await caregiverApi.getDailyAverageByDate(
+            patientUsername,
+            today,
+            token,
+          );
         }
       } else {
         response = await patientApi.getDailyAverageByDate(today, token);
@@ -120,7 +128,7 @@ export const useMetricDetail = () => {
     heelImpact: apiData?.avg_val_gyr_hs ?? 0,
     swingTime: apiData?.avg_swing_time ?? 0,
     stanceTime: apiData?.avg_stance_time ?? 0,
-    stability: 100 - (apiData?.avg_stride_cv ?? 0) * 100,
+    stability: apiData?.avg_stride_cv ?? 0,
     distance: apiData?.total_distance_m ?? 0,
   };
 
@@ -132,28 +140,40 @@ export const useMetricDetail = () => {
   // Map rawLabel → the label used inside useMetrics (e.g. "Leg Swing Speed")
   const metricsLabel = MOCK_KEY_TO_METRICS_LABEL[rawLabel] ?? rawLabel;
   const baseMetric = allMetrics.find(
-    (m) => m.label.toLowerCase() === metricsLabel.toLowerCase()
+    (m) => m.label.toLowerCase() === metricsLabel.toLowerCase(),
   );
 
   // Find config from mock, fallback to first entry if not found
   const configKey = Object.keys(mockMetricDetailData).find(
-    (k) => k.toLowerCase() === rawLabel.toLowerCase()
+    (k) => k.toLowerCase() === rawLabel.toLowerCase(),
   ) as keyof typeof mockMetricDetailData;
 
-  const detailConfig = mockMetricDetailData[configKey] || Object.values(mockMetricDetailData)[0];
+  const detailConfig =
+    mockMetricDetailData[configKey] || Object.values(mockMetricDetailData)[0];
 
   const hasData = hasMeaningfulData(apiData);
 
   const mergedData: MetricDetailData = {
     ...detailConfig,
     value: hasData ? (baseMetric?.value ?? "0") : "--",
-    subValue: hasData ? (baseMetric?.subValue ?? unit ?? detailConfig.subValue) : "",
+    subValue: hasData
+      ? (baseMetric?.subValue ?? unit ?? detailConfig.subValue)
+      : "",
     iconName: (baseMetric?.iconName || detailConfig.iconName) as IconName,
-    status: hasData ? (baseMetric?.status || detailConfig.status) : "No data recorded today",
-    statusColor: hasData ? (baseMetric?.statusColor || detailConfig.statusColor) : "#9E9E9E",
-    progress: hasData && baseMetric
-      ? computeProgress(baseMetric.value, detailConfig.minLabel, detailConfig.maxLabel)
-      : 0,
+    status: hasData
+      ? baseMetric?.status || detailConfig.status
+      : "No data recorded today",
+    statusColor: hasData
+      ? baseMetric?.statusColor || detailConfig.statusColor
+      : "#9E9E9E",
+    progress:
+      hasData && baseMetric
+        ? computeProgress(
+            baseMetric.value,
+            detailConfig.minLabel,
+            detailConfig.maxLabel,
+          )
+        : 0,
   };
 
   return {

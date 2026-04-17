@@ -1,15 +1,15 @@
-import {
-  ComparisonReport,
-  FallAnalysisResponse,
-} from "@/types/report";
 import { caregiverApi } from "@/api/caregiver";
 import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
 import { GaitData } from "@/types/metric";
-import { DailyAverage } from "@/types/report";
+import {
+  ComparisonReport,
+  DailyAverage,
+  FallAnalysisResponse,
+} from "@/types/report";
 import { fmt } from "@/utils/format";
-import { useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 
 export type Period = "daily" | "weekly" | "yearly";
 export type CompareDuration = "week" | "month" | "year";
@@ -50,30 +50,30 @@ function avgRecords(records: DailyAverage[]): DailyAverage | null {
   const sum = records.reduce(
     (acc, r) => ({
       ...acc,
-      total_steps:      (acc.total_steps      ?? 0) + (r.total_steps      ?? 0),
-      total_calories:   (acc.total_calories   ?? 0) + (r.total_calories   ?? 0),
+      total_steps: (acc.total_steps ?? 0) + (r.total_steps ?? 0),
+      total_calories: (acc.total_calories ?? 0) + (r.total_calories ?? 0),
       total_distance_m: (acc.total_distance_m ?? 0) + (r.total_distance_m ?? 0),
-      avg_max_gyr_ms:   (acc.avg_max_gyr_ms   ?? 0) + (r.avg_max_gyr_ms   ?? 0),
-      avg_val_gyr_hs:   (acc.avg_val_gyr_hs   ?? 0) + (r.avg_val_gyr_hs   ?? 0),
-      avg_swing_time:   (acc.avg_swing_time   ?? 0) + (r.avg_swing_time   ?? 0),
-      avg_stance_time:  (acc.avg_stance_time  ?? 0) + (r.avg_stance_time  ?? 0),
-      avg_stride_cv:    (acc.avg_stride_cv    ?? 0) + (r.avg_stride_cv    ?? 0),
-      anomaly_count:    (acc.anomaly_count    ?? 0) + (r.anomaly_count    ?? 0),
+      avg_max_gyr_ms: (acc.avg_max_gyr_ms ?? 0) + (r.avg_max_gyr_ms ?? 0),
+      avg_val_gyr_hs: (acc.avg_val_gyr_hs ?? 0) + (r.avg_val_gyr_hs ?? 0),
+      avg_swing_time: (acc.avg_swing_time ?? 0) + (r.avg_swing_time ?? 0),
+      avg_stance_time: (acc.avg_stance_time ?? 0) + (r.avg_stance_time ?? 0),
+      avg_stride_cv: (acc.avg_stride_cv ?? 0) + (r.avg_stride_cv ?? 0),
+      anomaly_count: (acc.anomaly_count ?? 0) + (r.anomaly_count ?? 0),
     }),
     { ...records[0] },
   );
   const n = records.length;
   return {
     ...sum,
-    total_steps:      Math.round((sum.total_steps      ?? 0) / n),
-    total_calories:   (sum.total_calories   ?? 0) / n,
+    total_steps: Math.round((sum.total_steps ?? 0) / n),
+    total_calories: (sum.total_calories ?? 0) / n,
     total_distance_m: (sum.total_distance_m ?? 0) / n,
-    avg_max_gyr_ms:   (sum.avg_max_gyr_ms   ?? 0) / n,
-    avg_val_gyr_hs:   (sum.avg_val_gyr_hs   ?? 0) / n,
-    avg_swing_time:   (sum.avg_swing_time   ?? 0) / n,
-    avg_stance_time:  (sum.avg_stance_time  ?? 0) / n,
-    avg_stride_cv:    (sum.avg_stride_cv    ?? 0) / n,
-    anomaly_count:    sum.anomaly_count ?? 0,
+    avg_max_gyr_ms: (sum.avg_max_gyr_ms ?? 0) / n,
+    avg_val_gyr_hs: (sum.avg_val_gyr_hs ?? 0) / n,
+    avg_swing_time: (sum.avg_swing_time ?? 0) / n,
+    avg_stance_time: (sum.avg_stance_time ?? 0) / n,
+    avg_stride_cv: (sum.avg_stride_cv ?? 0) / n,
+    anomaly_count: sum.anomaly_count ?? 0,
   };
 }
 
@@ -81,18 +81,18 @@ function avgRecords(records: DailyAverage[]): DailyAverage | null {
  * Transforms DailyAverage DB model to GaitData UI model
  */
 function toGaitData(r: DailyAverage): GaitData {
-  const swingTime  = r.avg_swing_time  ?? 0;
+  const swingTime = r.avg_swing_time ?? 0;
   const stanceTime = r.avg_stance_time ?? 0;
-  
+
   return {
-    distance:    (r.total_distance_m ?? 0) / 1000,
-    cadence:     (r.avg_cadence ?? 0),
-    swingSpeed:  Number(fmt(r.avg_max_gyr_ms ?? 0, 2)),
-    heelImpact:  Number(fmt(r.avg_val_gyr_hs ?? 0, 2)),
-    swingTime:   Number(fmt(swingTime, 2)),
-    stanceTime:  Number(fmt(stanceTime, 2)),
-    stability:   Math.max(0, Math.round((1 - (r.avg_stride_cv ?? 0)) * 100)),
-    totalSteps:  r.total_steps ?? 0,
+    distance: (r.total_distance_m ?? 0) / 1000,
+    cadence: r.avg_cadence ?? 0,
+    swingSpeed: Number(fmt(r.avg_max_gyr_ms ?? 0, 2)),
+    heelImpact: Number(fmt(r.avg_val_gyr_hs ?? 0, 2)),
+    swingTime: Number(fmt(swingTime, 2)),
+    stanceTime: Number(fmt(stanceTime, 2)),
+    stability: Number(fmt(r.avg_stride_cv ?? 0, 1)),
+    totalSteps: r.total_steps ?? 0,
   };
 }
 
@@ -111,14 +111,17 @@ export const useHomeData = (
   const effectiveDate = selectedDate || todayStr;
 
   const [records, setRecords] = useState<DailyAverage[]>([]);
-  const [selectedDateRecord, setSelectedDateRecord] = useState<DailyAverage | null>(null);
-  const [fallAnalysis, setFallAnalysis] = useState<FallAnalysisResponse | null>(null);
+  const [selectedDateRecord, setSelectedDateRecord] =
+    useState<DailyAverage | null>(null);
+  const [fallAnalysis, setFallAnalysis] = useState<FallAnalysisResponse | null>(
+    null,
+  );
 
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [tick, setTick] = useState(0);
 
-  const refresh = () => setTick((t) => t + 1);
+  const refresh = useCallback(() => setTick((t) => t + 1), []);
 
   // ── Fetch Daily Records ───────────────────────────────────────────────────
   useEffect(() => {
@@ -147,7 +150,6 @@ export const useHomeData = (
           setSelectedDateRecord(null);
         })
         .finally(() => setLoading(false));
-
     } else {
       // Fetch all records for Patient role
       setLoading(true);
@@ -230,7 +232,7 @@ export const useHomeData = (
 
     const cutoffStr = toLocalISODate(cutoff);
     const windowRecords = records.filter((r) => r.report_date >= cutoffStr);
-    
+
     if (windowRecords.length === 0) return null;
 
     const avg = avgRecords(windowRecords);

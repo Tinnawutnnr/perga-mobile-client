@@ -3,7 +3,7 @@ import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
 import { usePatientStore } from "@/store/patient-store";
 import { AnomalyLog, AnomalyLogSchema } from "@/types/anomaly";
-import { useEffect, useState } from "react";
+import { useCallback, useEffect, useState } from "react";
 
 export function calculatePercentDiff(
   current: number | null,
@@ -130,6 +130,7 @@ interface UseAnomalyDataResult {
   error: string | null;
   scale: AnomalyScale;
   setScale: (s: AnomalyScale) => void;
+  refresh: () => Promise<void>;
 }
 
 /**
@@ -145,7 +146,7 @@ export function useAnomalyData(): UseAnomalyDataResult {
   const { selectedPatient } = usePatientStore();
   const patientUsername = selectedPatient?.username;
 
-  useEffect(() => {
+  const fetchLogs = useCallback(async () => {
     if (!token) return;
 
     setLoading(true);
@@ -156,13 +157,29 @@ export function useAnomalyData(): UseAnomalyDataResult {
         ? caregiverApi.getPatientAnomalyLog(patientUsername, token)
         : patientApi.getAnomalyLog(token);
 
-    request
-      .then((data) => setRawEntries(data ?? []))
-      .catch((err) => setError(err?.message ?? "Failed to load anomaly data"))
-      .finally(() => setLoading(false));
+    try {
+      const data = await request;
+      setRawEntries(data ?? []);
+    } catch (err: any) {
+      setError(err?.message ?? "Failed to load anomaly data");
+    } finally {
+      setLoading(false);
+    }
+  }, [token, role, patientUsername]);
+
+  useEffect(() => {
+    fetchLogs();
   }, [token, role, patientUsername]);
 
   const chartData = groupAnomalies(rawEntries, scale);
 
-  return { chartData, rawEntries, loading, error, scale, setScale };
+  return {
+    chartData,
+    rawEntries,
+    loading,
+    error,
+    scale,
+    setScale,
+    refresh: fetchLogs,
+  };
 }
