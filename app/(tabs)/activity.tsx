@@ -1,5 +1,5 @@
-import { sessionApi } from "@/api/session";
 import { patientApi } from "@/api/patient";
+import { sessionApi } from "@/api/session";
 import { CumulativeStatsCard } from "@/components/activity/CumulativeStatsCard";
 import { WindowStatCard } from "@/components/activity/WindowStatCard";
 import { useMqtt } from "@/hooks/use-mqtt";
@@ -27,7 +27,7 @@ import { ThemedText } from "../../components/themed-text";
 import { ThemedView } from "../../components/themed-view";
 import { useThemeColor } from "../../hooks/use-theme-color";
 
-const WINDOW_REPORT_INTERVAL_MS = 30_000;
+const WINDOW_REPORT_INTERVAL_MS = 10_000;
 
 const addAlphaToHex = (hex: string, alpha: number) => {
   if (!hex || !hex.startsWith("#")) return hex;
@@ -64,7 +64,9 @@ const ActivityScreen = () => {
   const [latestReport, setLatestReport] = useState<WindowReport | null>(null);
   const [reportCount, setReportCount] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const [sessionTotals, setSessionTotals] = useState(createEmptySessionTotals());
+  const [sessionTotals, setSessionTotals] = useState(
+    createEmptySessionTotals(),
+  );
 
   // ── Theme colors ──
   const backgroundColor = useThemeColor({}, "background");
@@ -97,7 +99,7 @@ const ActivityScreen = () => {
       if (!token) return;
 
       const response = await patientApi.getWindowReport(token);
-      
+
       // Check if response itself is null or undefined first
       if (!response) {
         return;
@@ -128,13 +130,18 @@ const ActivityScreen = () => {
   const startPolling = useCallback(() => {
     stopPolling();
     fetchWindowData(true);
-    pollRef.current = setInterval(() => fetchWindowData(true), WINDOW_REPORT_INTERVAL_MS);
+    pollRef.current = setInterval(
+      () => fetchWindowData(true),
+      WINDOW_REPORT_INTERVAL_MS,
+    );
   }, []);
 
   // ── Lifecycle: Initial Setup ──
   useEffect(() => {
-    connectMqtt().catch((err) => console.error("MQTT Auto-connect failed:", err));
-    
+    connectMqtt().catch((err) =>
+      console.error("MQTT Auto-connect failed:", err),
+    );
+
     // Fetch initial data even before recording to show latest state from DB
     fetchWindowData(false);
 
@@ -147,7 +154,11 @@ const ActivityScreen = () => {
 
   // ── Lifecycle: BLE to MQTT Bridge ──
   useEffect(() => {
-    if ((isRecording || isWaitingForData) && pendingBatch.length > 0 && isMqttConnected) {
+    if (
+      (isRecording || isWaitingForData) &&
+      pendingBatch.length > 0 &&
+      isMqttConnected
+    ) {
       if (isWaitingForData) {
         setIsWaitingForData(false);
         setIsRecording(true);
@@ -158,18 +169,28 @@ const ActivityScreen = () => {
       publishGaitData(pendingBatch);
       setBatchSentCount((prev) => prev + 1);
     }
-  }, [pendingBatch, isRecording, isWaitingForData, isMqttConnected, startPolling]);
+  }, [
+    pendingBatch,
+    isRecording,
+    isWaitingForData,
+    isMqttConnected,
+    startPolling,
+  ]);
 
   // ── UI Handlers ──
   const handleToggleActivity = async () => {
     if (!isRecording && !isWaitingForData) {
       if (!connectedDevice) {
-        Alert.alert("No Device", "Please connect to the wearable device first.");
+        Alert.alert(
+          "No Device",
+          "Please connect to the wearable device first.",
+        );
         return;
       }
       setSessionId(uuidv4());
       setBatchSentCount(0);
       setReportCount(0);
+      setLatestReport(null);
       setSessionTotals(createEmptySessionTotals());
       setIsWaitingForData(true);
       try {
@@ -188,12 +209,14 @@ const ActivityScreen = () => {
 
       const token = await tokenStorage.get();
       if (token) {
-        sessionApi.stopSession(token).catch((err) => console.error("Session stop failed:", err));
+        sessionApi
+          .stopSession(token)
+          .catch((err) => console.error("Session stop failed:", err));
       }
 
       Alert.alert(
         "Session Finished",
-        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nBatches: ${batchSentCount}\nReports: ${reportCount}`
+        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nBatches: ${batchSentCount}\nReports: ${reportCount}`,
       );
       setSessionId(null);
     }
@@ -208,7 +231,9 @@ const ActivityScreen = () => {
     <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <ThemedView style={styles.header}>
-          <ThemedText type="title" style={styles.titleText}>Gait Analysis</ThemedText>
+          <ThemedText type="title" style={styles.titleText}>
+            Gait Analysis
+          </ThemedText>
           <ThemedView style={[styles.badge, { backgroundColor: mqttBadgeBg }]}>
             <ThemedText style={[styles.badgeText, { color: mqttBadgeColor }]}>
               {isMqttConnected ? "MQTT Online" : "MQTT Offline"}
@@ -220,53 +245,87 @@ const ActivityScreen = () => {
           activeOpacity={0.8}
           style={[
             styles.mainButton,
-            { backgroundColor: isWaitingForData ? mutedColor : isRecording ? "#FF5252" : tintColor },
+            {
+              backgroundColor: isWaitingForData
+                ? mutedColor
+                : isRecording
+                  ? "#FF5252"
+                  : tintColor,
+            },
           ]}
           onPress={handleToggleActivity}
           disabled={isWaitingForData}
         >
           {isWaitingForData ? (
-            <ActivityIndicator size="small" color="#FFF" style={{ marginRight: 10 }} />
+            <ActivityIndicator
+              size="small"
+              color="#FFF"
+              style={{ marginRight: 10 }}
+            />
           ) : (
-            <Ionicons name={isRecording ? "stop-circle" : "play-circle"} size={32} color="#FFF" style={{ marginRight: 10 }} />
+            <Ionicons
+              name={isRecording ? "stop-circle" : "play-circle"}
+              size={32}
+              color="#FFF"
+              style={{ marginRight: 10 }}
+            />
           )}
           <ThemedText style={styles.buttonText}>
-            {isWaitingForData ? "Waiting for Sensor..." : isRecording ? "Stop Activity" : "Start Tracking"}
+            {isWaitingForData
+              ? "Waiting for Sensor..."
+              : isRecording
+                ? "Stop Activity"
+                : "Start Tracking"}
           </ThemedText>
         </TouchableOpacity>
 
         {/* RECORDING STATUS CARD */}
         {isRecording && (
-          <ThemedView style={[styles.statusCard, { backgroundColor: cardColor, borderColor: tintColor }]}>
+          <ThemedView
+            style={[
+              styles.statusCard,
+              { backgroundColor: cardColor, borderColor: tintColor },
+            ]}
+          >
             <View style={styles.liveIndicator}>
               <Ionicons name="recording" size={28} color={tintColor} />
-              <ThemedText style={[styles.liveText, { color: tintColor }]}>LIVE</ThemedText>
+              <ThemedText style={[styles.liveText, { color: tintColor }]}>
+                LIVE
+              </ThemedText>
             </View>
             <ThemedView transparent style={{ flex: 1 }}>
-              <ThemedText style={[styles.recordingTitle, { color: tintColor }]}>Recording In Progress</ThemedText>
-              <ThemedText type="muted" style={{ fontSize: 12 }}>ID: {sessionId?.split("-")[0]}...</ThemedText>
+              <ThemedText style={[styles.recordingTitle, { color: tintColor }]}>
+                Recording In Progress
+              </ThemedText>
+              <ThemedText type="muted" style={{ fontSize: 12 }}>
+                ID: {sessionId?.split("-")[0]}...
+              </ThemedText>
             </ThemedView>
             <ThemedView transparent style={{ alignItems: "flex-end" }}>
-              <ThemedText style={[styles.timerText, { color: tintColor }]}>{formatDuration(elapsed)}</ThemedText>
-              <ThemedText type="muted" style={{ fontSize: 10 }}>Duration</ThemedText>
+              <ThemedText style={[styles.timerText, { color: tintColor }]}>
+                {formatDuration(elapsed)}
+              </ThemedText>
+              <ThemedText type="muted" style={{ fontSize: 10 }}>
+                Duration
+              </ThemedText>
             </ThemedView>
           </ThemedView>
         )}
 
         {/* CUMULATIVE STATS CARD (Always visible) */}
-        <CumulativeStatsCard 
-          totals={sessionTotals} 
-          tintColor={tintColor} 
-          cardColor={cardColor} 
-          borderColor={borderColor} 
+        <CumulativeStatsCard
+          totals={sessionTotals}
+          tintColor={tintColor}
+          cardColor={cardColor}
+          borderColor={borderColor}
         />
-        
+
         {/* LATEST WINDOW CARD (Always visible) */}
-        <WindowStatCard 
-          report={latestReport} 
-          cardColor={cardColor} 
-          borderColor={borderColor} 
-          tintColor={tintColor} 
+        <WindowStatCard
+          report={latestReport}
+          cardColor={cardColor}
+          borderColor={borderColor}
+          tintColor={tintColor}
         />
 
         <View style={{ height: 40 }} />
@@ -278,13 +337,35 @@ const ActivityScreen = () => {
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 20 },
-  header: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 20, marginTop: 10 },
+  header: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    paddingVertical: 20,
+    marginTop: 10,
+  },
   titleText: { fontSize: 24, fontWeight: "700" },
   badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
   badgeText: { fontSize: 12, fontWeight: "bold" },
-  mainButton: { height: 65, borderRadius: 32, flexDirection: "row", justifyContent: "center", alignItems: "center", marginBottom: 30, elevation: 4 },
+  mainButton: {
+    height: 65,
+    borderRadius: 32,
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 30,
+    elevation: 4,
+  },
   buttonText: { color: "#FFF", fontSize: 20, fontWeight: "bold" },
-  statusCard: { flexDirection: "row", alignItems: "center", borderRadius: 16, padding: 16, marginBottom: 24, borderWidth: 1, borderLeftWidth: 6 },
+  statusCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 24,
+    borderWidth: 1,
+    borderLeftWidth: 6,
+  },
   liveIndicator: { marginRight: 15, alignItems: "center" },
   liveText: { fontSize: 10, marginTop: 4, fontWeight: "bold" },
   recordingTitle: { fontWeight: "700", fontSize: 16 },
