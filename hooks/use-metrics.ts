@@ -66,7 +66,7 @@ export const useMetrics = (data: GaitData) => {
         data.heelImpact < -4.5
           ? "Landing Heavily"
           : data.heelImpact > -1.5
-            ? "Limping / Favoring side"
+            ? "Limping/Guarding"
             : "Controlled",
       statusColor:
         data.heelImpact < -4.5 || data.heelImpact > -1.5
