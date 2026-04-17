@@ -25,7 +25,7 @@ export const createEmptySessionTotals = (): SessionTotals => ({
  */
 export function generateMockWindowReport(patientId: number): WindowReport {
   const anomalyScore = +(Math.random() * 0.5).toFixed(3);
-  
+
   // Logic to determine gait health based on anomaly score thresholds
   let health = "healthy";
   if (anomalyScore > 0.4) health = "at_risk";
@@ -55,7 +55,9 @@ export function generateMockWindowReport(patientId: number): WindowReport {
  * Formats duration from total seconds to MM:SS string
  */
 export const formatDuration = (seconds: number): string => {
-  const m = Math.floor(seconds / 60).toString().padStart(2, "0");
+  const m = Math.floor(seconds / 60)
+    .toString()
+    .padStart(2, "0");
   const s = (seconds % 60).toString().padStart(2, "0");
   return `${m}:${s}`;
 };
@@ -74,10 +76,14 @@ export const modelStatusLabel = (status: string | null): string => {
  */
 export const healthColor = (health: string | null): string => {
   switch (health) {
-    case "healthy":  return "#4CAF50"; // Success Green
-    case "moderate": return "#FF9800"; // Warning Orange
-    case "at_risk":  return "#FF5252"; // Danger Red
-    default:         return "#999999"; // Muted Gray
+    case "healthy":
+    case "normal":
+      return "#4CAF50";
+    case "anomaly_detected":
+    case "anomaly":
+      return "#EF4444";
+    default:
+      return "#999999";
   }
 };
 
