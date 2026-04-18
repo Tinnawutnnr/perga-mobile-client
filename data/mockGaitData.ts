@@ -538,7 +538,7 @@ export const mockMetricDetailData = {
     compareBars: [2, 3, 5, 6, 6, 4, 3, 2, 1, 1],
     articleTitle: "Why Cadence Matters",
     articleBody:
-      "Cadence reflects how many steps you take per minute. A consistent cadence can improve gait efficiency and reduce unnecessary joint loading.",
+      "This counts how many steps per minute. Think of it like walking rhythm. A good rhythm means balanced, confident walking. If the number is too low, it may mean the person is walking very slowly and carefully like they are afraid of falling.",
     iconName: "timer-outline",
   },
   "Total Steps": {
@@ -555,7 +555,7 @@ export const mockMetricDetailData = {
     compareBars: [2, 2, 3, 4, 6, 7, 5, 3, 2, 1],
     articleTitle: "Building Daily Step Volume",
     articleBody:
-      "Step volume is a simple indicator of activity level. Keeping a stable weekly trend is often more useful than chasing one very high day.",
+      "This counts how many steps you took today. More steps usually means better strength and mobility. If steps suddenly drop compared to usual, it could mean pain, tiredness, or that the person is moving around less than normal.",
     iconName: "walk-outline",
   },
   Calories: {
@@ -589,7 +589,7 @@ export const mockMetricDetailData = {
     compareBars: [1, 2, 4, 5, 7, 6, 4, 3, 2, 1],
     articleTitle: "Understanding Swing Speed",
     articleBody:
-      "Swing speed describes how quickly your leg moves through the swing phase. Healthy values support fluid gait and timing symmetry.",
+      "This measures how fast the leg swings forward when taking a step. Imagine someone lifting their foot and stepping forward - a healthy person does this with power. If this number is low, the leg is barely lifting and swinging slowly, which can cause the foot to catch on the ground and trip.",
     iconName: "speedometer-outline",
   },
   "Heel Impact": {
@@ -606,7 +606,7 @@ export const mockMetricDetailData = {
     compareBars: [6, 7, 6, 5, 4, 3, 2, 2, 1, 1],
     articleTitle: "Managing Heel Impact",
     articleBody:
-      "Lower heel impact can reduce repetitive stress. Footwear, pace, and stride length all influence impact intensity.",
+      "This measures how the foot touches down when stepping. A healthy step has a firm, confident landing. If this number is close to zero, it means the person is stepping very gently and carefully like they are trying not to put weight on a painful foot. If the number is very negative, the landing is heavier than normal.",
     iconName: "footsteps-outline",
   },
   "Swing Time": {
@@ -623,7 +623,7 @@ export const mockMetricDetailData = {
     compareBars: [3, 4, 6, 7, 5, 4, 2, 2, 1, 1],
     articleTitle: "Optimizing Swing Time",
     articleBody:
-      "Swing time is the portion of the gait cycle where the foot is in the air. A shortened swing time often indicates dragging or shuffling.",
+      "This is how long the foot stays in the air between steps. Too short means the foot is barely leaving the ground, like someone sliding their feet instead of lifting them properly. Too long means each step takes a lot of time in the air, which can make walking unstable and wobbly.",
     iconName: "hourglass-outline",
   },
   "Stance Time": {
@@ -640,7 +640,7 @@ export const mockMetricDetailData = {
     compareBars: [2, 3, 5, 8, 6, 4, 3, 2, 1, 1],
     articleTitle: "Understanding Stance Time",
     articleBody:
-      "Stance time is the duration the foot is on the ground. Prolonged stance indicates cautious walking, while sudden drops suggest pain avoidance.",
+      "This is how long the foot stays on the ground when taking each step. A little longer than normal is okay and just means careful walking. But if this is very long, it may mean the person is leaning heavily on that foot and afraid to shift their weight to the other side like someone trying not to step on a sore leg.",
     iconName: "footsteps",
   },
   Stability: {
@@ -657,7 +657,7 @@ export const mockMetricDetailData = {
     compareBars: [1, 2, 2, 3, 4, 6, 7, 6, 4, 2],
     articleTitle: "Why Stability Is Critical",
     articleBody:
-      "Stability represents control and consistency during movement. Higher stability can correlate with safer and more efficient walking.",
+      "This measures how similar each step is to the next one (shown as a percentage). Healthy walking has a steady, regular rhythm with each step almost the same as the last. If this number is high, the steps are all different sizes and timing, like someone constantly adjusting their balance to stop themselves from falling. Above 8.8% is a real warning sign.",
     iconName: "analytics-outline",
   },
 };

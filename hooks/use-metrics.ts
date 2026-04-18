@@ -9,7 +9,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Total Steps",
       infoText:
-        "Total count of steps today. A sudden decrease may indicate fatigue, recovery needs, or a decrease in overall mobility.",
+        "How many steps you took today. In general, more steps means better daily activity and mobility. If this drops far below your normal pattern, it may suggest pain, fatigue, or less confidence to move.",
       value: (data.totalSteps ?? 0).toLocaleString(),
       subValue: "steps",
       status: "Keep moving",
@@ -24,7 +24,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Cadence",
       infoText:
-        "The number of steps you take per minute. 100 steps/min is the 'Gold Standard' for healthy walking.",
+        "Steps per minute (walking rhythm). A normal range shows steady, confident walking. Low cadence means slower and more cautious gait; very high cadence can mean rushed or less controlled stepping.",
       value: fmt(data.cadence, 1),
       subValue: "steps/min",
       status:
@@ -49,7 +49,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Leg Swing Speed",
       infoText:
-        "The highest speed your leg reaches in the air. Lower values (below 4.5 rad/s) often suggest muscle weakness or dragging feet instead of lifting them.",
+        "How fast the leg swings forward during each step. Lower values often mean weak push-off and poor foot lift, which raises trip risk. Very high values can mean forceful or less controlled movement.",
       value: fmt(data.swingSpeed, 2),
       subValue: "rad/s",
       status:
@@ -74,7 +74,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Foot Landing Force",
       infoText:
-        "Measures how the leg absorbs shock. If this is close to zero (e.g., > -1.5), you are likely placing your foot down cautiously to avoid pain.",
+        "How strongly the foot lands on the ground. Near-normal values suggest controlled landing. Too close to zero can indicate guarding due to pain; very negative values indicate heavier impact and more joint stress.",
       value: fmt(data.heelImpact, 2),
       subValue: "rad/s",
       status:
@@ -101,7 +101,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "In-Air Time",
       infoText:
-        "How long your foot stays in the air. A consistent time between 0.35s and 0.50s indicates a healthy, clearing stride.",
+        "How long the foot stays in the air between steps. Too short often means dragging or shuffling. Too long may reflect unstable timing and reduced balance control.",
       value: fmt(data.swingTime, 3),
       subValue: "s",
       status:
@@ -130,7 +130,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "On-Ground Time",
       infoText:
-        "The time your foot is weight-bearing. Values over 0.95s indicate a cautious walk or dragging feet, often used to compensate for poor balance.",
+        "How long the foot stays on the ground while bearing weight. Slightly longer can be careful walking, but very long often means cautious compensation. Too short may indicate rushed, unstable steps.",
       value: fmt(data.stanceTime, 3),
       subValue: "s",
       status:
@@ -159,7 +159,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Step Consistency",
       infoText:
-        "Measures rhythm consistency. Values above 8.8% indicate severe instability and an elevated risk of falling.",
+        "How similar each step is to the next (CV%). Lower values mean a steadier rhythm. Higher values mean step pattern is irregular and less stable, which is linked to higher fall risk.",
       value: fmt(data.stability, 1) + "%",
       subValue: "CV",
       status:
