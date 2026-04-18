@@ -440,14 +440,14 @@ const AnomalyModal: React.FC<{
                           { color: RED, fontWeight: "700", opacity: 1 },
                         ]}
                       >
-                        Difference:{" "}
+                        Change from normal:{" "}
                         {calculatePercentDiff(e.current_val, e.normal_ref)}
                       </ThemedText>
                     </View>
 
                     <View style={ms.metaRow}>
                       <ThemedText style={ms.meta}>
-                        Anomaly Score:{" "}
+                        Risk score:{" "}
                         {e.anomaly_score != null
                           ? e.anomaly_score.toFixed(2)
                           : "N/A"}
@@ -456,7 +456,7 @@ const AnomalyModal: React.FC<{
 
                     <View style={ms.metaRow}>
                       <ThemedText style={ms.meta}>
-                        Current Value:{" "}
+                        Your value:{" "}
                         {e.current_val != null
                           ? e.current_val.toFixed(2)
                           : "N/A"}
@@ -466,7 +466,7 @@ const AnomalyModal: React.FC<{
 
                     <View style={ms.metaRow}>
                       <ThemedText style={ms.meta}>
-                        Reference Value:{" "}
+                        Normal value:{" "}
                         {e.normal_ref != null ? e.normal_ref.toFixed(2) : "N/A"}
                         {unit ? ` ${unit}` : ""}
                       </ThemedText>
@@ -562,18 +562,18 @@ const ms = StyleSheet.create({
     gap: 6,
     marginBottom: 2,
   },
-  entryFeat: { fontSize: 13, fontWeight: "600", flex: 1 },
+  entryFeat: { fontSize: 15, fontWeight: "700", flex: 1 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  sevTxt: { fontSize: 11, fontWeight: "600" },
-  entryTime: { fontSize: 11, opacity: 0.4, marginBottom: 4 },
+  sevTxt: { fontSize: 13, fontWeight: "700" },
+  entryTime: { fontSize: 13, opacity: 0.65, marginBottom: 6 },
   metaRow: { flexDirection: "row", gap: 10, marginBottom: 4 },
-  meta: { fontSize: 11, opacity: 0.5 },
+  meta: { fontSize: 14, opacity: 0.82 },
   disclaimerText: {
-    fontSize: 10,
+    fontSize: 12,
     fontStyle: "italic",
-    opacity: 0.6,
-    marginTop: 2,
-    lineHeight: 14,
+    opacity: 0.78,
+    marginTop: 4,
+    lineHeight: 18,
   },
 });
 
