@@ -1,17 +1,22 @@
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { SelfBar } from "@/hooks/use-metric-compare";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { CompareRange } from "@/types/metric";
 import { fmt } from "@/utils/format";
 import React from "react";
-import { ActivityIndicator, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  ActivityIndicator,
+  StyleSheet,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 const RANGES: { key: CompareRange; label: string }[] = [
-  { key: "day",   label: "Day"   },
-  { key: "week",  label: "Week"  },
+  { key: "day", label: "Day" },
+  { key: "week", label: "Week" },
   { key: "month", label: "Month" },
-  { key: "year",  label: "Year"  },
+  { key: "year", label: "Year" },
 ];
 
 interface Props {
@@ -36,17 +41,46 @@ const SelfCompareCard = ({
   onRetry,
 }: Props) => {
   const borderColor = useThemeColor({}, "border");
-  const mutedColor  = useThemeColor({}, "muted");
+  const mutedColor = useThemeColor({}, "muted");
 
-  const actualMin = bars.length > 0 ? Math.min(...bars.map((b) => b.value)) : 0;
-  const actualMax = bars.length > 0 ? Math.max(...bars.map((b) => b.value)) : 1;
+  const normalizeValue = (value: number) => {
+    if (!Number.isFinite(value)) return 0;
+
+    // Backward-compatible guard for legacy transformed CV values
+    // stored as `100 - (cv * 100)`, which produces large negatives.
+    if (value < -50) {
+      const restored = (100 - value) / 100;
+      if (Number.isFinite(restored) && restored >= 0 && restored <= 100) {
+        return restored;
+      }
+    }
+
+    // All self-compare metrics are non-negative in this app.
+    if (value < 0) return 0;
+
+    return value;
+  };
+  const normalizedBars = bars.map((b) => ({
+    ...b,
+    value: normalizeValue(b.value),
+  }));
+
+  const actualMin =
+    normalizedBars.length > 0
+      ? Math.min(...normalizedBars.map((b) => b.value))
+      : 0;
+  const actualMax =
+    normalizedBars.length > 0
+      ? Math.max(...normalizedBars.map((b) => b.value))
+      : 1;
 
   const diff = actualMax - actualMin;
-  const padding = diff === 0 ? actualMin * 0.1 : diff * 0.5; 
+  const padding =
+    diff === 0 ? Math.max(Math.abs(actualMin) * 0.1, 1) : diff * 0.5;
 
-  const minValue   = Math.max(0, actualMin - padding);
-  const chartMax   = actualMax + padding;
-  const chartRange = chartMax - minValue || 1;
+  const minValue = Math.max(0, actualMin - padding);
+  const chartMax = actualMax + padding;
+  const chartRange = Math.max(chartMax - minValue, 1);
 
   return (
     <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
@@ -98,7 +132,7 @@ const SelfCompareCard = ({
             </TouchableOpacity>
           )}
         </View>
-      ) : bars.length === 0 ? (
+      ) : normalizedBars.length === 0 ? (
         <View style={styles.centerBox}>
           <ThemedText style={[styles.statusText, { color: mutedColor }]}>
             No data available
@@ -108,21 +142,26 @@ const SelfCompareCard = ({
         <>
           {/* ── Bar chart ── */}
           <View style={styles.chartWrap}>
-            {bars.map((bar, index) => {
+            {normalizedBars.map((bar, index) => {
               const heightPct = Math.max(
                 Math.round(((bar.value - minValue) / chartRange) * 100),
                 5,
               );
 
-              const displayValue = unit === "%" 
-                ? Number(fmt(100 - bar.value * 100, 1))
-                : Number(fmt(bar.value, 2));
+              const displayValue =
+                unit === "%"
+                  ? Number(fmt(bar.value, 1))
+                  : Number(fmt(bar.value, 2));
               return (
                 <View key={index} style={styles.barCol}>
-                  <ThemedText style={[styles.valueLabel, { color: mutedColor }]}>
+                  <ThemedText
+                    style={[styles.valueLabel, { color: mutedColor }]}
+                  >
                     {displayValue}
                   </ThemedText>
-                  <View style={[styles.barTrack, { backgroundColor: borderColor }]}>
+                  <View
+                    style={[styles.barTrack, { backgroundColor: borderColor }]}
+                  >
                     <View
                       style={[
                         styles.barFill,
@@ -147,7 +186,12 @@ const SelfCompareCard = ({
             <ThemedText style={[styles.legendText, { color: mutedColor }]}>
               Latest ({unit})
             </ThemedText>
-            <View style={[styles.dot, { backgroundColor: "#3A4A77", marginLeft: 12 }]} />
+            <View
+              style={[
+                styles.dot,
+                { backgroundColor: "#3A4A77", marginLeft: 12 },
+              ]}
+            />
             <ThemedText style={[styles.legendText, { color: mutedColor }]}>
               Previous ({unit})
             </ThemedText>
@@ -159,7 +203,7 @@ const SelfCompareCard = ({
 };
 
 const styles = StyleSheet.create({
-  card:         { borderRadius: 12, padding: 18, marginBottom: 14 },
+  card: { borderRadius: 12, padding: 18, marginBottom: 14 },
   sectionTitle: { fontSize: 18, marginBottom: 14 },
 
   rangeSelector: {
@@ -169,9 +213,9 @@ const styles = StyleSheet.create({
     overflow: "hidden",
     marginBottom: 20,
   },
-  rangeBtn:       { flex: 1, paddingVertical: 7, alignItems: "center" },
+  rangeBtn: { flex: 1, paddingVertical: 7, alignItems: "center" },
   rangeBtnActive: { backgroundColor: "#5D7DDF" },
-  rangeBtnText:   { fontSize: 13, fontWeight: "600" },
+  rangeBtnText: { fontSize: 13, fontWeight: "600" },
 
   centerBox: {
     height: 180,
@@ -180,8 +224,14 @@ const styles = StyleSheet.create({
     gap: 10,
   },
   statusText: { fontSize: 13, textAlign: "center" },
-  retryBtn:   { marginTop: 4, paddingHorizontal: 16, paddingVertical: 6, borderRadius: 6, backgroundColor: "#5D7DDF" },
-  retryText:  { color: "#fff", fontSize: 13, fontWeight: "600" },
+  retryBtn: {
+    marginTop: 4,
+    paddingHorizontal: 16,
+    paddingVertical: 6,
+    borderRadius: 6,
+    backgroundColor: "#5D7DDF",
+  },
+  retryText: { color: "#fff", fontSize: 13, fontWeight: "600" },
 
   chartWrap: {
     flexDirection: "row",
@@ -204,7 +254,7 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     overflow: "hidden",
   },
-  barFill:  { width: "100%", borderRadius: 6 },
+  barFill: { width: "100%", borderRadius: 6 },
   barLabel: { fontSize: 11, marginTop: 4 },
 
   legendRow: {
@@ -215,7 +265,7 @@ const styles = StyleSheet.create({
     paddingTop: 12,
     borderTopWidth: 1,
   },
-  dot:        { width: 8, height: 8, borderRadius: 4 },
+  dot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontSize: 12 },
 });
 

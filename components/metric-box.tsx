@@ -1,5 +1,5 @@
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useState } from "react";
 import {
   Modal,
   Pressable,
@@ -67,25 +67,6 @@ export function MetricBox({
   const colorScheme = useColorScheme() ?? "light";
   const themeColors = Colors[colorScheme];
   const [showInfo, setShowInfo] = useState(false);
-  const hideInfoTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
-
-  useEffect(() => {
-    if (!showInfo) return;
-
-    if (hideInfoTimer.current) {
-      clearTimeout(hideInfoTimer.current);
-    }
-
-    hideInfoTimer.current = setTimeout(() => {
-      setShowInfo(false);
-    }, 3500);
-
-    return () => {
-      if (hideInfoTimer.current) {
-        clearTimeout(hideInfoTimer.current);
-      }
-    };
-  }, [showInfo]);
 
   const handleInfoPress = (event: GestureResponderEvent) => {
     event.stopPropagation?.();

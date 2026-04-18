@@ -1,39 +1,40 @@
-import { useCallback, useEffect, useState } from "react";
-import { useLocalSearchParams } from "expo-router";
-import {
-  CompareRange,
-  ComparisonData,
-  MetricInfo,
-} from "@/types/metric";
-import { AllMetricsBenchmarkSchema, BenchmarkBar } from "@/types/compare";
-import { DailyAverage, WeeklyAverage, MonthlyAverage, YearlyAverage } from "@/types/report";
-import { patientApi } from "@/api/patient";
 import { caregiverApi } from "@/api/caregiver";
+import { patientApi } from "@/api/patient";
 import { useAuth } from "@/context/auth-context";
+import { AllMetricsBenchmarkSchema, BenchmarkBar } from "@/types/compare";
+import { CompareRange, ComparisonData, MetricInfo } from "@/types/metric";
+import {
+  DailyAverage,
+  MonthlyAverage,
+  WeeklyAverage,
+  YearlyAverage,
+} from "@/types/report";
 import { patientStorage } from "@/utils/token-storage";
+import { useLocalSearchParams } from "expo-router";
+import { useCallback, useEffect, useState } from "react";
 
 // ─── Metric name mapping ──────────────────────────────────────────────────────
 
 const LABEL_TO_METRIC_NAME: Record<string, string> = {
-  Cadence:        "avg_cadence",
-  "Total Steps":  "total_steps",
-  "Swing Speed":  "avg_max_gyr_ms",
-  "Heel Impact":  "avg_val_gyr_hs",
-  "Swing Time":   "avg_swing_time",
-  "Stance Time":  "avg_stance_time",
-  Stability:      "avg_stride_cv",
+  Cadence: "avg_cadence",
+  "Total Steps": "total_steps",
+  "Swing Speed": "avg_max_gyr_ms",
+  "Heel Impact": "avg_val_gyr_hs",
+  "Swing Time": "avg_swing_time",
+  "Stance Time": "avg_stance_time",
+  Stability: "avg_stride_cv",
 };
 
 // ─── Unit map ─────────────────────────────────────────────────────────────────
 
 const METRIC_UNIT: Record<string, string> = {
-  avg_cadence:     "steps/min",
-  total_steps:     "steps",
-  avg_max_gyr_ms:  "rad/s",
-  avg_val_gyr_hs:  "rad/s",
-  avg_swing_time:  "s",
+  avg_cadence: "steps/min",
+  total_steps: "steps",
+  avg_max_gyr_ms: "rad/s",
+  avg_val_gyr_hs: "rad/s",
+  avg_swing_time: "s",
   avg_stance_time: "s",
-  avg_stride_cv:   "%",
+  avg_stride_cv: "%",
 };
 
 // ─── Bar types ────────────────────────────────────────────────────────────────
@@ -79,7 +80,18 @@ function formatMonthLabel(reportMonth: string): string {
 
 /** Pull a metric value safely from any average row */
 function pickMetric(row: unknown, metricName: string): number {
-  return Number((row as Record<string, unknown>)[metricName] ?? 0);
+  const raw = Number((row as Record<string, unknown>)[metricName] ?? 0);
+
+  // Handle legacy transformed stride CV values that were stored as
+  // `100 - (cv * 100)`, which produces large negatives (e.g. -380.7).
+  if (metricName === "avg_stride_cv" && raw < 0) {
+    const restored = (100 - raw) / 100;
+    if (Number.isFinite(restored) && restored >= 0 && restored <= 100) {
+      return restored;
+    }
+  }
+
+  return raw;
 }
 
 // ─── Hook ─────────────────────────────────────────────────────────────────────
@@ -121,7 +133,8 @@ export const useMetricCompare = (): UseMetricCompareResult => {
   const [selfBars, setSelfBars] = useState<SelfBar[]>([]);
 
   // ── Benchmark state ──
-  const [benchmarkData, setBenchmarkData] = useState<AllMetricsBenchmarkSchema | null>(null);
+  const [benchmarkData, setBenchmarkData] =
+    useState<AllMetricsBenchmarkSchema | null>(null);
   const [benchmarkLoading, setBenchmarkLoading] = useState(false);
   const [benchmarkError, setBenchmarkError] = useState<string | null>(null);
 
@@ -184,7 +197,7 @@ export const useMetricCompare = (): UseMetricCompareResult => {
       }
 
       setSelfBars(bars);
-    } catch (e) {
+    } catch {
       setError("Failed to load comparison data. Please try again.");
     } finally {
       setIsLoading(false);
@@ -213,8 +226,12 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     }
   }, [token, isCaregiver]);
 
-  useEffect(() => { load(); }, [load]);
-  useEffect(() => { loadBenchmark(); }, [loadBenchmark]);
+  useEffect(() => {
+    load();
+  }, [load]);
+  useEffect(() => {
+    loadBenchmark();
+  }, [loadBenchmark]);
 
   // ── Derived values ────────────────────────────────────────────────────────
 
@@ -261,11 +278,11 @@ export const useMetricCompare = (): UseMetricCompareResult => {
     isLoading,
     error,
     refetch: load,
-    metricInfo: null,       // not returned by average endpoints; extend if needed
-    comparison: null,       // not returned by average endpoints; extend if needed
+    metricInfo: null, // not returned by average endpoints; extend if needed
+    comparison: null, // not returned by average endpoints; extend if needed
     selfBars,
     maxSelf,
-    otherBar: null,         // not returned by average endpoints; extend if needed
+    otherBar: null, // not returned by average endpoints; extend if needed
     benchmarkBar,
     benchmarkLoading,
     benchmarkError,

@@ -42,6 +42,16 @@ const FEATURE_LABELS: Record<string, string> = {
   stride_cv: "Step Consistency",
 };
 
+const FEATURE_UNITS: Record<string, string> = {
+  max_gyr: "rad/s",
+  val_gyr: "rad/s",
+  max_gyr_ms: "rad/s",
+  val_gyr_hs: "rad/s",
+  swing_time: "s",
+  stance_time: "s",
+  stride_cv: "%",
+};
+
 /**
  * Mapping of backend feature keys to clinical disclaimers
  */
@@ -87,14 +97,18 @@ function featureLabel(key: string): string {
   );
 }
 
+function featureUnit(key: string): string {
+  return FEATURE_UNITS[key] ?? "";
+}
+
 /**
  * Determines label and color based on anomaly score threshold
  */
 function severityInfo(score: number): { label: string; color: string } {
-  if (score >= 0.9) return { label: "Critical", color: "#EF4444" };
-  if (score >= 0.75) return { label: "High", color: "#F97316" };
-  if (score >= 0.5) return { label: "Moderate", color: "#EAB308" };
-  return { label: "Low", color: "#22C55E" };
+  const magnitude = Math.abs(score);
+  if (magnitude >= 3) return { label: "Critical", color: "#EF4444" };
+  if (magnitude >= 1) return { label: "Moderate", color: "#F59E0B" };
+  return { label: "Slight", color: "#22C55E" };
 }
 
 const SCALES: AnomalyScale[] = ["day", "week", "month", "year"];
@@ -399,6 +413,7 @@ const AnomalyModal: React.FC<{
                 const { label: sl, color: sc } = severityInfo(
                   e.anomaly_score ?? 0,
                 );
+                const unit = featureUnit(e.root_cause_feature ?? "unknown");
                 const disclaimer = e.root_cause_feature
                   ? ROOT_CAUSE_DISCLAIMERS[e.root_cause_feature]
                   : null;
@@ -425,8 +440,35 @@ const AnomalyModal: React.FC<{
                           { color: RED, fontWeight: "700", opacity: 1 },
                         ]}
                       >
-                        Difference:{" "}
+                        Change from normal:{" "}
                         {calculatePercentDiff(e.current_val, e.normal_ref)}
+                      </ThemedText>
+                    </View>
+
+                    <View style={ms.metaRow}>
+                      <ThemedText style={ms.meta}>
+                        Risk score:{" "}
+                        {e.anomaly_score != null
+                          ? e.anomaly_score.toFixed(2)
+                          : "N/A"}
+                      </ThemedText>
+                    </View>
+
+                    <View style={ms.metaRow}>
+                      <ThemedText style={ms.meta}>
+                        Your value:{" "}
+                        {e.current_val != null
+                          ? e.current_val.toFixed(2)
+                          : "N/A"}
+                        {unit ? ` ${unit}` : ""}
+                      </ThemedText>
+                    </View>
+
+                    <View style={ms.metaRow}>
+                      <ThemedText style={ms.meta}>
+                        Normal value:{" "}
+                        {e.normal_ref != null ? e.normal_ref.toFixed(2) : "N/A"}
+                        {unit ? ` ${unit}` : ""}
                       </ThemedText>
                     </View>
 
@@ -520,18 +562,18 @@ const ms = StyleSheet.create({
     gap: 6,
     marginBottom: 2,
   },
-  entryFeat: { fontSize: 13, fontWeight: "600", flex: 1 },
+  entryFeat: { fontSize: 15, fontWeight: "700", flex: 1 },
   dot: { width: 6, height: 6, borderRadius: 3 },
-  sevTxt: { fontSize: 11, fontWeight: "600" },
-  entryTime: { fontSize: 11, opacity: 0.4, marginBottom: 4 },
+  sevTxt: { fontSize: 13, fontWeight: "700" },
+  entryTime: { fontSize: 13, opacity: 0.65, marginBottom: 6 },
   metaRow: { flexDirection: "row", gap: 10, marginBottom: 4 },
-  meta: { fontSize: 11, opacity: 0.5 },
+  meta: { fontSize: 14, opacity: 0.82 },
   disclaimerText: {
-    fontSize: 10,
+    fontSize: 12,
     fontStyle: "italic",
-    opacity: 0.6,
-    marginTop: 2,
-    lineHeight: 14,
+    opacity: 0.78,
+    marginTop: 4,
+    lineHeight: 18,
   },
 });
 
