@@ -9,8 +9,8 @@ import { Animated, StyleSheet, View } from "react-native";
 const STATUS_COLOR: Record<string, string> = {
   success: "#4CAF50",
   warning: "#FF9800",
-  error:   "#F44336",
-  info:    "#2196F3",
+  error: "#F44336",
+  info: "#2196F3",
 };
 
 const resolveColor = (color: string): string => STATUS_COLOR[color] ?? color;
@@ -26,8 +26,11 @@ const HeroCard = ({ data }: { data: MetricDetailData }) => {
 
   useEffect(() => {
     if (trackWidth > 0) {
+      const targetWidth =
+        clampedProgress > 0 ? Math.max(trackWidth * clampedProgress, 4) : 0;
+
       Animated.timing(animatedWidth, {
-        toValue: trackWidth * clampedProgress,
+        toValue: targetWidth,
         duration: 600,
         useNativeDriver: false,
       }).start();

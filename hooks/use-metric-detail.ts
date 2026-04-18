@@ -59,20 +59,17 @@ function parseRangeLabel(label: string): number {
   return parseFloat(s);
 }
 
-/**
- * Compute a 0–1 progress value from a metric's current value
- * relative to its min/max range labels.
- */
-function computeProgress(
-  value: string,
+function computeProgressFromNumber(
+  value: number,
   minLabel: string,
   maxLabel: string,
 ): number {
-  const v = parseFloat(value.replace(/,/g, "").replace(/%/g, ""));
   const minVal = parseRangeLabel(minLabel);
   const maxVal = parseRangeLabel(maxLabel);
-  if (isNaN(v) || isNaN(minVal) || isNaN(maxVal) || maxVal === minVal) return 0;
-  return Math.min(Math.max((v - minVal) / (maxVal - minVal), 0), 1);
+  if (isNaN(value) || isNaN(minVal) || isNaN(maxVal) || maxVal === minVal) {
+    return 0;
+  }
+  return Math.min(Math.max((value - minVal) / (maxVal - minVal), 0), 1);
 }
 
 export const useMetricDetail = () => {
@@ -153,6 +150,18 @@ export const useMetricDetail = () => {
 
   const hasData = hasMeaningfulData(apiData);
 
+  const rawMetricValueByLabel: Record<string, number> = {
+    Cadence: currentGaitData.cadence,
+    "Total Steps": currentGaitData.totalSteps,
+    "Swing Speed": currentGaitData.swingSpeed,
+    "Heel Impact": currentGaitData.heelImpact,
+    "Swing Time": currentGaitData.swingTime,
+    "Stance Time": currentGaitData.stanceTime,
+    Stability: currentGaitData.stability,
+  };
+
+  const rawMetricValue = rawMetricValueByLabel[rawLabel] ?? 0;
+
   const mergedData: MetricDetailData = {
     ...detailConfig,
     value: hasData ? (baseMetric?.value ?? "0") : "--",
@@ -168,8 +177,8 @@ export const useMetricDetail = () => {
       : "#9E9E9E",
     progress:
       hasData && baseMetric
-        ? computeProgress(
-            baseMetric.value,
+        ? computeProgressFromNumber(
+            rawMetricValue,
             detailConfig.minLabel,
             detailConfig.maxLabel,
           )
