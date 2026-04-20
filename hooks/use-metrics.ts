@@ -115,7 +115,7 @@ export const useMetrics = (data: GaitData) => {
                 ? "Slow Swing"
                 : "Prolonged Swing",
       statusColor:
-        data.swingTime < 0.25 || data.swingTime > 0.75
+        data.swingTime < 0.25
           ? "error"
           : data.swingTime < 0.35 || data.swingTime > 0.55
             ? "warning"
@@ -144,7 +144,7 @@ export const useMetrics = (data: GaitData) => {
                 ? "Stiff/Cautious"
                 : "Highly Cautious",
       statusColor:
-        data.stanceTime < 0.45 || data.stanceTime > 1.2
+        data.stanceTime > 1.2
           ? "error"
           : data.stanceTime < 0.55 || data.stanceTime > 0.95
             ? "warning"
