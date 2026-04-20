@@ -12,7 +12,7 @@
 
 ## 1. Abstract
 
-The PERGA Mobile Application is a cross-platform React Native client that serves as the real-time data relay and clinical dashboard within a broader IoT pipeline for gait anomaly detection in elderly populations. Gait deterioration — manifested through reduced cadence, increased stride variability, and asymmetric swing-stance timing — is a clinically validated predictor of fall risk in aging individuals. PERGA addresses this by acquiring inertial measurement data from a wearable BNO085 IMU mounted on an ESP32-C3 microcontroller via Bluetooth Low Energy (BLE), batching the raw gyroscope telemetry, and forwarding it over MQTT to a cloud backend for anomaly detection. The mobile application additionally retrieves processed gait metrics, daily/weekly/monthly/yearly trend reports, peer-group benchmarks, and anomaly logs from a REST API, rendering them in a role-differentiated interface that supports both patient self-monitoring and remote caretaker oversight. Built on Expo SDK 54 with React Native's New Architecture enabled, the application targets iOS and Android and employs Zustand for high-frequency BLE state management and `expo-secure-store` for credential protection in a health-data context.
+The PERGA Mobile Application is a cross-platform React Native client that serves as the real-time data relay and clinical dashboard within a broader IoT pipeline for gait anomaly detection in elderly populations. Gait deterioration — manifested through reduced cadence, increased stride variability, and asymmetric swing-stance timing — is a clinically validated predictor of fall risk in aging individuals. PERGA addresses this by acquiring inertial measurement data from a wearable BNO085 IMU mounted on an ESP32-C3 microcontroller via Bluetooth Low Energy (BLE), batching the raw gyroscope telemetry, and forwarding it over MQTT to a cloud backend for anomaly detection. The mobile application additionally retrieves processed gait metrics, daily/weekly/monthly/yearly trend reports, peer-group benchmarks, and anomaly logs from a REST API, rendering them in a role-differentiated interface that supports both patient self-monitoring and remote caregiver oversight. Built on Expo SDK 54 with React Native's New Architecture enabled, the application targets iOS and Android and employs Zustand for high-frequency BLE state management and `expo-secure-store` for credential protection in a health-data context.
 
 ---
 
@@ -70,7 +70,10 @@ FastAPI Backend — Anomaly Detection & Aggregation
 │  use-home-data.ts: Fetch daily/weekly/yearly avgs   │
 │  use-anomaly-data.ts: Fetch anomaly logs            │
 │  use-metric-compare.ts: Fetch peer benchmarks       │
+│  use-metric-detail.ts: Single-metric deep dive data │
+│  use-metric-layout.ts: Metric layout configuration  │
 │  use-metrics.ts: Derive clinical status thresholds  │
+│  use-patients.ts: Caregiver patient list management │
 └─────────────────────────────────────────────────────┘
 ```
 
@@ -80,14 +83,14 @@ Two principal transformations occur within the mobile application:
 
 1. **Raw BLE → Numeric Batch** (`store/ble-store.ts:71–106`): Base64-encoded binary from the BLE characteristic is decoded into a `Buffer`, then parsed as consecutive 4-byte IEEE 754 little-endian floats via `buffer.readFloatLE(i)`. Each float represents a single gyroscope Z-axis sample in rad/s. Samples accumulate in a module-level array (`dataAccumulator`) until 100 are collected, at which point the batch is flushed to Zustand state (`pendingBatch`).
 
-2. **Backend Aggregate → UI Model** (`hooks/use-home-data.ts:81–95`): The `DailyAverage` schema from the REST API contains raw statistical fields. The `toGaitData()` function derives user-facing metrics:
-   - **Cadence**: `Math.round(60 / (avg_swing_time + avg_stance_time))` — steps per minute from gait cycle timing
+2. **Backend Aggregate → UI Model** (`hooks/use-home-data.ts:81–95`): The `DailyAverage` schema from the REST API contains raw statistical fields. The `toGaitData()` function maps them to user-facing metrics:
+   - **Cadence**: `avg_cadence` — steps per minute, computed by the backend and retrieved directly
    - **Stability**: `Math.max(0, Math.round((1 - avg_stride_cv) * 100))` — percentage derived from stride coefficient of variation, where lower CV yields higher stability
    - **Distance**: `total_distance_m / 1000` — meters to kilometers
 
 ### 2.4 BLE and MQTT Coordination
 
-BLE and MQTT operate **sequentially in a producer-consumer pattern**, not in parallel. BLE is the sole data source; MQTT is the sole data sink. The coordination mechanism is a React `useEffect` in `activity.tsx` (lines 149–161) that watches the Zustand `pendingBatch` state. When BLE fills a batch (100 samples), the state update triggers the effect, which calls `publishGaitData()` on the MQTT hook. This design decouples the BLE acquisition rate from the MQTT publish rate — the BLE store accumulates at whatever rate the sensor transmits, while MQTT publishes only when a full batch is ready.
+BLE and MQTT operate **sequentially in a producer-consumer pattern**, not in parallel. BLE is the sole data source; MQTT is the sole data sink. The coordination mechanism is a React `useEffect` in `activity.tsx` (lines 156–178) that watches the Zustand `pendingBatch` state. When BLE fills a batch (100 samples), the state update triggers the effect, which calls `publishGaitData()` on the MQTT hook. This design decouples the BLE acquisition rate from the MQTT publish rate — the BLE store accumulates at whatever rate the sensor transmits, while MQTT publishes only when a full batch is ready.
 
 The mobile app **does not subscribe** to any MQTT topics. All downstream data (processed metrics, anomaly logs, reports) is retrieved via REST API polling. MQTT serves exclusively as the upstream telemetry channel.
 
@@ -221,7 +224,7 @@ The application uses three state management mechanisms, each chosen for its acce
 
 | State Field | Type | Purpose |
 |-------------|------|---------|
-| `selectedPatient` | `PatientProfile & { username } \| null` | The patient currently being viewed (caretaker role only) |
+| `selectedPatient` | `PatientProfile & { username } \| null` | The patient currently being viewed (caregiver role only) |
 
 | Action | Behavior |
 |--------|----------|
@@ -232,10 +235,19 @@ The application uses three state management mechanisms, each chosen for its acce
 | State Field | Type | Purpose |
 |-------------|------|---------|
 | `token` | `string \| null` | JWT access token |
-| `role` | `string \| null` | `"patient"` or `"caretaker"` |
+| `role` | `string \| null` | `"patient"` or `"caregiver"` |
 | `username` | `string \| null` | Authenticated user's username |
 | `tempUsername` | `string \| null` | Transient username during registration flow |
 | `isLoading` | `boolean` | Whether initial hydration from secure storage is complete |
+
+| Method | Behavior |
+|--------|----------|
+| `saveToken(token)` | Persists JWT to `expo-secure-store` and updates context state |
+| `saveRole(role)` | Persists role to `expo-secure-store` and updates context state |
+| `saveUsername(username)` | Persists username to `expo-secure-store` and updates context state |
+| `clearToken()` | Removes auth credentials from secure storage and resets context state |
+| `saveTempUsername(username)` | Sets transient username in memory (not persisted) |
+| `clearTempUsername()` | Clears transient username from memory |
 
 On mount, the `AuthProvider` reads `auth_token`, `user_role`, and `username` from `expo-secure-store` via `Promise.all()` and hydrates the context state. All child components block on `isLoading` before making auth-dependent decisions.
 
@@ -245,11 +257,11 @@ On mount, the `AuthProvider` reads `auth_token`, `user_role`, and `username` fro
 
 - **React Context for Auth** was chosen because authentication state changes infrequently (login, logout) and must be accessible to every component in the tree. The Provider pattern at the root layout ensures universal access.
 
-- **Zustand for Patient Selection** keeps caretaker state outside of React Context to avoid re-rendering the entire component tree when the selected patient changes — only components that subscribe to `usePatientStore` re-render.
+- **Zustand for Patient Selection** keeps caregiver state outside of React Context to avoid re-rendering the entire component tree when the selected patient changes — only components that subscribe to `usePatientStore` re-render.
 
 ### 4.3 Cross-Store Coordination
 
-The Activity screen (`app/(tabs)/activity.tsx`) is the sole coordination point between the BLE store and the MQTT hook. A `useEffect` (lines 149–161) subscribes to three reactive dependencies: `pendingBatch` (from BLE store), `isRecording` (local state), and `isMqttConnected` (from MQTT hook). When all conditions are met — a non-empty batch exists, recording is active, and MQTT is connected — the effect publishes the batch. This pattern avoids direct coupling between the BLE store and the MQTT hook, keeping each module independently testable.
+The Activity screen (`app/(tabs)/activity.tsx`) is the sole coordination point between the BLE store and the MQTT hook. A `useEffect` (lines 156–178) subscribes to reactive dependencies: `pendingBatch` (from BLE store), `isRecording` (local state), `isWaitingForData` (local state), and `isMqttConnected` (from MQTT hook). When all conditions are met — a non-empty batch exists, recording (or waiting-for-data) is active, and MQTT is connected — the effect publishes the batch. This pattern avoids direct coupling between the BLE store and the MQTT hook, keeping each module independently testable.
 
 ---
 
@@ -274,7 +286,7 @@ Each batch of 100 samples triggers exactly one MQTT publish. At ~100 Hz sensor o
 
 ### 5.4 REST API Polling
 
-During an active recording session, the Activity screen polls the backend's `/patients/me/windowReport` endpoint every **30 seconds** (`WINDOW_REPORT_INTERVAL_MS = 30_000`). Each poll returns the latest 30-second analysis window with computed gait metrics (steps, distance, calories, anomaly score, gait health classification). These results are accumulated in local session totals for display.
+During an active recording session, the Activity screen polls the backend's `/patients/me/windowReport` endpoint every **10 seconds** (`WINDOW_REPORT_INTERVAL_MS = 10_000`). Each poll returns the latest 30-second analysis window with computed gait metrics (steps, distance, calories, anomaly score, gait health classification). These results are accumulated in local session totals for display.
 
 ### 5.5 Theoretical Latency Bounds (Sensor to Cloud)
 
@@ -363,7 +375,7 @@ app/
     ├── notification.tsx     Notification center (mock data)
     ├── ble-connection.tsx   BLE device scanning & connection [patient only]
     ├── profile.tsx          User settings, theme toggle, logout
-    ├── patient-selection.tsx Caretaker patient picker (hidden tab, no tab bar)
+    ├── patient-selection.tsx Caregiver patient picker (hidden tab, no tab bar)
     ├── metric-detail.tsx    Single-metric deep dive (hidden tab, param-driven)
     ├── my-info.tsx          Edit profile information (hidden tab, no tab bar)
     ├── ble-unavailable.tsx  Fallback when BLE is not supported (hidden tab)
@@ -375,11 +387,49 @@ app/
 The entry point (`app/index.tsx`) runs on every focus event via `useFocusEffect`. It reads `token` and `role` from the `AuthContext`:
 - **No token:** Redirects to `/onboarding`.
 - **Role = patient:** Redirects to `/(tabs)/home`.
-- **Role = caretaker:** Redirects to `/(tabs)/patient-selection` (must select a patient before viewing data).
+- **Role = caregiver:** Redirects to `/(tabs)/patient-selection` (must select a patient before viewing data).
 
 ### 7.3 Role-Based Tab Visibility
 
-In `app/(tabs)/_layout.tsx`, the `activity` and `ble-connection` tabs set `href: null` when the role is `"caretaker"` (or while the role is still loading). This hides these tabs from the tab bar entirely — caretakers cannot initiate BLE connections or recording sessions, as they are remote observers of patient data.
+In `app/(tabs)/_layout.tsx`, the `activity` and `ble-connection` tabs set `href: null` when the role is `"caregiver"` (or while the role is still loading). This hides these tabs from the tab bar entirely — caregivers cannot initiate BLE connections or recording sessions, as they are remote observers of patient data.
+
+### 7.4 Component Architecture
+
+The `components/` directory is organized by feature domain:
+
+```
+components/
+├── activity/
+│   ├── CumulativeStatsCard.tsx    Accumulated session totals (steps, distance, calories)
+│   └── WindowStatCard.tsx         Latest 30-second window metrics display
+├── home/
+│   ├── AnomalyChartSection.tsx    Anomaly count visualization over time
+│   ├── BarRow.tsx                 Single bar row for metric comparison charts
+│   ├── CompareCard.tsx            Peer-group benchmark comparison card
+│   ├── DatePickerField.tsx        Date selector for historical report lookup
+│   ├── FallCompareSection.tsx     Period-over-period fall analysis comparison
+│   ├── GaitMetricSection.tsx      Grid of gait metric summary cards
+│   ├── SummaryBanner.tsx          Top-level daily health status banner
+│   └── TimePeriodToggle.tsx       Weekly/monthly/yearly period selector
+├── metric-detail/
+│   ├── ArticleCard.tsx            Educational content card for a metric
+│   ├── CompareButton.tsx          Toggle between self/peer comparison views
+│   ├── ComparisonCard.tsx         Generic comparison layout
+│   ├── HeroCard.tsx               Primary metric value display
+│   ├── OtherCompareCard.tsx       Peer benchmark comparison card
+│   ├── SelfCompareCard.tsx        Self trend comparison card
+│   └── WeeklyChartCard.tsx        7-day trend chart for a metric
+├── patient-component/
+│   ├── add-patient-modal.tsx      Modal for linking a new patient (caregiver)
+│   ├── delete-confirm.tsx         Confirmation dialog for unlinking a patient
+│   └── patient-card.tsx           Patient list item with summary info
+├── code-input.tsx                 OTP/verification code input field
+├── metric-box.tsx                 Reusable metric display tile
+├── metric-group.tsx               Grouped metric display container
+├── primary-input.tsx              Styled text input with validation support
+├── themed-text.tsx                Theme-aware Text component
+└── themed-view.tsx                Theme-aware View component
+```
 
 ---
 
@@ -391,7 +441,7 @@ The system tracks seven primary gait parameters, each derived from gyroscope Z-a
 
 | Metric | DB Field | UI Field | Unit | Clinical Significance |
 |--------|----------|----------|------|----------------------|
-| Cadence | Derived from `avg_swing_time` + `avg_stance_time` | `cadence` | steps/min | < 90: slow pace (mobility concern); 90–130: optimal; > 130: brisk |
+| Cadence | `avg_cadence` | `cadence` | steps/min | < 90: slow pace (mobility concern); 90–130: optimal; > 130: brisk |
 | Swing Speed | `avg_max_gyr_ms` | `swingSpeed` | rad/s | < 4.5: low power (muscle weakness); >= 4.5: strong drive |
 | Heel Impact | `avg_val_gyr_hs` | `heelImpact` | rad/s | > -1.5: guarded/limp; -4.5 to -1.5: controlled; < -4.5: heavy strike |
 | Swing Time | `avg_swing_time` | `swingTime` | s | < 0.35: shuffling; 0.35–0.55: normal; > 0.55: slow swing |
@@ -461,24 +511,33 @@ All endpoints are prefixed with `/api/v1` and require a Bearer token unless note
 | GET | `/patients/me/anomalyLog` | `AnomalyLog[]` |
 | POST | `/patients/me/sessions/stop` | Session stop confirmation |
 
-### 9.3 Caretaker Endpoints (delegated access by patient username)
+### 9.3 Caregiver Endpoints (delegated access by patient username)
 
 | Method | Path | Response |
 |--------|------|----------|
-| GET | `/caretakers/patients` | `PatientBrief[]` |
-| GET | `/caretakers/patients/{username}` | `PatientProfile` |
-| POST | `/caretakers/patients` | Link patient (body: `{ username }`) |
-| DELETE | `/caretakers/patients/{username}` | Unlink patient |
-| GET | `/caretakers/patients/dailyAverage/{username}` | `DailyAverage[]` |
-| GET | `/caretakers/patients/weeklyAverage/{username}` | `WeeklyAverage[]` |
-| GET | `/caretakers/patients/monthlyAverage/{username}` | `MonthlyAverage[]` |
-| GET | `/caretakers/patients/yearlyAverage/{username}` | `YearlyAverage[]` |
-| GET | `/caretakers/patients/dailyAverage/byDate/{username}?date_str=` | `DailyAverage \| null` |
-| GET | `/caretakers/patients/fallAnalysis/{username}?date_str=` | `FallAnalysisResponse` |
-| GET | `/caretakers/patients/benchmark/{username}` | `AllMetricsBenchmarkSchema` |
-| GET | `/caretakers/patients/anomalyLog/{username}` | `AnomalyLog[]` |
+| GET | `/caregivers/patients` | `PatientBrief[]` |
+| GET | `/caregivers/patients/{username}` | `PatientProfile` |
+| POST | `/caregivers/patients` | Link patient (body: `{ username }`) |
+| DELETE | `/caregivers/patients/{username}` | Unlink patient |
+| GET | `/caregivers/patients/dailyAverage/{username}` | `DailyAverage[]` |
+| GET | `/caregivers/patients/weeklyAverage/{username}` | `WeeklyAverage[]` |
+| GET | `/caregivers/patients/monthlyAverage/{username}` | `MonthlyAverage[]` |
+| GET | `/caregivers/patients/yearlyAverage/{username}` | `YearlyAverage[]` |
+| GET | `/caregivers/patients/dailyAverage/byDate/{username}?date_str=` | `DailyAverage \| null` |
+| GET | `/caregivers/patients/fallAnalysis/{username}?date_str=` | `FallAnalysisResponse` |
+| GET | `/caregivers/patients/benchmark/{username}` | `AllMetricsBenchmarkSchema` |
+| GET | `/caregivers/patients/anomalyLog/{username}` | `AnomalyLog[]` |
 
-### 9.4 MQTT Credentials
+### 9.4 Profile Endpoints
+
+| Method | Path | Body | Response |
+|--------|------|------|----------|
+| POST | `/profiles/me` | JSON: `CreateProfileRequest` | `void` |
+| GET | `/profiles/me` | — | `MyProfile` |
+| GET | `/profiles/me/status` | — | `ProfileStatus` |
+| PUT | `/profiles/me` | JSON: `Partial<MyProfile>` | `MyProfile` |
+
+### 9.5 MQTT Credentials
 
 | Method | Path | Response |
 |--------|------|----------|
@@ -512,7 +571,7 @@ All endpoints are prefixed with `/api/v1` and require a Bearer token unless note
 
 - **Multi-Axis IMU Telemetry:** Extend the BLE frame format and MQTT payload to include all 9 DOF, enabling richer gait analysis (lateral stability, heading changes during turns, impact force magnitude).
 - **Offline Queue with Store-and-Forward:** Implement a local SQLite or MMKV buffer for BLE batches when MQTT is unavailable, with automatic drain when connectivity resumes.
-- **MQTT Subscriptions for Real-Time Alerts:** Subscribe to a patient-specific anomaly alert topic (e.g., `gait/alerts/{patient_id}`) to push fall-risk warnings to the caretaker's device in real time, rather than relying on REST polling.
+- **MQTT Subscriptions for Real-Time Alerts:** Subscribe to a patient-specific anomaly alert topic (e.g., `gait/alerts/{patient_id}`) to push fall-risk warnings to the caregiver's device in real time, rather than relying on REST polling.
 - **OAuth2 Refresh Token Flow:** Implement refresh tokens with silent renewal to prevent session interruption during long recordings.
 - **Background BLE Streaming:** Implement iOS background task management and Android foreground service to maintain BLE data acquisition when the app is not in the foreground.
 - **Configurable Thresholds:** Fetch gait health classification thresholds from the backend to allow per-patient or per-cohort customization without app updates.
