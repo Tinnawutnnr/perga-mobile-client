@@ -1,32 +1,45 @@
 import { profileApi } from "@/api/profile";
+import { ThemedText } from "@/components/themed-text";
+import { Colors } from "@/constants/theme";
+import { useAuth } from "@/context/auth-context";
+import { useThemeContext } from "@/context/theme-context";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { usePatientStore } from "@/store/patient-store";
 import { patientStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useState } from "react";
-import { ScrollView, StyleSheet, Switch, TouchableOpacity } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ThemedText } from "../../components/themed-text";
-import { ThemedView } from "../../components/themed-view";
-import { useAuth } from "../../context/auth-context";
-import { useThemeContext } from "../../context/theme-context";
-import { useColorScheme } from "../../hooks/use-color-scheme";
-import { useThemeColor } from "../../hooks/use-theme-color";
+import {
+  ScrollView,
+  StyleSheet,
+  Switch,
+  TouchableOpacity,
+  View,
+} from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const ProfileScreen = () => {
-  const colorScheme = useColorScheme();
+  const insets = useSafeAreaInsets();
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+
   const { toggleColorScheme } = useThemeContext();
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
-  const [locationEnabled, setLocationEnabled] = useState(true);
   const { setSelectedPatient } = usePatientStore();
   const { clearToken, role, token, username } = useAuth();
+
+  const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
+  const borderColor = useThemeColor({}, "border");
+  const tintColor = useThemeColor({}, "tint");
+  const mutedColor = useThemeColor({}, "muted");
+
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
 
   useFocusEffect(
     useCallback(() => {
       if (!token) return;
-
       profileApi
         .getMe(token)
         .then((data) => {
@@ -37,38 +50,30 @@ const ProfileScreen = () => {
     }, [token]),
   );
 
-  // Theme colors
-  const backgroundColor = useThemeColor({}, "background");
-  const cardColor = useThemeColor({}, "card");
-  const borderColor = useThemeColor({}, "border");
-  const tintColor = useThemeColor({}, "tint");
-  const iconColor = useThemeColor({}, "icon");
-  const mutedColor = useThemeColor({}, "muted");
-
-  const handleDarkModeToggle = () => {
-    toggleColorScheme();
-  };
-
   const handleLogout = async () => {
-    // Clear persisted auth/session state so index route won't auto-redirect.
     await clearToken();
     setSelectedPatient(null);
     router.replace("/login");
   };
 
-  const menuItems = [
+  const fullName =
+    firstName || lastName ? `${firstName} ${lastName}`.trim() : null;
+  const initial = (firstName || username || "?").charAt(0).toUpperCase();
+  const roleLabel = role === "caregiver" ? "Caregiver" : role === "patient" ? "Patient" : null;
+
+  // ── Menu items ──────────────────────────────────────────────────────────────
+
+  const accountItems = [
     {
       icon: "person-outline" as const,
-      title: "My Info",
-      subtitle: "Edit your details",
+      label: "My info",
       onPress: () => router.push("/(tabs)/my-info"),
     },
     ...(role === "caregiver"
       ? [
           {
             icon: "people-outline" as const,
-            title: "Patient Selection",
-            subtitle: "Select Patient",
+            label: "Switch patient",
             onPress: async () => {
               setSelectedPatient(null);
               await patientStorage.clear();
@@ -79,302 +84,273 @@ const ProfileScreen = () => {
       : []),
     {
       icon: "help-circle-outline" as const,
-      title: "Help",
-      subtitle: "Get support",
-      onPress: () => console.log("Help"),
+      label: "Help & support",
+      onPress: () => {},
     },
     {
       icon: "information-circle-outline" as const,
-      title: "About App",
-      subtitle: "Version and app info",
-      onPress: () => console.log("About"),
+      label: "About PERGA",
+      onPress: () => {},
     },
   ];
 
-  const settingsItems = [
-    {
-      icon: "notifications-outline" as const,
-      title: "Notifications",
-      value: notificationsEnabled,
-      onToggle: setNotificationsEnabled,
-      type: "switch" as const,
-    },
-    {
-      icon: "moon-outline" as const,
-      title: "Dark Mode",
-      value: colorScheme === "dark",
-      onToggle: handleDarkModeToggle,
-      type: "toggle" as const,
-    },
-  ];
+  // ── Render ──────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <View style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView
-        style={[styles.container, { backgroundColor }]}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scroll,
+          {
+            paddingTop: insets.top + 16,
+            paddingBottom: insets.bottom + 48,
+          },
+        ]}
       >
-        {/* Header */}
-        <ThemedView transparent style={styles.header}>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Profile
-          </ThemedText>
-        </ThemedView>
+        {/* Page title */}
+        <ThemedText style={styles.pageTitle}>Profile</ThemedText>
 
-        {/* User Info Card */}
-        <ThemedView
-          style={[styles.userCard, { backgroundColor: cardColor, borderColor }]}
-        >
-          <ThemedView transparent style={styles.avatarContainer}>
-            <ThemedView style={[styles.avatar, { backgroundColor: tintColor }]}>
-              <ThemedText style={styles.avatarText}>
-                {firstName ? firstName.charAt(0).toUpperCase() : "?"}
+        {/* ── Identity block ────────────────────────────────────────────── */}
+        <View style={styles.identityBlock}>
+          <View style={[styles.avatarDisc, { backgroundColor: tintColor }]}>
+            <ThemedText style={styles.avatarInitial}>{initial}</ThemedText>
+          </View>
+
+          <View style={styles.identityText}>
+            <ThemedText style={styles.displayName}>
+              {fullName ?? username ?? "—"}
+            </ThemedText>
+            {username && (
+              <ThemedText type="muted" style={styles.usernameText}>
+                @{username}
               </ThemedText>
-            </ThemedView>
-          </ThemedView>
-          <ThemedView transparent style={styles.userInfo}>
-            <ThemedText style={styles.userName}>
-              {firstName || lastName ? `${firstName} ${lastName}`.trim() : "—"}
-            </ThemedText>
-            <ThemedText type="muted" style={styles.userEmail}>
-              @{username ?? ""}
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-
-        {/* Menu Section */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Account
-          </ThemedText>
-          {menuItems.map((item, index) => (
-            <TouchableOpacity
-              key={index}
-              style={[styles.menuItem, { borderBottomColor: borderColor }]}
-              onPress={item.onPress}
-            >
-              <ThemedView style={styles.menuIconContainer}>
-                <Ionicons name={item.icon} size={22} color={iconColor} />
-              </ThemedView>
-              <ThemedView style={styles.menuContent}>
-                <ThemedText style={styles.menuTitle}>{item.title}</ThemedText>
-                <ThemedText type="muted" style={styles.menuSubtitle}>
-                  {item.subtitle}
+            )}
+            {roleLabel && (
+              <View
+                style={[
+                  styles.rolePill,
+                  { backgroundColor: `${tintColor}14`, borderColor: `${tintColor}30` },
+                ]}
+              >
+                <ThemedText style={[styles.roleText, { color: tintColor }]}>
+                  {roleLabel}
                 </ThemedText>
-              </ThemedView>
-              <Ionicons name="chevron-forward" size={20} color={mutedColor} />
-            </TouchableOpacity>
-          ))}
-        </ThemedView>
+              </View>
+            )}
+          </View>
+        </View>
 
-        {/* Settings Section */}
-        <ThemedView style={styles.section}>
-          <ThemedText type="subtitle" style={styles.sectionTitle}>
-            Settings
-          </ThemedText>
-          {settingsItems.map((item, index) => (
-            <ThemedView
-              key={index}
-              style={[styles.settingItem, { borderBottomColor: borderColor }]}
-            >
-              <ThemedView style={styles.menuIconContainer}>
-                <Ionicons name={item.icon} size={22} color={iconColor} />
-              </ThemedView>
-              <ThemedView style={styles.menuContent}>
-                <ThemedText style={styles.menuTitle}>{item.title}</ThemedText>
-              </ThemedView>
-              <Switch
-                value={item.value}
-                onValueChange={
-                  item.type === "toggle" ? () => item.onToggle() : item.onToggle
-                }
-                trackColor={{ false: borderColor, true: tintColor }}
-                thumbColor={item.value ? "#FFFFFF" : "#f4f3f4"}
-              />
-            </ThemedView>
+        {/* ── Account section ───────────────────────────────────────────── */}
+        <ThemedText style={[styles.sectionLabel, { color: mutedColor }]}>
+          ACCOUNT
+        </ThemedText>
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: cardColor, borderColor },
+          ]}
+        >
+          {accountItems.map((item, i) => (
+            <React.Fragment key={item.label}>
+              <TouchableOpacity
+                style={styles.menuRow}
+                onPress={item.onPress}
+                activeOpacity={0.7}
+                accessibilityRole="menuitem"
+              >
+                <Ionicons name={item.icon} size={20} color={mutedColor} />
+                <ThemedText style={styles.menuLabel}>{item.label}</ThemedText>
+                <Ionicons
+                  name="chevron-forward"
+                  size={16}
+                  color={C.border}
+                />
+              </TouchableOpacity>
+              {i < accountItems.length - 1 && (
+                <View
+                  style={[styles.rowDivider, { backgroundColor: borderColor }]}
+                />
+              )}
+            </React.Fragment>
           ))}
-        </ThemedView>
+        </View>
 
-        {/* Logout Button */}
+        {/* ── Preferences section ───────────────────────────────────────── */}
+        <ThemedText style={[styles.sectionLabel, { color: mutedColor }]}>
+          PREFERENCES
+        </ThemedText>
+        <View
+          style={[
+            styles.sectionCard,
+            { backgroundColor: cardColor, borderColor },
+          ]}
+        >
+          <View style={styles.menuRow}>
+            <Ionicons
+              name={scheme === "dark" ? "moon" : "moon-outline"}
+              size={20}
+              color={mutedColor}
+            />
+            <ThemedText style={styles.menuLabel}>Dark mode</ThemedText>
+            <Switch
+              value={scheme === "dark"}
+              onValueChange={() => toggleColorScheme()}
+              trackColor={{ false: borderColor, true: tintColor }}
+              thumbColor="#FFFFFF"
+              accessibilityLabel="Toggle dark mode"
+            />
+          </View>
+        </View>
+
+        {/* ── Sign out ─────────────────────────────────────────────────── */}
         <TouchableOpacity
           style={[
-            styles.logoutButton,
+            styles.signOutCard,
             { backgroundColor: cardColor, borderColor },
           ]}
           onPress={handleLogout}
-          activeOpacity={0.8}
+          activeOpacity={0.75}
+          accessibilityRole="button"
+          accessibilityLabel="Sign out"
         >
-          <Ionicons name="log-out-outline" size={20} color="#FF4444" />
-          <ThemedText style={styles.logoutText}>Log Out</ThemedText>
+          <Ionicons name="log-out-outline" size={18} color={C.error} />
+          <ThemedText style={[styles.signOutText, { color: C.error }]}>
+            Sign out
+          </ThemedText>
         </TouchableOpacity>
 
-        {/* App Version */}
-        <ThemedText type="muted" style={styles.versionText}>
-          Version 1.0.0
+        {/* Version */}
+        <ThemedText
+          type="muted"
+          style={styles.version}
+        >
+          PERGA · v1.0.0
         </ThemedText>
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default ProfileScreen;
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
+  safeArea: { flex: 1 },
+  scroll: {
     paddingHorizontal: 20,
+    flexGrow: 1,
   },
-  header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    marginBottom: 8,
-  },
-  headerTitle: {
+
+  pageTitle: {
     fontSize: 28,
     fontWeight: "700",
+    letterSpacing: -0.4,
+    lineHeight: 34,
+    marginBottom: 28,
   },
-  editButton: {
-    width: 36,
-    height: 36,
-    borderRadius: 18,
+
+  // Identity
+  identityBlock: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 16,
+    marginBottom: 36,
+  },
+  avatarDisc: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
+    flexShrink: 0,
   },
-  userCard: {
-    borderRadius: 16,
-    padding: 20,
-    marginBottom: 20,
-    flexDirection: "row",
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  cameraButton: {
-    position: "absolute",
-    bottom: 0,
-    right: 0,
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
-    borderWidth: 2,
-    borderColor: "#FFFFFF",
-  },
-  userInfo: {
-    flex: 1,
-  },
-  userName: {
-    fontSize: 20,
-    fontWeight: "700",
-    marginBottom: 4,
-  },
-  userEmail: {
-    fontSize: 14,
-    marginBottom: 2,
-  },
-  userPhone: {
-    fontSize: 14,
-  },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
-    gap: 12,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  statValue: {
-    fontSize: 18,
-    fontWeight: "700",
-    marginTop: 8,
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    textAlign: "center",
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  menuItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-  },
-  settingItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    paddingVertical: 16,
-    paddingHorizontal: 4,
-    borderBottomWidth: 1,
-  },
-  menuIconContainer: {
-    width: 40,
-    alignItems: "center",
-    marginRight: 12,
-  },
-  menuContent: {
-    flex: 1,
-  },
-  menuTitle: {
-    fontSize: 16,
-    fontWeight: "500",
-    marginBottom: 2,
-  },
-  menuSubtitle: {
-    fontSize: 14,
-  },
-  logoutButton: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 16,
-    marginTop: 8,
-    marginBottom: 24,
-    borderRadius: 12,
-    borderWidth: 1,
-  },
-  logoutText: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#FF4444",
-    marginLeft: 8,
-  },
-  versionText: {
-    fontSize: 14,
-    textAlign: "center",
-    marginBottom: 32,
-  },
-  avatar: {
-    width: 70,
-    height: 70,
-    borderRadius: 40,
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  avatarText: {
-    fontSize: 32,
+  avatarInitial: {
+    fontSize: 30,
     fontWeight: "700",
     color: "#FFFFFF",
+    lineHeight: 36,
   },
-  avatarContainer: {
-    marginRight: 16,
+  identityText: {
+    flex: 1,
+    gap: 3,
+  },
+  displayName: {
+    fontSize: 22,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    lineHeight: 28,
+  },
+  usernameText: {
+    fontSize: 13,
+    lineHeight: 18,
+  },
+  rolePill: {
+    alignSelf: "flex-start",
+    borderRadius: 6,
+    borderWidth: StyleSheet.hairlineWidth,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
+    marginTop: 4,
+  },
+  roleText: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.3,
+  },
+
+  // Section
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    letterSpacing: 0.8,
+    marginBottom: 8,
+    marginLeft: 2,
+  },
+  sectionCard: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    marginBottom: 24,
+  },
+  menuRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 15,
+    minHeight: 52,
+    gap: 14,
+  },
+  menuLabel: {
+    flex: 1,
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 22,
+  },
+  rowDivider: {
+    height: StyleSheet.hairlineWidth,
+    marginLeft: 50,
+  },
+
+  // Sign out
+  signOutCard: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    height: 52,
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    marginBottom: 32,
+  },
+  signOutText: {
+    fontSize: 16,
+    fontWeight: "600",
+  },
+
+  version: {
+    fontSize: 12,
+    letterSpacing: 0.3,
+    textAlign: "center",
   },
 });
