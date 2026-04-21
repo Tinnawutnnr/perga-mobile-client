@@ -4,8 +4,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,12 +16,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
+import { AuthPalette, AuthRadius, AuthSpacing } from "../constants/auth-theme";
 import { useAuth } from "../context/auth-context";
+import { useColorScheme } from "../hooks/use-color-scheme";
 
-// ── Zod schema ──────────────────────────────────────────────────────────
 const registerSchema = z
   .object({
-    email: z.string().email("Invalid email format"),
+    email: z.string().email("Enter a valid email address, e.g. name@example.com"),
     username: z
       .string()
       .min(3, "Username must be at least 3 characters")
@@ -33,21 +32,36 @@ const registerSchema = z
     role: z.enum(["caregiver", "patient"]),
     agreeToTerms: z.boolean(),
   })
-  .refine((data) => data.password === data.confirmPassword, {
+  .refine((d) => d.password === d.confirmPassword, {
     message: "Passwords do not match",
     path: ["confirmPassword"],
   })
-  .refine((data) => data.agreeToTerms, {
-    message: "You must agree to the terms",
+  .refine((d) => d.agreeToTerms, {
+    message: "You must agree to the terms to continue",
     path: ["agreeToTerms"],
   });
 
 type RegisterFormData = z.infer<typeof registerSchema>;
 
-// ── Screen ──────────────────────────────────────────────────────────────
-const RegisterScreen = () => {
+const ROLES = [
+  {
+    value: "caregiver" as const,
+    label: "Caregiver",
+    description: "Monitor a patient's gait and fall risk",
+  },
+  {
+    value: "patient" as const,
+    label: "Patient",
+    description: "Track your own walking patterns",
+  },
+];
+
+export default function RegisterScreen() {
+  const scheme = useColorScheme() ?? "light";
+  const C = AuthPalette[scheme];
   const [securePassword, setSecurePassword] = useState(true);
-  const [secureConfirmPassword, setSecureConfirmPassword] = useState(true);
+  const [secureConfirm, setSecureConfirm] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
   const { saveTempUsername, saveToken } = useAuth();
 
   const {
@@ -72,241 +86,272 @@ const RegisterScreen = () => {
   const agreeToTerms = watch("agreeToTerms");
 
   const onSubmit = async (data: RegisterFormData) => {
-    const normalizedEmail = data.email.trim().toLowerCase();
-    const normalizedUsername = data.username.trim().toLowerCase();
-
+    setFormError(null);
     try {
       const res = await authApi.register({
-        email: normalizedEmail,
-        username: normalizedUsername,
+        email: data.email.trim().toLowerCase(),
+        username: data.username.trim().toLowerCase(),
         password: data.password,
         role: data.role,
       });
       await saveToken(res.access_token);
-      saveTempUsername(normalizedUsername);
+      saveTempUsername(data.username.trim().toLowerCase());
       router.push({ pathname: "/create-profile", params: { role: data.role } });
     } catch (error) {
-      const message =
+      setFormError(
         error instanceof Error
           ? error.message
-          : "Registration failed. Please try again.";
-      Alert.alert("Registration Failed", message);
+          : "Registration failed. Please try again."
+      );
     }
   };
 
-  const handleLogin = () => {
-    router.push("/login");
-  };
-
-  const handleTermsPress = () => {
-    console.log("Open terms and conditions");
-  };
-
-  const handlePrivacyPress = () => {
-    console.log("Open privacy policy");
-  };
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: C.background }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scroll}
           bounces={false}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Top image */}
-          <View style={styles.imageContainer}>
-            <Image
-              source={{
-                uri: "https://images.pexels.com/photos/5327921/pexels-photo-5327921.jpeg",
-              }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+          {/* Brand mark */}
+          <View style={styles.brandRow}>
+            <Text style={[styles.brand, { color: C.tint }]}>PERGA</Text>
           </View>
 
-          {/* Bottom content */}
-          <View style={styles.contentContainer}>
-            <Text style={styles.title}>Create Account</Text>
-            <Text style={styles.subtitle}>Sign up to get started</Text>
+          {/* Heading */}
+          <View style={styles.headingSection}>
+            <Text style={[styles.heading, { color: C.textPrimary }]}>
+              Create your account
+            </Text>
+            <Text style={[styles.subheading, { color: C.textSecondary }]}>
+              Choose how you'll use PERGA
+            </Text>
+          </View>
 
-            {/* Role toggle */}
-            <View style={styles.roleContainer}>
-              <Text style={styles.roleLabel}>Role</Text>
-              <View style={styles.roleToggle}>
-                {(["caregiver", "patient"] as const).map((option) => (
-                  <TouchableOpacity
-                    key={option}
+          {/* Role tiles */}
+          <View style={styles.roleTiles}>
+            {ROLES.map((r) => {
+              const selected = role === r.value;
+              return (
+                <TouchableOpacity
+                  key={r.value}
+                  style={[
+                    styles.roleTile,
+                    {
+                      backgroundColor: selected ? C.tint : C.surface,
+                      borderColor: selected ? C.tint : C.border,
+                    },
+                  ]}
+                  onPress={() => setValue("role", r.value)}
+                  activeOpacity={0.85}
+                  accessibilityRole="radio"
+                  accessibilityState={{ checked: selected }}
+                  accessibilityLabel={`${r.label}: ${r.description}`}
+                >
+                  <Text
                     style={[
-                      styles.roleOption,
-                      role === option && styles.roleOptionSelected,
+                      styles.roleTileLabel,
+                      { color: selected ? "#FFFFFF" : C.textPrimary },
                     ]}
-                    onPress={() => setValue("role", option)}
-                    activeOpacity={0.8}
                   >
-                    <Text
-                      style={[
-                        styles.roleOptionText,
-                        role === option && styles.roleOptionTextSelected,
-                      ]}
-                    >
-                      {option}
-                    </Text>
-                  </TouchableOpacity>
-                ))}
-              </View>
-            </View>
+                    {r.label}
+                  </Text>
+                  <Text
+                    style={[
+                      styles.roleTileDesc,
+                      {
+                        color: selected
+                          ? "rgba(255,255,255,0.72)"
+                          : C.textSecondary,
+                      },
+                    ]}
+                  >
+                    {r.description}
+                  </Text>
+                </TouchableOpacity>
+              );
+            })}
+          </View>
 
-            {/* Email input */}
+          {/* Form fields */}
+          <View style={styles.form}>
+            <Text style={[styles.label, { color: C.textLabel }]}>
+              Email address
+            </Text>
             <Controller
               control={control}
               name="email"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    hasError={!!errors.email}
-                  />
-                  {errors.email && (
-                    <Text style={styles.errorText}>{errors.email.message}</Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="name@example.com"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  hasError={!!errors.email}
+                />
               )}
             />
+            {errors.email && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.email.message}
+              </Text>
+            )}
 
-            {/* Username input */}
+            <Text style={[styles.label, { color: C.textLabel }]}>Username</Text>
             <Controller
               control={control}
               name="username"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Username (3–20 characters)"
-                    keyboardType="default"
-                    autoCapitalize="none"
-                    hasError={!!errors.username}
-                  />
-                  {errors.username && (
-                    <Text style={styles.errorText}>
-                      {errors.username.message}
-                    </Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="3–20 characters"
+                  autoCapitalize="none"
+                  hasError={!!errors.username}
+                />
               )}
             />
+            {errors.username && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.username.message}
+              </Text>
+            )}
 
-            {/* Password input */}
+            <Text style={[styles.label, { color: C.textLabel }]}>Password</Text>
             <Controller
               control={control}
               name="password"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Password (min 8 characters)"
-                    secureTextEntry={securePassword}
-                    rightText={securePassword ? "Show" : "Hide"}
-                    onPressRight={() => setSecurePassword((prev) => !prev)}
-                    hasError={!!errors.password}
-                  />
-                  {errors.password && (
-                    <Text style={styles.errorText}>
-                      {errors.password.message}
-                    </Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="At least 8 characters"
+                  secureTextEntry={securePassword}
+                  rightText={securePassword ? "Show" : "Hide"}
+                  onPressRight={() => setSecurePassword((p) => !p)}
+                  hasError={!!errors.password}
+                />
               )}
             />
+            {errors.password && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.password.message}
+              </Text>
+            )}
 
-            {/* Confirm Password input */}
+            <Text style={[styles.label, { color: C.textLabel }]}>
+              Confirm password
+            </Text>
             <Controller
               control={control}
               name="confirmPassword"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Confirm Password"
-                    secureTextEntry={secureConfirmPassword}
-                    rightText={secureConfirmPassword ? "Show" : "Hide"}
-                    onPressRight={() =>
-                      setSecureConfirmPassword((prev) => !prev)
-                    }
-                    hasError={!!errors.confirmPassword}
-                  />
-                  {errors.confirmPassword && (
-                    <Text style={styles.errorText}>
-                      {errors.confirmPassword.message}
-                    </Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Re-enter your password"
+                  secureTextEntry={secureConfirm}
+                  rightText={secureConfirm ? "Show" : "Hide"}
+                  onPressRight={() => setSecureConfirm((p) => !p)}
+                  hasError={!!errors.confirmPassword}
+                />
               )}
             />
+            {errors.confirmPassword && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.confirmPassword.message}
+              </Text>
+            )}
 
-            {/* Terms and conditions checkbox */}
+            {/* Terms */}
             <TouchableOpacity
-              style={styles.checkboxRow}
+              style={styles.termsRow}
               onPress={() => setValue("agreeToTerms", !agreeToTerms)}
               activeOpacity={0.8}
+              accessibilityRole="checkbox"
+              accessibilityState={{ checked: agreeToTerms }}
             >
               <View
                 style={[
                   styles.checkbox,
-                  agreeToTerms && styles.checkboxChecked,
+                  {
+                    backgroundColor: agreeToTerms ? C.tint : "transparent",
+                    borderColor: agreeToTerms ? C.tint : C.border,
+                  },
                 ]}
               >
                 {agreeToTerms && (
-                  <Ionicons name="checkmark" size={16} color="#FFFFFF" />
+                  <Ionicons name="checkmark" size={14} color="#FFFFFF" />
                 )}
               </View>
-              <View style={styles.termsTextContainer}>
-                <Text style={styles.termsText}>I agree to the </Text>
-                <TouchableOpacity onPress={handleTermsPress}>
-                  <Text style={styles.termsLink}>Terms & Conditions</Text>
-                </TouchableOpacity>
-                <Text style={styles.termsText}> and </Text>
-                <TouchableOpacity onPress={handlePrivacyPress}>
-                  <Text style={styles.termsLink}>Privacy Policy</Text>
-                </TouchableOpacity>
-              </View>
+              <Text style={[styles.termsText, { color: C.textSecondary }]}>
+                I agree to the{" "}
+                <Text style={[styles.termsLink, { color: C.tint }]}>
+                  Terms & Conditions
+                </Text>{" "}
+                and{" "}
+                <Text style={[styles.termsLink, { color: C.tint }]}>
+                  Privacy Policy
+                </Text>
+              </Text>
             </TouchableOpacity>
             {errors.agreeToTerms && (
-              <Text style={[styles.errorText, { marginTop: -16 }]}>
+              <Text style={[styles.fieldError, { color: C.error }]}>
                 {errors.agreeToTerms.message}
               </Text>
             )}
 
-            {/* Register button */}
+            {/* Form-level error */}
+            {formError && (
+              <View
+                style={[
+                  styles.formErrorBox,
+                  { backgroundColor: C.errorSubtle },
+                ]}
+              >
+                <Text style={[styles.formErrorText, { color: C.error }]}>
+                  {formError}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Actions */}
+          <View style={styles.actions}>
             <TouchableOpacity
               style={[
-                styles.registerButton,
-                isSubmitting && styles.registerButtonDisabled,
+                styles.primaryButton,
+                { backgroundColor: isSubmitting ? C.buttonDisabled : C.tint },
               ]}
               onPress={handleSubmit(onSubmit)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               disabled={isSubmitting}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting }}
             >
-              <Text style={styles.registerButtonText}>
-                {isSubmitting ? "Creating Account..." : "Create Account"}
+              <Text style={styles.primaryButtonText}>
+                {isSubmitting ? "Creating account…" : "Create account"}
               </Text>
             </TouchableOpacity>
 
-            {/* Login text */}
-            <View style={styles.loginRow}>
-              <Text style={styles.loginText}>Already have an account? </Text>
-              <TouchableOpacity onPress={handleLogin}>
-                <Text style={styles.loginLink}>Sign In</Text>
+            <View style={styles.switchRow}>
+              <Text style={[styles.switchPrompt, { color: C.textMuted }]}>
+                Already have an account?{" "}
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/login")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="link"
+              >
+                <Text style={[styles.switchLink, { color: C.tint }]}>
+                  Sign in
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -314,150 +359,142 @@ const RegisterScreen = () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
-
-export default RegisterScreen;
+}
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollContent: {
+  safeArea: { flex: 1 },
+  scroll: {
     flexGrow: 1,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: AuthSpacing.lg,
+    paddingBottom: AuthSpacing.xl,
   },
-  imageContainer: {
-    height: 200,
-    width: "100%",
-    overflow: "hidden",
+  brandRow: {
+    paddingTop: AuthSpacing.lg,
+    paddingBottom: AuthSpacing.xl,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  title: {
-    fontSize: 28,
+  brand: {
+    fontSize: 14,
     fontWeight: "700",
-    color: "#000000",
-    marginBottom: 8,
+    letterSpacing: 4,
   },
-  subtitle: {
+  headingSection: {
+    marginBottom: AuthSpacing.xl,
+    gap: AuthSpacing.xs,
+  },
+  heading: {
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+  },
+  subheading: {
     fontSize: 16,
-    color: "#808080",
-    marginBottom: 24,
+    lineHeight: 24,
   },
-  errorText: {
-    color: "#FF4444",
+
+  // Role tiles
+  roleTiles: {
+    flexDirection: "row",
+    gap: AuthSpacing.md,
+    marginBottom: AuthSpacing.xl,
+  },
+  roleTile: {
+    flex: 1,
+    paddingVertical: AuthSpacing.base,
+    paddingHorizontal: AuthSpacing.md,
+    borderRadius: AuthRadius.lg,
+    borderWidth: 1.5,
+    minHeight: 88,
+    gap: AuthSpacing.xs,
+  },
+  roleTileLabel: {
+    fontSize: 15,
+    fontWeight: "600",
+  },
+  roleTileDesc: {
     fontSize: 12,
-    marginTop: -12,
-    marginBottom: 12,
-    marginLeft: 4,
+    lineHeight: 17,
   },
-  checkboxRow: {
+
+  // Form
+  form: {
+    marginBottom: AuthSpacing.lg,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+    marginBottom: AuthSpacing.sm,
+  },
+  fieldError: {
+    fontSize: 13,
+    marginTop: -10,
+    marginBottom: AuthSpacing.md,
+  },
+
+  // Terms
+  termsRow: {
     flexDirection: "row",
     alignItems: "flex-start",
-    marginBottom: 24,
+    gap: AuthSpacing.md,
+    marginBottom: AuthSpacing.base,
+    paddingVertical: AuthSpacing.xs,
   },
   checkbox: {
-    width: 20,
-    height: 20,
-    borderRadius: 4,
-    borderWidth: 2,
-    borderColor: "#E5E5E5",
+    width: 22,
+    height: 22,
+    borderRadius: AuthRadius.sm,
+    borderWidth: 1.5,
     justifyContent: "center",
     alignItems: "center",
-    marginRight: 12,
-    marginTop: 2,
-  },
-  checkboxChecked: {
-    backgroundColor: "#4F7D81",
-    borderColor: "#4F7D81",
-  },
-  termsTextContainer: {
-    flex: 1,
-    flexDirection: "row",
-    flexWrap: "wrap",
-    alignItems: "center",
+    marginTop: 1,
+    flexShrink: 0,
   },
   termsText: {
+    flex: 1,
     fontSize: 14,
-    color: "#808080",
-    lineHeight: 20,
+    lineHeight: 21,
   },
   termsLink: {
-    fontSize: 14,
-    color: "#477E85",
     fontWeight: "600",
+  },
+
+  formErrorBox: {
+    borderRadius: AuthRadius.md,
+    padding: AuthSpacing.base,
+    marginTop: AuthSpacing.xs,
+  },
+  formErrorText: {
+    fontSize: 14,
     lineHeight: 20,
   },
-  registerButton: {
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#4F7D81",
+
+  // Actions
+  actions: {
+    gap: AuthSpacing.base,
+  },
+  primaryButton: {
+    height: 56,
+    borderRadius: AuthRadius.lg,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
   },
-  registerButtonDisabled: {
-    backgroundColor: "#C4C4C4",
-  },
-  registerButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  primaryButtonText: {
+    fontSize: 17,
     fontWeight: "600",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
-  loginRow: {
+  switchRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    paddingVertical: AuthSpacing.sm,
   },
-  loginText: {
+  switchPrompt: {
     fontSize: 14,
-    color: "#808080",
   },
-  loginLink: {
+  switchLink: {
     fontSize: 14,
-    color: "#477E85",
-    fontWeight: "600",
-  },
-  roleContainer: {
-    marginBottom: 16,
-  },
-  roleLabel: {
-    fontSize: 14,
-    color: "#808080",
-    marginBottom: 8,
-  },
-  roleToggle: {
-    flexDirection: "row",
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: "#E5E5E5",
-    overflow: "hidden",
-  },
-  roleOption: {
-    flex: 1,
-    paddingVertical: 14,
-    alignItems: "center",
-    backgroundColor: "#FFFFFF",
-  },
-  roleOptionSelected: {
-    backgroundColor: "#4F7D81",
-  },
-  roleOptionText: {
-    fontSize: 15,
-    fontWeight: "500",
-    color: "#808080",
-  },
-  roleOptionTextSelected: {
-    color: "#FFFFFF",
     fontWeight: "600",
   },
 });
