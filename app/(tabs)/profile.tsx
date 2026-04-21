@@ -78,18 +78,6 @@ const ProfileScreen = () => {
         ]
       : []),
     {
-      icon: "medical-outline" as const,
-      title: "Historical Report",
-      subtitle: "View your historical data",
-      onPress: () => console.log("Health Profile"),
-    },
-    {
-      icon: "bluetooth-outline" as const,
-      title: "BLE Connection",
-      subtitle: "Manage device connections",
-      onPress: () => router.push("/ble-connection"),
-    },
-    {
       icon: "help-circle-outline" as const,
       title: "Help",
       subtitle: "Get support",
@@ -117,13 +105,6 @@ const ProfileScreen = () => {
       value: colorScheme === "dark",
       onToggle: handleDarkModeToggle,
       type: "toggle" as const,
-    },
-    {
-      icon: "location-outline" as const,
-      title: "Location",
-      value: locationEnabled,
-      onToggle: setLocationEnabled,
-      type: "switch" as const,
     },
   ];
 
