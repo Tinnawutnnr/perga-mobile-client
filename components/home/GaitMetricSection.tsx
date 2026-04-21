@@ -1,9 +1,7 @@
 import { MetricBox } from "@/components/metric-box";
 import { MetricGroup } from "@/components/metric-group";
 import { ThemedText } from "@/components/themed-text";
-import { useThemeColor } from "@/hooks/use-theme-color";
 import { Metric } from "@/types/metric";
-import { Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 
@@ -18,8 +16,6 @@ export function GaitMetricsSection({
   metrics,
   hasData,
 }: GaitMetricsSectionProps) {
-  const iconColor = useThemeColor({}, "icon");
-
   return (
     <MetricGroup title={title}>
       {!hasData ? (
@@ -39,7 +35,6 @@ export function GaitMetricsSection({
             subValue={item.subValue}
             status={item.status}
             statusColor={item.statusColor || "success"}
-            icon={<Ionicons name={item.iconName} size={24} color={iconColor} />}
             onPress={item.onPress}
           />
         ))
@@ -52,6 +47,7 @@ const styles = StyleSheet.create({
   noDataRow: {
     alignItems: "center",
     paddingVertical: 32,
+    paddingHorizontal: 16,
   },
   noDataDash: {
     fontSize: 32,
@@ -60,6 +56,6 @@ const styles = StyleSheet.create({
   },
   noDataText: {
     fontSize: 13,
-    marginTop: 4,
+    marginTop: 6,
   },
 });

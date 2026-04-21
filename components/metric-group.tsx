@@ -1,6 +1,7 @@
 import React from "react";
 import { StyleSheet, View, ViewStyle } from "react-native";
 import { Colors } from "../constants/theme";
+import { useColorScheme } from "../hooks/use-color-scheme";
 import { ThemedText } from "./themed-text";
 import { ThemedView } from "./themed-view";
 
@@ -11,14 +12,27 @@ export interface MetricGroupProps {
 }
 
 export function MetricGroup({ title, children, style }: MetricGroupProps) {
+  const scheme = useColorScheme() ?? "light";
+  const borderColor = Colors[scheme].border;
+  const childArray = React.Children.toArray(children);
+
   return (
     <ThemedView
       style={[styles.container, style]}
-      lightColor={Colors.light.cardborder} // Or a specific light section color
-      darkColor={Colors.dark.cardborder} // Slightly darker than the cards inside (#1A1A1A)
+      lightColor={Colors.light.card}
+      darkColor={Colors.dark.card}
     >
       <ThemedText style={styles.title}>{title}</ThemedText>
-      <View style={styles.content}>{children}</View>
+      {childArray.map((child, index) => (
+        <View key={index}>
+          {index > 0 && (
+            <View
+              style={[styles.separator, { backgroundColor: borderColor }]}
+            />
+          )}
+          {child}
+        </View>
+      ))}
     </ThemedView>
   );
 }
@@ -26,21 +40,21 @@ export function MetricGroup({ title, children, style }: MetricGroupProps) {
 const styles = StyleSheet.create({
   container: {
     marginBottom: 24,
-    width: "100%",
-    borderRadius: 16,
-    padding: 16,
-    overflow: "hidden", // Ensure children respect radius
+    borderRadius: 14,
+    overflow: "hidden",
+    paddingTop: 14,
   },
   title: {
-    fontSize: 14,
+    fontSize: 11,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.5,
-    marginBottom: 16,
-    opacity: 0.7,
-    marginLeft: 4,
+    letterSpacing: 0.8,
+    opacity: 0.5,
+    paddingHorizontal: 16,
+    paddingBottom: 6,
   },
-  content: {
-    gap: 0,
+  separator: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
   },
 });

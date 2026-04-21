@@ -12,7 +12,6 @@ import {
 import { Colors } from "../constants/theme";
 import { useColorScheme } from "../hooks/use-color-scheme";
 import { ThemedText } from "./themed-text";
-import { ThemedView } from "./themed-view";
 
 export interface MetricBoxProps {
   label: string;
@@ -21,6 +20,7 @@ export interface MetricBoxProps {
   subValue: string;
   status: string;
   statusColor?: string;
+  /** @deprecated Icon is no longer displayed. Prop kept for backwards compatibility. */
   icon?: React.ReactNode;
   onPress?: (event: GestureResponderEvent) => void;
   style?: ViewStyle;
@@ -35,11 +35,9 @@ function normalizeHex(color: string, fallback: string) {
 }
 
 function hexToRGBA(hex: string, alpha: number) {
-  // Keep rgba generation deterministic for all status colors.
   if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex)) {
     return `rgba(0, 0, 0, ${alpha})`;
   }
-
   let r, g, b;
   if (hex.length === 4) {
     r = parseInt(hex[1] + hex[1], 16);
@@ -60,7 +58,6 @@ export function MetricBox({
   subValue,
   status,
   statusColor = Colors.light.success,
-  icon,
   onPress,
   style,
 }: MetricBoxProps) {
@@ -71,7 +68,6 @@ export function MetricBox({
   const handleInfoPress = (event: GestureResponderEvent) => {
     event.stopPropagation?.();
     if (!infoText) return;
-
     setShowInfo(true);
   };
 
@@ -87,38 +83,16 @@ export function MetricBox({
   const isPressable = Boolean(onPress);
 
   return (
-    <ThemedView
-      style={[styles.container, style]}
-      lightColor={Colors.light.card}
-      darkColor={Colors.dark.card}
-    >
-      {/* Left accent bar */}
-      <View
-        style={[styles.accentBar, { backgroundColor: resolvedStatusHex }]}
-      />
+    <>
       <TouchableOpacity
-        style={styles.content}
+        style={[styles.row, style]}
         disabled={!isPressable}
         onPress={onPress}
         activeOpacity={0.7}
+        accessibilityRole={isPressable ? "button" : "text"}
       >
-        {/* Icon */}
-        {icon && (
-          <View
-            style={[
-              styles.iconContainer,
-              {
-                backgroundColor: hexToRGBA(resolvedStatusHex, 0.1),
-                borderRadius: 12,
-              },
-            ]}
-          >
-            {icon}
-          </View>
-        )}
-
-        {/* Label */}
-        <View style={styles.labelBlock}>
+        {/* Left column: label + status */}
+        <View style={styles.leftCol}>
           <View style={styles.labelRow}>
             <ThemedText style={styles.label}>{label}</ThemedText>
             {infoText ? (
@@ -130,23 +104,17 @@ export function MetricBox({
               >
                 <Ionicons
                   name="information-circle-outline"
-                  size={16}
+                  size={15}
                   color={themeColors.muted}
                 />
               </TouchableOpacity>
             ) : null}
           </View>
 
-          {/* Status pill */}
-          <View
-            style={[
-              styles.statusPill,
-              {
-                backgroundColor: hexToRGBA(resolvedStatusHex, 0.15),
-                borderRadius: 20,
-              },
-            ]}
-          >
+          <View style={styles.statusRow}>
+            <View
+              style={[styles.statusDot, { backgroundColor: resolvedStatusHex }]}
+            />
             <ThemedText
               style={[styles.statusText, { color: resolvedStatusHex }]}
             >
@@ -155,20 +123,22 @@ export function MetricBox({
           </View>
         </View>
 
-        {/* Value block */}
-        <View style={styles.rightContainer}>
+        {/* Right column: value + unit + optional chevron */}
+        <View style={styles.rightCol}>
           <View style={styles.valueRow}>
             <ThemedText style={styles.value}>{value}</ThemedText>
-            {subValue && (
-              <ThemedText style={styles.subValue}>{subValue}</ThemedText>
-            )}
+            {subValue ? (
+              <ThemedText style={[styles.unit, { color: themeColors.muted }]}>
+                {subValue}
+              </ThemedText>
+            ) : null}
           </View>
           {isPressable && (
-            <ThemedText
-              style={[styles.tapHint, { color: Colors[colorScheme].tint }]}
-            >
-              Details
-            </ThemedText>
+            <Ionicons
+              name="chevron-forward"
+              size={16}
+              color={themeColors.muted}
+            />
           )}
         </View>
       </TouchableOpacity>
@@ -188,7 +158,7 @@ export function MetricBox({
               styles.infoModalCard,
               {
                 backgroundColor: Colors[colorScheme].card,
-                borderColor: hexToRGBA(resolvedStatusHex, 0.35),
+                borderColor: hexToRGBA(resolvedStatusHex, 0.3),
               },
             ]}
             onPress={(event) => event.stopPropagation()}
@@ -211,46 +181,27 @@ export function MetricBox({
           </Pressable>
         </Pressable>
       </Modal>
-    </ThemedView>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  container: {
-    borderRadius: 16,
-    marginBottom: 10,
-    flexDirection: "row",
-    overflow: "hidden",
-  },
-  accentBar: {
-    width: 4,
-    borderTopLeftRadius: 16,
-    borderBottomLeftRadius: 16,
-  },
-  content: {
-    flex: 1,
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    paddingVertical: 14,
-    paddingHorizontal: 14,
-    gap: 12,
+    paddingVertical: 16,
+    paddingHorizontal: 16,
+    minHeight: 56,
   },
-  iconContainer: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    justifyContent: "center",
-    alignItems: "center",
-    overflow: "hidden",
-  },
-  labelBlock: {
+  leftCol: {
     flex: 1,
     gap: 5,
+    paddingRight: 12,
   },
   labelRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 4,
+    gap: 5,
   },
   label: {
     fontSize: 14,
@@ -261,43 +212,41 @@ const styles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
-  statusPill: {
-    alignSelf: "flex-start",
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 20,
-    overflow: "hidden",
+  statusRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 5,
+  },
+  statusDot: {
+    width: 6,
+    height: 6,
+    borderRadius: 3,
   },
   statusText: {
-    fontSize: 11,
-    fontWeight: "700",
-    textTransform: "uppercase",
-    letterSpacing: 0.4,
+    fontSize: 12,
+    fontWeight: "500",
   },
-  rightContainer: {
-    alignItems: "flex-end",
-    gap: 4,
+  rightCol: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
   },
   valueRow: {
     flexDirection: "row",
     alignItems: "baseline",
-    gap: 4,
+    gap: 3,
   },
   value: {
-    fontSize: 26,
+    fontSize: 22,
     fontWeight: "700",
-    lineHeight: 30,
+    lineHeight: 26,
+    letterSpacing: -0.3,
   },
-  subValue: {
-    fontSize: 13,
-    opacity: 0.6,
+  unit: {
+    fontSize: 12,
     fontWeight: "500",
   },
-  tapHint: {
-    fontSize: 11,
-    fontWeight: "600",
-    opacity: 0.7,
-  },
+  // Info modal
   infoModalBackdrop: {
     flex: 1,
     backgroundColor: "rgba(0,0,0,0.18)",
@@ -309,8 +258,8 @@ const styles = StyleSheet.create({
     width: "100%",
     maxWidth: 360,
     borderRadius: 14,
-    paddingHorizontal: 14,
-    paddingVertical: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
     borderWidth: 1,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 6 },
@@ -322,7 +271,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    marginBottom: 4,
+    marginBottom: 6,
   },
   infoModalTitle: {
     fontSize: 14,
@@ -336,7 +285,7 @@ const styles = StyleSheet.create({
   },
   infoModalText: {
     fontSize: 13,
-    lineHeight: 18,
+    lineHeight: 19,
     opacity: 0.85,
   },
 });

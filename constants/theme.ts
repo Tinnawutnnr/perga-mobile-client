@@ -9,44 +9,63 @@ const tintColorDark = "#8BBAC0";
 
 export const Colors = {
   light: {
-    text: "#11181C",
-    background: "#FFFFFF",
+    // Off-white tinted toward teal — matches auth screen background
+    text: "#0E1A1C",
+    background: "#F5F9FA",
     tint: tintColorLight,
-    icon: "#687076",
-    tabIconDefault: "#C0C0C0",
+    icon: "#4F6B70",
+    tabIconDefault: "#A8B8BB",
     tabIconSelected: tintColorLight,
-    card: "#F8F9FA",
-    cardborder: "#E9ECEF",
-    border: "#E9ECEF",
-    muted: "#666666",
+    // Pure white cards lift off the tinted background
+    card: "#FFFFFF",
+    cardborder: "#DDE8EA",
+    border: "#DDE8EA",
+    muted: "#5A7378",
     accent: "#FF8C1A",
-    success: "#4CAF50",
-    warning: "#FFC107",
-    error: "#FF4444",
-    info: "#7D8890",
+    success: "#3D9E51",
+    warning: "#C97A00",
+    error: "#D93025",
+    info: "#6B7F85",
     surface: "#FFFFFF",
-    onSurface: "#1a1a1a",
+    onSurface: "#0E1A1C",
   },
   dark: {
-    text: "#FFFFFF",
-    background: "#000000",
+    // Deep teal-tinted dark — no pure black
+    text: "#E4F0F2",
+    background: "#0B1618",
     tint: tintColorDark,
-    icon: "#FFFFFF",
-    tabIconDefault: "#666666",
+    icon: "#8BBAC0",
+    tabIconDefault: "#4A6468",
     tabIconSelected: tintColorDark,
-    card: "#1A1A1A",
-    cardborder: "#121212",
-    border: "#1A1A1A",
-    muted: "#CCCCCC",
+    // Card and border are now distinct depths
+    card: "#131F22",
+    cardborder: "#1C2F34",
+    border: "#1C2F34",
+    // Teal-tinted muted — not harsh gray
+    muted: "#6E9298",
     accent: "#FFA726",
-    success: "#66BB6A",
-    warning: "#FFCA28",
-    error: "#EF5350",
-    info: "#8D98A1",
-    surface: "#1A1A1A",
-    onSurface: "#FFFFFF",
+    success: "#5BAD6A",
+    warning: "#D4A017",
+    error: "#E05252",
+    info: "#7A9AA0",
+    surface: "#131F22",
+    onSurface: "#E4F0F2",
   },
 };
+
+/**
+ * Fixed rem-equivalent type scale for app UI.
+ * Ratio ≈ 1.25 between steps; keeps hierarchy readable at a glance.
+ */
+export const TypeScale = {
+  caption:    { fontSize: 12, lineHeight: 17, letterSpacing: 0.1  },
+  secondary:  { fontSize: 13, lineHeight: 19, letterSpacing: 0.05 },
+  body:       { fontSize: 16, lineHeight: 24, letterSpacing: 0    },
+  bodySemi:   { fontSize: 16, lineHeight: 24, letterSpacing: 0, fontWeight: "600" as const },
+  subheading: { fontSize: 20, lineHeight: 27, letterSpacing: -0.2 },
+  heading:    { fontSize: 28, lineHeight: 34, letterSpacing: -0.4 },
+  display:    { fontSize: 32, lineHeight: 40, letterSpacing: -0.5 },
+} as const;
 
 export const Fonts = Platform.select({
   ios: {
