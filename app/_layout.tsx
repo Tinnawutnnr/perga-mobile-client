@@ -1,5 +1,7 @@
+import { ToastContainer } from "@/components/toast-container";
 import { Stack } from "expo-router";
 import { StatusBar } from "expo-status-bar";
+import { View } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { AuthProvider } from "../context/auth-context";
 import { ThemeProvider } from "../context/theme-context";
@@ -13,16 +15,19 @@ export default function RootLayout() {
       <StatusBar hidden />
       <AuthProvider>
         <ThemeProvider>
-          <Stack screenOptions={{ headerShown: false }}>
-            <Stack.Screen name="index" />
-            <Stack.Screen name="onboarding" />
-            <Stack.Screen name="login" />
-            <Stack.Screen name="register" />
-            <Stack.Screen name="create-profile" />
-            <Stack.Screen name="forgot-password" />
-            <Stack.Screen name="reset-password" />
-            <Stack.Screen name="(tabs)" />
-          </Stack>
+          <View style={{ flex: 1 }}>
+            <Stack screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="index" />
+              <Stack.Screen name="onboarding" />
+              <Stack.Screen name="login" />
+              <Stack.Screen name="register" />
+              <Stack.Screen name="create-profile" />
+              <Stack.Screen name="forgot-password" />
+              <Stack.Screen name="reset-password" />
+              <Stack.Screen name="(tabs)" />
+            </Stack>
+            <ToastContainer />
+          </View>
         </ThemeProvider>
       </AuthProvider>
     </SafeAreaProvider>

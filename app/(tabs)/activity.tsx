@@ -12,6 +12,7 @@ import {
   createEmptySessionTotals,
   formatDuration,
 } from "@/utils/activity-session";
+import { toast } from "@/store/toast-store";
 import { tokenStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
 import React, {
@@ -21,7 +22,6 @@ import React, {
   useState,
 } from "react";
 import {
-  Alert,
   Animated,
   ScrollView,
   StyleSheet,
@@ -262,10 +262,7 @@ const ActivityScreen = () => {
   const handleToggleActivity = async () => {
     if (!isRecording && !isWaitingForData) {
       if (!connectedDevice) {
-        Alert.alert(
-          "No Device",
-          "Please connect to the wearable device first.",
-        );
+        toast.warning("Connect your gait sensor first");
         return;
       }
       setSessionId(uuidv4());
@@ -295,10 +292,7 @@ const ActivityScreen = () => {
           .catch((err) => console.error("Session stop failed:", err));
       }
 
-      Alert.alert(
-        "Session Finished",
-        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nBatches: ${batchSentCount}\nReports: ${reportCount}`,
-      );
+      toast.success(`Session saved · ${formatDuration(elapsed)}`);
       setSessionId(null);
     }
   };
