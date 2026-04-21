@@ -18,22 +18,26 @@ const parseResponse = async (response: Response) => {
   }
 };
 
-const handleResponse = async <T>(response: Response): Promise<T> => {
+
+const handleResponse = async <T>(
+  response: Response,
+  authenticated = false,
+): Promise<T> => {
   const data = await parseResponse(response);
   if (!response.ok) {
     console.log(
+
       "[apiClient] Error response:",
       response.status,
       JSON.stringify(data),
     );
-    if (response.status === 401) {
-      await Promise.all([
+    if (response.status === 401 && authenticated) {
+      Promise.all([
         tokenStorage.clear(),
         roleStorage.clear(),
         patientStorage.clear(),
         usernameStorage.clear(),
-      ]);
-      router.replace("/login");
+      ]).then(() => router.replace("/login"));
     }
     throw new Error(data?.message ?? data?.detail ?? "Request failed");
   }
@@ -52,28 +56,29 @@ export const apiClient = {
       method: "POST",
       headers,
       body: JSON.stringify(body),
-    }).then((res) => handleResponse<T>(res));
+    }).then((res) => handleResponse<T>(res, !!token));
   },
 
+  // No token — never triggers auth redirect (e.g. login, register endpoints)
   postForm: <T>(path: string, body: Record<string, string>): Promise<T> =>
     fetch(url(path), {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
       body: new URLSearchParams(body).toString(),
-    }).then((res) => handleResponse<T>(res)),
+    }).then((res) => handleResponse<T>(res, false)),
 
   get: <T>(path: string, token?: string): Promise<T> => {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
     return fetch(url(path), { method: "GET", headers }).then((res) =>
-      handleResponse<T>(res),
+      handleResponse<T>(res, !!token),
     );
   },
   delete: <T>(path: string, token?: string): Promise<T> => {
     const headers: Record<string, string> = {};
     if (token) headers["Authorization"] = `Bearer ${token}`;
     return fetch(url(path), { method: "DELETE", headers }).then((res) =>
-      handleResponse<T>(res),
+      handleResponse<T>(res, !!token),
     );
   },
   put: <T>(path: string, body: unknown, token?: string): Promise<T> => {
@@ -85,6 +90,6 @@ export const apiClient = {
       method: "PUT",
       headers,
       body: JSON.stringify(body),
-    }).then((res) => handleResponse<T>(res));
+    }).then((res) => handleResponse<T>(res, !!token));
   },
 };

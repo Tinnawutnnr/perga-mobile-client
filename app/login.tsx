@@ -32,11 +32,12 @@ export default function LoginScreen() {
   const C = AuthPalette[scheme];
   const [securePassword, setSecurePassword] = useState(true);
   const [formError, setFormError] = useState<string | null>(null);
-  const { saveToken, saveRole, saveUsername } = useAuth();
+  const { saveToken, saveRole, saveUsername, clearToken } = useAuth();
 
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -47,24 +48,44 @@ export default function LoginScreen() {
     setFormError(null);
     try {
       const res = await authApi.login({
-        username: data.username,
+        username: data.username.trim(),
         password: data.password,
       });
+
       await saveToken(res.access_token);
-      const status = await profileApi.getStatus(res.access_token);
+
+      // Fetch role separately — if this fails, roll back the saved token so the
+      // app doesn't end up in a partially-authenticated state on next launch.
+      let status: { role: string };
+      try {
+        status = await profileApi.getStatus(res.access_token);
+      } catch {
+        await clearToken();
+        setFormError("Signed in but couldn't load your profile. Please try again.");
+        return;
+      }
+
       await saveRole(status.role);
-      await saveUsername(data.username);
+      await saveUsername(data.username.trim());
       if (status.role === "caregiver") {
         router.replace("/(tabs)/patient-selection");
       } else {
         router.replace("/(tabs)/home");
       }
     } catch (error) {
-      setFormError(
-        error instanceof Error
-          ? error.message
-          : "Unable to sign in. Check your credentials and try again."
-      );
+      // Clear the password field — never leave credentials pre-filled after a failure
+      setValue("password", "");
+
+      if (error instanceof TypeError) {
+        // fetch threw before a response arrived — network unreachable or timeout
+        setFormError("Unable to connect. Check your internet connection and try again.");
+      } else {
+        setFormError(
+          error instanceof Error
+            ? error.message
+            : "Unable to sign in. Check your credentials and try again."
+        );
+      }
     }
   };
 
