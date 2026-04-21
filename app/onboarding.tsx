@@ -18,7 +18,7 @@ export default function OnboardingScreen() {
         <Text style={styles.wordmark}>PERGA</Text>
         <View style={styles.rule} />
         <Text style={styles.tagline}>
-          Gait monitoring for{"\n"}the people who matter.
+          Gait monitoring for{"\n"} people who matter.
         </Text>
       </View>
 
