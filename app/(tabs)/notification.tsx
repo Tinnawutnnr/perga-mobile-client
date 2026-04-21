@@ -2,17 +2,15 @@ import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Colors } from "@/constants/theme";
-import { useAuth } from "@/context/auth-context";
 import {
   calculatePercentDiff,
   useAnomalyData,
 } from "@/hooks/use-anomaly-data";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { usePatientStore } from "@/store/patient-store";
 import { AnomalyLog } from "@/types/anomaly";
 import { Ionicons } from "@expo/vector-icons";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
 import {
   ActivityIndicator,
@@ -428,10 +426,6 @@ export default function AlertsScreen() {
   const scheme = useColorScheme() ?? "light";
   const C = Colors[scheme];
 
-  const { role, username } = useAuth();
-  const { selectedPatient } = usePatientStore();
-  const headerName = role === "caregiver" ? selectedPatient?.username : username;
-
   const { chartData, rawEntries, scale, setScale, loading, error, refresh } =
     useAnomalyData();
 
@@ -499,33 +493,17 @@ export default function AlertsScreen() {
             </ThemedText>
           </View>
 
-          <View style={styles.headerRight}>
-            {unreadCount > 0 && (
-              <TouchableOpacity
-                onPress={markAllRead}
-                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-                accessibilityRole="button"
-              >
-                <ThemedText style={[styles.markAllText, { color: tintColor }]}>
-                  Mark read
-                </ThemedText>
-              </TouchableOpacity>
-            )}
+          {unreadCount > 0 && (
             <TouchableOpacity
-              style={styles.avatarWrap}
-              onPress={() => router.push("/profile")}
-              activeOpacity={0.8}
+              onPress={markAllRead}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
             >
-              {!!headerName && (
-                <ThemedText style={styles.patientName} numberOfLines={1}>
-                  {headerName}
-                </ThemedText>
-              )}
-              <View style={[styles.avatar, { backgroundColor: cardColor }]}>
-                <Ionicons name="person" size={22} color={tintColor} />
-              </View>
+              <ThemedText style={[styles.markAllText, { color: tintColor }]}>
+                Mark read
+              </ThemedText>
             </TouchableOpacity>
-          </View>
+          )}
         </ThemedView>
 
         {error && (
@@ -675,27 +653,7 @@ const styles = StyleSheet.create({
   },
   badgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
   subtitle: { fontSize: 13, marginTop: 2 },
-  headerRight: { alignItems: "flex-end", gap: 8 },
   markAllText: { fontSize: 13, fontWeight: "600" },
-  avatarWrap: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    maxWidth: 160,
-  },
-  patientName: {
-    fontSize: 14,
-    fontWeight: "600",
-    flexShrink: 1,
-    textAlign: "right",
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
 
   errorText: { fontSize: 14, marginBottom: 12 },
 

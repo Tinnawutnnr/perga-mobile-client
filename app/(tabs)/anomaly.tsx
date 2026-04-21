@@ -1,11 +1,9 @@
 import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
-import { useAuth } from "@/context/auth-context";
 import { useAnomalyData } from "@/hooks/use-anomaly-data";
 import { useThemeColor } from "@/hooks/use-theme-color";
-import { usePatientStore } from "@/store/patient-store";
-import { router, useFocusEffect } from "expo-router";
+import { useFocusEffect } from "expo-router";
 import React, { useCallback } from "react";
 import {
   ActivityIndicator,
@@ -26,10 +24,6 @@ export default function AnomalyScreen() {
   const tintColor = useThemeColor({}, "tint");
   const scheme = useColorScheme() ?? "light";
   const C = Colors[scheme];
-
-  const { role, username } = useAuth();
-  const { selectedPatient } = usePatientStore();
-  const headerName = role === "caregiver" ? selectedPatient?.username : username;
 
   const {
     chartData,
@@ -65,20 +59,6 @@ export default function AnomalyScreen() {
             </ThemedText>
           </View>
 
-          <TouchableOpacity
-            style={styles.avatarRow}
-            onPress={() => router.push("/profile")}
-            activeOpacity={0.8}
-          >
-            {!!headerName && (
-              <ThemedText style={styles.patientName} numberOfLines={1}>
-                {headerName}
-              </ThemedText>
-            )}
-            <View style={[styles.avatar, { backgroundColor: cardColor }]}>
-              <Ionicons name="person" size={22} color={tintColor} />
-            </View>
-          </TouchableOpacity>
         </ThemedView>
 
         {/* Error */}
@@ -135,25 +115,6 @@ const styles = StyleSheet.create({
   },
   title: { fontSize: 28, fontWeight: "700", lineHeight: 28 },
   subtitle: { fontSize: 13, marginTop: 2 },
-  avatarRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 8,
-    maxWidth: 180,
-  },
-  patientName: {
-    fontSize: 14,
-    fontWeight: "600",
-    flexShrink: 1,
-    textAlign: "right",
-  },
-  avatar: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    justifyContent: "center",
-    alignItems: "center",
-  },
   errorText: {
     fontSize: 14,
     marginBottom: 12,
