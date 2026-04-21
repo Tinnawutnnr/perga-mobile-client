@@ -1,6 +1,9 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from "react-native";
+import { Modal, StyleSheet, TouchableOpacity, View } from "react-native";
+import { ThemedText } from "../themed-text";
 
 type Props = {
   visible: boolean;
@@ -9,41 +12,53 @@ type Props = {
   onCancel: () => void;
 };
 
-const DeleteConfirmModal = ({
-  visible,
-  patientName,
-  onConfirm,
-  onCancel,
-}: Props) => {
+const DeleteConfirmModal = ({ visible, patientName, onConfirm, onCancel }: Props) => {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+
   return (
-    <Modal visible={visible} transparent animationType="fade" onRequestClose={onCancel}>
+    <Modal
+      visible={visible}
+      transparent
+      animationType="fade"
+      onRequestClose={onCancel}
+    >
       <View style={styles.overlay}>
-        <View style={styles.container}>
-          <View style={styles.iconWrapper}>
-            <Text style={styles.icon}>
-              <Ionicons name="trash-outline" size={24} color="#EF4444" />
-            </Text>
+        <View style={[styles.container, { backgroundColor: C.card }]}>
+          <View style={[styles.iconDisc, { backgroundColor: `${C.error}18` }]}>
+            <Ionicons name="person-remove-outline" size={22} color={C.error} />
           </View>
-          <Text style={styles.title}>Delete Patient</Text>
-          <Text style={styles.message}>
-            Are you sure you want to delete{" "}
-            <Text style={styles.bold}>{patientName}</Text>? This action cannot
-            be undone.
-          </Text>
+
+          <ThemedText style={styles.title}>Remove patient?</ThemedText>
+          <ThemedText type="muted" style={styles.message}>
+            {patientName
+              ? `${patientName} will be unlinked from your account. You can add them again later.`
+              : "This patient will be unlinked from your account. You can add them again later."}
+          </ThemedText>
+
+          <View style={[styles.divider, { backgroundColor: C.border }]} />
+
           <View style={styles.buttonRow}>
             <TouchableOpacity
               style={styles.cancelButton}
               onPress={onCancel}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <ThemedText style={[styles.cancelText, { color: C.muted }]}>
+                Cancel
+              </ThemedText>
             </TouchableOpacity>
+            <View style={[styles.buttonDivider, { backgroundColor: C.border }]} />
             <TouchableOpacity
-              style={styles.deleteButton}
+              style={styles.confirmButton}
               onPress={onConfirm}
               activeOpacity={0.8}
+              accessibilityRole="button"
             >
-              <Text style={styles.deleteText}>Delete</Text>
+              <ThemedText style={[styles.confirmText, { color: C.error }]}>
+                Remove
+              </ThemedText>
             </TouchableOpacity>
           </View>
         </View>
@@ -57,77 +72,68 @@ export default DeleteConfirmModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "center",
     alignItems: "center",
     paddingHorizontal: 32,
   },
   container: {
-    backgroundColor: "#FFFFFF",
     borderRadius: 20,
-    padding: 24,
     width: "100%",
     alignItems: "center",
+    paddingTop: 28,
+    overflow: "hidden",
   },
-  iconWrapper: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: "#FEE2E2",
+  iconDisc: {
+    width: 52,
+    height: 52,
+    borderRadius: 26,
     justifyContent: "center",
     alignItems: "center",
     marginBottom: 16,
   },
-  icon: {
-    fontSize: 24,
-  },
   title: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "700",
-    color: "#000000",
+    letterSpacing: -0.2,
     marginBottom: 8,
+    textAlign: "center",
   },
   message: {
     fontSize: 14,
-    color: "#808080",
-    textAlign: "center",
     lineHeight: 20,
+    textAlign: "center",
+    paddingHorizontal: 16,
     marginBottom: 24,
   },
-  bold: {
-    fontWeight: "600",
-    color: "#000000",
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    width: "100%",
   },
   buttonRow: {
     flexDirection: "row",
-    gap: 12,
     width: "100%",
+    height: 52,
+  },
+  buttonDivider: {
+    width: StyleSheet.hairlineWidth,
   },
   cancelButton: {
     flex: 1,
-    height: 48,
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: "#E5E5E5",
     justifyContent: "center",
     alignItems: "center",
   },
   cancelText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#808080",
+    fontSize: 16,
+    fontWeight: "500",
   },
-  deleteButton: {
+  confirmButton: {
     flex: 1,
-    height: 48,
-    borderRadius: 12,
-    backgroundColor: "#EF4444",
     justifyContent: "center",
     alignItems: "center",
   },
-  deleteText: {
-    fontSize: 14,
+  confirmText: {
+    fontSize: 16,
     fontWeight: "600",
-    color: "#FFFFFF",
   },
 });

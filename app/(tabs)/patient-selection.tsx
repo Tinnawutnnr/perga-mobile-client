@@ -2,8 +2,12 @@ import { PatientBrief } from "@/api/caregiver";
 import AddPatientModal from "@/components/patient-component/add-patient-modal";
 import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
 import PatientCard from "@/components/patient-component/patient-card";
+import { ThemedText } from "@/components/themed-text";
+import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { usePatientSelection } from "@/hooks/use-patients";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { usePatientStore } from "@/store/patient-store";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -12,19 +16,29 @@ import {
   ActivityIndicator,
   ScrollView,
   StyleSheet,
-  Text,
   TouchableOpacity,
   View,
-  useColorScheme,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+
+function hexToRGBA(hex: string, alpha: number) {
+  if (!/^#([A-Fa-f0-9]{6})$/.test(hex)) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 const PatientSelectionScreen = () => {
-  const router = useRouter(); // <-- Initialize the router
-  const colorScheme = useColorScheme();
-  const isDarkMode = colorScheme === "dark";
-  const primaryOnPrimaryColor = isDarkMode ? "#000000" : "#FFFFFF";
-  const emptyIconColor = isDarkMode ? "#4F7D81" : "#B0C8CA";
+  const router = useRouter();
+  const insets = useSafeAreaInsets();
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+  const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
+  const borderColor = useThemeColor({}, "border");
+  const tintColor = useThemeColor({}, "tint");
+  const mutedColor = useThemeColor({}, "muted");
 
   const {
     patients,
@@ -39,7 +53,6 @@ const PatientSelectionScreen = () => {
   } = usePatientSelection();
 
   const [deleteTarget, setDeleteTarget] = useState<PatientBrief | null>(null);
-
   const { clearToken } = useAuth();
   const { setSelectedPatient } = usePatientStore();
 
@@ -49,80 +62,118 @@ const PatientSelectionScreen = () => {
     router.replace("/login");
   };
 
-  return (
-    <SafeAreaView style={styles.safeArea}>
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={styles.contentContainer}>
-          <View style={styles.titleRow}>
-            <View>
-              <Text style={styles.title}>Select Patient</Text>
-              <Text style={styles.subtitle}>
-                Choose a patient to continue monitoring
-              </Text>
-            </View>
-            <TouchableOpacity
-              style={styles.addButton}
-              onPress={() => setShowAddModal(true)}
-              activeOpacity={0.8}
-            >
-              <Ionicons name="add" size={24} color={primaryOnPrimaryColor} />
-            </TouchableOpacity>
-          </View>
+  const canConfirm = !!selectedId && !isConfirming;
 
-          {/* Render when patient found, otherwise show no patient found */}
-          {patients.length > 0 ? (
-            patients.map((patient) => (
+  return (
+    <View style={[styles.safeArea, { backgroundColor }]}>
+      <ScrollView
+        style={{ flex: 1 }}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 16, paddingBottom: insets.bottom + 32 },
+        ]}
+      >
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <View style={{ flex: 1, gap: 3 }}>
+            <ThemedText style={styles.title}>Your patients</ThemedText>
+            <ThemedText type="muted" style={styles.subtitle}>
+              Select who you're monitoring today
+            </ThemedText>
+          </View>
+          <TouchableOpacity
+            onPress={handleLogout}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Sign out"
+          >
+            <ThemedText style={[styles.signOutText, { color: mutedColor }]}>
+              Sign out
+            </ThemedText>
+          </TouchableOpacity>
+        </View>
+
+        {/* Patient list */}
+        {patients.length > 0 ? (
+          <View
+            style={[
+              styles.listContainer,
+              { backgroundColor: cardColor, borderColor },
+            ]}
+          >
+            {patients.map((patient, index) => (
               <PatientCard
                 key={patient.id}
                 patient={patient}
                 isSelected={selectedId === patient.id}
                 onPress={handleSelect}
                 onDelete={setDeleteTarget}
+                isLast={index === patients.length - 1}
               />
-            ))
-          ) : (
-            <View style={styles.emptyContainer}>
-              <Ionicons name="people-outline" size={64} color={emptyIconColor} />
-              <Text style={styles.emptyTitle}>No Patients Found</Text>
-              <Text style={styles.emptySubtitle}>
-                Please add a patient or create account before proceeding.
-              </Text>
-            </View>
-          )}
-
-          {/* Conditionally render Back button or Confirm button based on patients length */}
-          {patients.length === 0 ? (
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleLogout}
-              activeOpacity={0.8}
-            >
-              <Text style={styles.backButtonText}>Back</Text>
-            </TouchableOpacity>
-          ) : (
-            <TouchableOpacity
+            ))}
+          </View>
+        ) : (
+          <View style={styles.emptyBlock}>
+            <View
               style={[
-                styles.confirmButton,
-                (!selectedId || isConfirming) && styles.confirmButtonDisabled,
+                styles.emptyDisc,
+                { backgroundColor: hexToRGBA(tintColor, 0.08) },
               ]}
-              onPress={handleConfirm}
-              activeOpacity={0.8}
-              disabled={!selectedId || isConfirming}
             >
-              {isConfirming ? (
-                <ActivityIndicator color={primaryOnPrimaryColor} />
-              ) : (
-                <Text style={styles.confirmButtonText}>Confirm</Text>
-              )}
-            </TouchableOpacity>
-          )}
-        </View>
+              <Ionicons name="people-outline" size={30} color={tintColor} />
+            </View>
+            <ThemedText style={styles.emptyTitle}>No patients yet</ThemedText>
+            <ThemedText type="muted" style={styles.emptyBody}>
+              Add a patient by their username to start monitoring their gait health.
+            </ThemedText>
+          </View>
+        )}
+
+        {/* Add patient row */}
+        <TouchableOpacity
+          style={styles.addRow}
+          onPress={() => setShowAddModal(true)}
+          activeOpacity={0.7}
+          accessibilityRole="button"
+          accessibilityLabel="Add a patient"
+        >
+          <Ionicons name="add-circle-outline" size={17} color={tintColor} />
+          <ThemedText style={[styles.addText, { color: tintColor }]}>
+            Add a patient
+          </ThemedText>
+        </TouchableOpacity>
+
+        {/* Spacer pushes button toward bottom */}
+        <View style={{ flex: 1, minHeight: 32 }} />
+
+        {/* Continue button — only shown when there are patients */}
+        {patients.length > 0 && (
+          <TouchableOpacity
+            style={[
+              styles.confirmButton,
+              {
+                backgroundColor: canConfirm
+                  ? tintColor
+                  : hexToRGBA(tintColor, 0.35),
+              },
+            ]}
+            onPress={handleConfirm}
+            activeOpacity={0.85}
+            disabled={!canConfirm}
+            accessibilityRole="button"
+            accessibilityState={{ disabled: !canConfirm }}
+            accessibilityLabel="Continue with selected patient"
+          >
+            {isConfirming ? (
+              <ActivityIndicator color="#FFFFFF" />
+            ) : (
+              <ThemedText style={styles.confirmText}>Continue</ThemedText>
+            )}
+          </TouchableOpacity>
+        )}
       </ScrollView>
 
-      {/* Modals remain the same */}
       <AddPatientModal
         visible={showAddModal}
         onConfirm={handleAddPatient}
@@ -142,84 +193,94 @@ const PatientSelectionScreen = () => {
         }}
         onCancel={() => setDeleteTarget(null)}
       />
-    </SafeAreaView>
+    </View>
   );
 };
 
 export default PatientSelectionScreen;
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#FFFFFF" },
-  scrollContent: { flexGrow: 1, backgroundColor: "#FFFFFF" },
-  contentContainer: {
+  safeArea: { flex: 1 },
+  scroll: {
     paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
+    flexGrow: 1,
   },
-  titleRow: {
+
+  headerRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     alignItems: "flex-start",
-    marginBottom: 24,
+    marginBottom: 28,
   },
   title: {
     fontSize: 28,
     fontWeight: "700",
-    color: "#000000",
-    marginBottom: 4,
+    letterSpacing: -0.4,
+    lineHeight: 34,
   },
   subtitle: {
+    fontSize: 13,
+    lineHeight: 19,
+  },
+  signOutText: {
     fontSize: 14,
-    color: "#808080",
+    fontWeight: "500",
+    marginTop: 6,
   },
-  addButton: {
-    width: 44,
-    height: 44,
-    borderRadius: 12,
-    backgroundColor: "#4F7D81",
+
+  listContainer: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    overflow: "hidden",
+    marginBottom: 12,
+  },
+
+  emptyBlock: {
+    alignItems: "center",
+    paddingVertical: 48,
+    gap: 12,
+  },
+  emptyDisc: {
+    width: 72,
+    height: 72,
+    borderRadius: 36,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 4,
-  },
-  confirmButton: {
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#4F7D81",
-    justifyContent: "center",
-    alignItems: "center",
-    marginTop: 12,
-  },
-  confirmButtonDisabled: { backgroundColor: "#B0C8CA" },
-  confirmButtonText: { color: "#FFFFFF", fontSize: 16, fontWeight: "600" },
-  emptyContainer: {
-    paddingVertical: 64,
-    alignItems: "center",
-    justifyContent: "center",
+    marginBottom: 4,
   },
   emptyTitle: {
-    fontSize: 18,
+    fontSize: 17,
     fontWeight: "600",
-    color: "#4F7D81",
-    marginTop: 16,
-    marginBottom: 8,
+    letterSpacing: -0.2,
   },
-  emptySubtitle: {
+  emptyBody: {
     fontSize: 14,
-    color: "#808080",
+    lineHeight: 20,
     textAlign: "center",
-    paddingHorizontal: 24,
+    maxWidth: 260,
   },
-  backButton: {
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#F2F2F2", // A neutral color for the back button
+
+  addRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 7,
+    paddingVertical: 12,
+    alignSelf: "flex-start",
+  },
+  addText: {
+    fontSize: 14,
+    fontWeight: "600",
+  },
+
+  confirmButton: {
+    height: 60,
+    borderRadius: 14,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 12,
   },
-  backButtonText: {
-    color: "#4F7D81", // Brand color text on neutral background
-    fontSize: 16,
-    fontWeight: "600",
+  confirmText: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.1,
   },
 });

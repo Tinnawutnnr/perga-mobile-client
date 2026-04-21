@@ -1,15 +1,17 @@
 import PrimaryInput from "@/components/primary-input";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import React, { useState } from "react";
 import {
-    ActivityIndicator,
-    KeyboardAvoidingView,
-    Modal,
-    Platform,
-    StyleSheet,
-    Text,
-    TouchableOpacity,
-    View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Modal,
+  Platform,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
+import { ThemedText } from "../themed-text";
 
 type Props = {
   visible: boolean;
@@ -18,6 +20,9 @@ type Props = {
 };
 
 const AddPatientModal = ({ visible, onConfirm, onCancel }: Props) => {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+
   const [username, setUsername] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -53,12 +58,13 @@ const AddPatientModal = ({ visible, onConfirm, onCancel }: Props) => {
         style={styles.overlay}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
-        <View style={styles.container}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Add Patient</Text>
-          <Text style={styles.subtitle}>
-            Enter the patient's username to link them to your account
-          </Text>
+        <View style={[styles.sheet, { backgroundColor: C.card }]}>
+          <View style={[styles.handle, { backgroundColor: C.border }]} />
+
+          <ThemedText style={styles.title}>Add patient</ThemedText>
+          <ThemedText type="muted" style={styles.subtitle}>
+            Enter their username to link them to your account.
+          </ThemedText>
 
           <PrimaryInput
             value={username}
@@ -66,34 +72,43 @@ const AddPatientModal = ({ visible, onConfirm, onCancel }: Props) => {
               setUsername(t);
               setError(null);
             }}
-            placeholder="Patient username"
+            placeholder="Username"
+            autoCapitalize="none"
             keyboardType="default"
             hasError={!!error}
           />
-          {error && <Text style={styles.errorText}>{error}</Text>}
+          {error && (
+            <ThemedText style={[styles.errorText, { color: C.error }]}>
+              {error}
+            </ThemedText>
+          )}
 
           <View style={styles.buttonRow}>
             <TouchableOpacity
-              style={styles.cancelButton}
+              style={[styles.cancelButton, { borderColor: C.border }]}
               onPress={handleCancel}
               activeOpacity={0.8}
               disabled={isLoading}
+              accessibilityRole="button"
             >
-              <Text style={styles.cancelText}>Cancel</Text>
+              <ThemedText style={[styles.cancelText, { color: C.muted }]}>
+                Cancel
+              </ThemedText>
             </TouchableOpacity>
             <TouchableOpacity
               style={[
                 styles.addButton,
-                (!username.trim() || isLoading) && styles.addButtonDisabled,
+                { backgroundColor: !username.trim() || isLoading ? C.border : C.tint },
               ]}
               onPress={handleConfirm}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               disabled={!username.trim() || isLoading}
+              accessibilityRole="button"
             >
               {isLoading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.addText}>Add</Text>
+                <ThemedText style={styles.addText}>Add</ThemedText>
               )}
             </TouchableOpacity>
           </View>
@@ -108,71 +123,62 @@ export default AddPatientModal;
 const styles = StyleSheet.create({
   overlay: {
     flex: 1,
-    backgroundColor: "rgba(0,0,0,0.4)",
+    backgroundColor: "rgba(0,0,0,0.45)",
     justifyContent: "flex-end",
   },
-  container: {
-    backgroundColor: "#FFFFFF",
+  sheet: {
     borderTopLeftRadius: 24,
     borderTopRightRadius: 24,
-    padding: 24,
+    paddingHorizontal: 24,
+    paddingTop: 16,
     paddingBottom: 40,
   },
   handle: {
-    width: 40,
+    width: 36,
     height: 4,
     borderRadius: 2,
-    backgroundColor: "#E5E5E5",
     alignSelf: "center",
-    marginBottom: 20,
+    marginBottom: 24,
   },
   title: {
     fontSize: 20,
     fontWeight: "700",
-    color: "#000000",
-    marginBottom: 8,
+    letterSpacing: -0.3,
+    marginBottom: 6,
   },
   subtitle: {
     fontSize: 14,
-    color: "#808080",
-    marginBottom: 20,
     lineHeight: 20,
+    marginBottom: 20,
   },
   errorText: {
     fontSize: 13,
-    color: "#EF4444",
     marginTop: -8,
     marginBottom: 8,
   },
   buttonRow: {
     flexDirection: "row",
     gap: 12,
-    marginTop: 8,
+    marginTop: 12,
   },
   cancelButton: {
     flex: 1,
-    height: 50,
+    height: 52,
     borderRadius: 14,
-    borderWidth: 1.5,
-    borderColor: "#E5E5E5",
+    borderWidth: StyleSheet.hairlineWidth,
     justifyContent: "center",
     alignItems: "center",
   },
   cancelText: {
     fontSize: 15,
     fontWeight: "600",
-    color: "#808080",
   },
   addButton: {
     flex: 1,
-    height: 50,
+    height: 52,
     borderRadius: 14,
-    backgroundColor: "#4F7D81",
     justifyContent: "center",
     alignItems: "center",
-  },
-  addButtonDisabled: {
-    backgroundColor: "#B0C8CA",
   },
   addText: {
     fontSize: 15,
