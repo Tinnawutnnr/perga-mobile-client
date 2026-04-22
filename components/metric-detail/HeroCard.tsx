@@ -1,124 +1,141 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MetricDetailData } from "@/types/metric";
-import { Ionicons } from "@expo/vector-icons";
 import React, { useEffect, useRef, useState } from "react";
 import { Animated, StyleSheet, View } from "react-native";
 
-const STATUS_COLOR: Record<string, string> = {
-  success: "#4CAF50",
-  warning: "#FF9800",
-  error: "#F44336",
-  info: "#2196F3",
-};
-
-const resolveColor = (color: string): string => STATUS_COLOR[color] ?? color;
+function useStatusColor(colorStr: string): string {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+  const map: Record<string, string> = {
+    success: C.success,
+    warning: C.warning,
+    error: C.error,
+    info: C.info,
+  };
+  return map[colorStr] ?? colorStr;
+}
 
 const HeroCard = ({ data }: { data: MetricDetailData }) => {
+  const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const mutedColor = useThemeColor({}, "muted");
+  const statusColor = useStatusColor(data.statusColor);
+
   const [trackWidth, setTrackWidth] = useState(0);
   const animatedWidth = useRef(new Animated.Value(0)).current;
-
   const clampedProgress = Math.min(Math.max(data.progress, 0), 1);
-  const statusColor = resolveColor(data.statusColor);
 
   useEffect(() => {
     if (trackWidth > 0) {
-      const targetWidth =
-        clampedProgress > 0 ? Math.max(trackWidth * clampedProgress, 4) : 0;
-
       Animated.timing(animatedWidth, {
-        toValue: targetWidth,
-        duration: 600,
+        toValue: clampedProgress > 0 ? Math.max(trackWidth * clampedProgress, 4) : 0,
+        duration: 500,
         useNativeDriver: false,
       }).start();
     }
   }, [trackWidth, clampedProgress]);
 
   return (
-    <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
-      <View style={styles.valueWrap}>
-        <Ionicons name={data.iconName} size={28} color={statusColor} />
-        <View style={styles.valueTextWrap}>
-          <ThemedText type="title" style={{ fontSize: 24, lineHeight: 34 }}>
-            {data.value}
-          </ThemedText>
-          <ThemedText
-            style={{ fontSize: 14, color: mutedColor, marginBottom: 4 }}
-          >
-            {data.subValue}
-          </ThemedText>
-        </View>
+    <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+      {/* Value + unit */}
+      <View style={styles.valueRow}>
+        <ThemedText style={styles.value}>{data.value}</ThemedText>
+        <ThemedText style={[styles.unit, { color: mutedColor }]}>
+          {data.subValue}
+        </ThemedText>
       </View>
 
-      <ThemedText
-        type="defaultSemiBold"
-        style={[styles.statusText, { color: statusColor }]}
-      >
-        {data.status}
-      </ThemedText>
+      {/* Status */}
+      <View style={styles.statusRow}>
+        <View style={[styles.statusDot, { backgroundColor: statusColor }]} />
+        <ThemedText style={[styles.statusText, { color: statusColor }]}>
+          {data.status}
+        </ThemedText>
+      </View>
 
+      {/* Progress track */}
       <View
-        style={[styles.progressTrack, { backgroundColor: borderColor }]}
+        style={[styles.track, { backgroundColor: borderColor }]}
         onLayout={(e) => setTrackWidth(e.nativeEvent.layout.width)}
       >
         <Animated.View
-          style={{
-            width: animatedWidth,
-            height: 12,
-            backgroundColor: statusColor,
-            borderRadius: 6,
-          }}
+          style={[styles.fill, { width: animatedWidth, backgroundColor: statusColor }]}
         />
       </View>
 
       <View style={styles.rangeRow}>
-        <ThemedText style={{ fontSize: 12, color: mutedColor }}>
+        <ThemedText style={[styles.rangeLabel, { color: mutedColor }]}>
           {data.minLabel}
         </ThemedText>
-        <ThemedText style={{ fontSize: 12, color: mutedColor }}>
+        <ThemedText style={[styles.rangeLabel, { color: mutedColor }]}>
           {data.maxLabel}
         </ThemedText>
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
+export default HeroCard;
+
 const styles = StyleSheet.create({
-  card: { borderRadius: 12, padding: 18, marginBottom: 14 },
-  valueWrap: {
+  card: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 20,
+    marginBottom: 12,
+  },
+  valueRow: {
+    flexDirection: "row",
+    alignItems: "baseline",
+    gap: 8,
+    marginBottom: 8,
+  },
+  value: {
+    fontSize: 40,
+    fontWeight: "700",
+    letterSpacing: -1,
+    lineHeight: 48,
+    fontVariant: ["tabular-nums"],
+  },
+  unit: {
+    fontSize: 16,
+    fontWeight: "500",
+    lineHeight: 24,
+  },
+  statusRow: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "center",
-    gap: 10,
+    gap: 7,
+    marginBottom: 16,
   },
-  valueTextWrap: { flexDirection: "row", alignItems: "baseline", gap: 6 },
+  statusDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
   statusText: {
-    textAlign: "center",
-    fontSize: 15,
-    marginTop: 6,
-    marginBottom: 14,
+    fontSize: 14,
+    fontWeight: "600",
   },
-  progressTrack: {
-    height: 12,
-    borderRadius: 6,
+  track: {
+    height: 6,
+    borderRadius: 3,
+  },
+  fill: {
+    height: 6,
+    borderRadius: 3,
   },
   rangeRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    marginTop: 10,
+    marginTop: 8,
   },
-  goalRow: {
-    marginTop: 14,
-    paddingTop: 14,
-    borderTopWidth: 1,
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    gap: 8,
+  rangeLabel: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.1,
   },
 });
-
-export default HeroCard;

@@ -2,6 +2,7 @@ import { patientApi } from "@/api/patient";
 import { sessionApi } from "@/api/session";
 import { CumulativeStatsCard } from "@/components/activity/CumulativeStatsCard";
 import { WindowStatCard } from "@/components/activity/WindowStatCard";
+import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useMqtt } from "@/hooks/use-mqtt";
@@ -462,7 +463,7 @@ const styles = StyleSheet.create({
     marginTop: 8,
     marginBottom: 24,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 28 },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 28, fontFamily: Fonts.heading },
   subtitle: { fontSize: 13, marginTop: 2 },
   mqttBadge: {
     flexDirection: "row",

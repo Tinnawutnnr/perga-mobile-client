@@ -1,6 +1,7 @@
 import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
 import {
   calculatePercentDiff,
@@ -642,7 +643,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 32 },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 32, fontFamily: Fonts.heading },
   badge: {
     borderRadius: 10,
     paddingHorizontal: 7,

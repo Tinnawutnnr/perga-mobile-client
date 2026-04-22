@@ -17,6 +17,7 @@ import { z } from "zod";
 import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
 import { AuthPalette, AuthRadius, AuthSpacing } from "../constants/auth-theme";
+import { Fonts } from "../constants/fonts";
 import { useColorScheme } from "../hooks/use-color-scheme";
 
 const resetPasswordSchema = z
@@ -305,6 +306,7 @@ const styles = StyleSheet.create({
     fontSize: 30,
     fontWeight: "700",
     letterSpacing: -0.5,
+    fontFamily: Fonts.heading,
   },
   subheading: {
     fontSize: 16,

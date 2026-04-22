@@ -3,6 +3,7 @@ import AddPatientModal from "@/components/patient-component/add-patient-modal";
 import DeleteConfirmModal from "@/components/patient-component/delete-confirm";
 import PatientCard from "@/components/patient-component/patient-card";
 import { ThemedText } from "@/components/themed-text";
+import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -216,6 +217,7 @@ const styles = StyleSheet.create({
     fontWeight: "700",
     letterSpacing: -0.4,
     lineHeight: 34,
+    fontFamily: Fonts.heading,
   },
   subtitle: {
     fontSize: 13,

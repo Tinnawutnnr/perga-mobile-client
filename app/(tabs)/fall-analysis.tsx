@@ -3,6 +3,7 @@ import { DatePickerField } from "@/components/home/DatePickerField";
 import SummaryBanner from "@/components/home/SummaryBanner";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { CompareDuration, useHomeData } from "@/hooks/use-home-data";
@@ -281,7 +282,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 28 },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 28, fontFamily: Fonts.heading },
   subtitle: { fontSize: 13, marginTop: 2 },
   errorText: {
     fontSize: 14,

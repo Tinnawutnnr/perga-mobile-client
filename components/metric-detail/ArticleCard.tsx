@@ -1,54 +1,66 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { MetricDetailData } from "@/types/metric";
 import { Ionicons } from "@expo/vector-icons";
 import React from "react";
-import { StyleSheet, TouchableOpacity } from "react-native";
+import { StyleSheet, TouchableOpacity, View } from "react-native";
 
 const ArticleCard = ({ data }: { data: MetricDetailData }) => {
+  const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const mutedColor = useThemeColor({}, "muted");
+  const tintColor = useThemeColor({}, "tint");
 
   return (
-    <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
-      <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-        {data.articleTitle}
-      </ThemedText>
-      <ThemedText
-        style={{
-          fontSize: 13,
-          color: mutedColor,
-          lineHeight: 20,
-          marginBottom: 12,
-        }}
-      >
+    <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+      <ThemedText style={styles.sectionTitle}>{data.articleTitle}</ThemedText>
+      <ThemedText style={[styles.body, { color: mutedColor }]}>
         {data.articleBody}
       </ThemedText>
       <TouchableOpacity
         style={[styles.learnMore, { borderTopColor: borderColor }]}
+        activeOpacity={0.7}
+        accessibilityRole="link"
       >
-        <ThemedText type="defaultSemiBold" style={{ fontSize: 13 }}>
+        <ThemedText style={[styles.learnMoreText, { color: tintColor }]}>
           Learn more
         </ThemedText>
-        <Ionicons name="chevron-forward" size={16} color={mutedColor} />
+        <Ionicons name="arrow-forward" size={14} color={tintColor} />
       </TouchableOpacity>
-    </ThemedView>
+    </View>
   );
 };
 
+export default ArticleCard;
+
 const styles = StyleSheet.create({
-  card: { borderRadius: 12, padding: 18, marginBottom: 14 },
-  sectionTitle: { fontSize: 18, marginBottom: 14 },
+  card: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.1,
+    lineHeight: 22,
+    marginBottom: 10,
+  },
+  body: {
+    fontSize: 14,
+    lineHeight: 21,
+    marginBottom: 14,
+  },
   learnMore: {
-    borderTopWidth: 1,
-    marginTop: 6,
+    borderTopWidth: StyleSheet.hairlineWidth,
     paddingTop: 12,
     flexDirection: "row",
-    justifyContent: "center",
     alignItems: "center",
-    gap: 6,
+    gap: 5,
+  },
+  learnMoreText: {
+    fontSize: 14,
+    fontWeight: "600",
   },
 });
-
-export default ArticleCard;

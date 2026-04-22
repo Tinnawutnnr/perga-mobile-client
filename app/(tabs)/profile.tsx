@@ -1,5 +1,6 @@
 import { profileApi } from "@/api/profile";
 import { ThemedText } from "@/components/themed-text";
+import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
 import { useThemeContext } from "@/context/theme-context";
@@ -248,6 +249,7 @@ const styles = StyleSheet.create({
     letterSpacing: -0.4,
     lineHeight: 34,
     marginBottom: 28,
+    fontFamily: Fonts.heading,
   },
 
   // Identity

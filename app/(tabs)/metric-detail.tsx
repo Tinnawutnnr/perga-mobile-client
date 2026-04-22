@@ -1,9 +1,10 @@
 import ArticleCard from "@/components/metric-detail/ArticleCard";
-import HeroCard from "@/components/metric-detail/HeroCard";
 import ComparisonCard from "@/components/metric-detail/ComparisonCard";
+import HeroCard from "@/components/metric-detail/HeroCard";
 import OtherCompareCard from "@/components/metric-detail/OtherCompareCard";
 import SelfCompareCard from "@/components/metric-detail/SelfCompareCard";
 import { ThemedText } from "@/components/themed-text";
+import { Fonts } from "@/constants/fonts";
 import { CompareMode, useMetricCompare } from "@/hooks/use-metric-compare";
 import { useMetricDetail } from "@/hooks/use-metric-detail";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -17,31 +18,14 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const MODES: {
-  key: CompareMode;
-  label: string;
-  icon: keyof typeof Ionicons.glyphMap;
-}[] = [
-  { key: "self", label: "Self Compare", icon: "person-outline" },
-  { key: "others", label: "Peer Compare", icon: "people-outline" },
+// ─── Mode toggle ──────────────────────────────────────────────────────────────
+
+const MODES: { key: CompareMode; label: string }[] = [
+  { key: "self", label: "Self" },
+  { key: "others", label: "Peers" },
 ];
-
-const Header = ({ title }: { title: string }) => {
-  const textColor = useThemeColor({}, "text");
-  return (
-    <View style={styles.header}>
-      <TouchableOpacity onPress={() => router.back()} activeOpacity={0.7}>
-        <Ionicons name="chevron-back" size={24} color={textColor} />
-      </TouchableOpacity>
-      <ThemedText type="subtitle" style={styles.headerTitle}>
-        {title.toUpperCase()}
-      </ThemedText>
-      <View style={{ width: 24 }} />
-    </View>
-  );
-};
 
 const ModeToggle = ({
   mode,
@@ -50,31 +34,26 @@ const ModeToggle = ({
   mode: CompareMode;
   onModeChange: (m: CompareMode) => void;
 }) => {
+  const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
+  const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
 
   return (
-    <View style={[styles.modeToggle, { borderColor }]}>
+    <View style={[styles.modeToggle, { backgroundColor: cardColor, borderColor }]}>
       {MODES.map((m) => {
         const active = m.key === mode;
         return (
           <TouchableOpacity
             key={m.key}
-            style={[styles.modeBtn, active && styles.modeBtnActive]}
+            style={[styles.modeBtn, active && { backgroundColor: tintColor }]}
             onPress={() => onModeChange(m.key)}
             activeOpacity={0.7}
+            accessibilityRole="radio"
+            accessibilityState={{ checked: active }}
           >
-            <Ionicons
-              name={m.icon}
-              size={15}
-              color={active ? "#fff" : mutedColor}
-              style={{ marginRight: 5 }}
-            />
             <ThemedText
-              style={[
-                styles.modeBtnText,
-                { color: active ? "#fff" : mutedColor },
-              ]}
+              style={[styles.modeBtnText, { color: active ? "#fff" : mutedColor }]}
             >
               {m.label}
             </ThemedText>
@@ -85,41 +64,36 @@ const ModeToggle = ({
   );
 };
 
-const LoadingCard = () => (
-  <View style={styles.stateCard}>
-    <ActivityIndicator size="small" color="#5D7DDF" />
-    <ThemedText style={{ fontSize: 13, marginTop: 10, opacity: 0.5 }}>
-      Loading data…
-    </ThemedText>
-  </View>
-);
+// ─── State cards ──────────────────────────────────────────────────────────────
 
-const ErrorCard = ({
-  message,
-  onRetry,
-}: {
-  message: string;
-  onRetry: () => void;
-}) => {
+const LoadingCard = () => {
+  const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
-
   return (
-    <View style={styles.stateCard}>
-      <Ionicons name="alert-circle-outline" size={28} color="#FF9800" />
-      <ThemedText
-        style={{
-          fontSize: 13,
-          color: mutedColor,
-          marginTop: 8,
-          textAlign: "center",
-        }}
-      >
+    <View style={styles.stateBox}>
+      <ActivityIndicator size="small" color={tintColor} />
+      <ThemedText style={[styles.stateText, { color: mutedColor }]}>
+        Loading…
+      </ThemedText>
+    </View>
+  );
+};
+
+const ErrorCard = ({ message, onRetry }: { message: string; onRetry: () => void }) => {
+  const mutedColor = useThemeColor({}, "muted");
+  const tintColor = useThemeColor({}, "tint");
+  return (
+    <View style={styles.stateBox}>
+      <Ionicons name="alert-circle-outline" size={24} color={mutedColor} />
+      <ThemedText style={[styles.stateText, { color: mutedColor }]}>
         {message}
       </ThemedText>
-      <TouchableOpacity style={styles.retryBtn} onPress={onRetry}>
-        <ThemedText
-          style={{ fontSize: 13, color: "#5D7DDF", fontWeight: "600" }}
-        >
+      <TouchableOpacity
+        style={[styles.retryBtn, { borderColor: tintColor }]}
+        onPress={onRetry}
+        accessibilityRole="button"
+      >
+        <ThemedText style={[styles.retryText, { color: tintColor }]}>
           Retry
         </ThemedText>
       </TouchableOpacity>
@@ -127,36 +101,26 @@ const ErrorCard = ({
   );
 };
 
+// ─── Compare section ──────────────────────────────────────────────────────────
+
 const MetricCompareSection = () => {
   const {
-    mode,
-    setMode,
-    range,
-    setRange,
-    isLoading,
-    error,
-    refetch,
-    selfBars,
-    maxSelf,
-    unit,
-    // benchmark (peer compare)
-    benchmarkBar,
-    benchmarkLoading,
-    benchmarkError,
-    refetchBenchmark,
+    mode, setMode,
+    range, setRange,
+    isLoading, error, refetch,
+    selfBars, maxSelf, unit,
+    benchmarkBar, benchmarkLoading, benchmarkError, refetchBenchmark,
   } = useMetricCompare();
 
   const mutedColor = useThemeColor({}, "muted");
-
-  // ── Loading / error state — pick the right one per active mode ──
   const activeLoading = mode === "self" ? isLoading : benchmarkLoading;
-  const activeError   = mode === "self" ? error      : benchmarkError;
-  const activeRetry   = mode === "self" ? refetch     : refetchBenchmark;
+  const activeError   = mode === "self" ? error     : benchmarkError;
+  const activeRetry   = mode === "self" ? refetch   : refetchBenchmark;
 
   return (
     <>
       <ModeToggle mode={mode} onModeChange={setMode} />
-      <ThemedText style={[styles.modeSubtitle, { color: mutedColor }]}>
+      <ThemedText style={[styles.modeHint, { color: mutedColor }]}>
         {mode === "self"
           ? "Your metric values over time"
           : "How you compare to your peer group"}
@@ -167,7 +131,6 @@ const MetricCompareSection = () => {
       ) : activeError ? (
         <ErrorCard message={activeError} onRetry={activeRetry} />
       ) : mode === "self" ? (
-        /* ── Self compare ── */
         <SelfCompareCard
           bars={selfBars}
           maxValue={maxSelf}
@@ -176,7 +139,6 @@ const MetricCompareSection = () => {
           onRangeChange={setRange}
         />
       ) : benchmarkBar ? (
-        /* ── Peer compare — both cards, stacked ── */
         <>
           <OtherCompareCard bar={benchmarkBar} unit={unit} />
           <ComparisonCard bar={benchmarkBar} unit={unit} />
@@ -186,29 +148,58 @@ const MetricCompareSection = () => {
           No benchmark data available.
         </ThemedText>
       )}
-
-      <View style={{ height: 20 }} />
     </>
   );
 };
 
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
 const MetricDetailScreen = () => {
+  const insets = useSafeAreaInsets();
   const { label, data } = useMetricDetail();
   const backgroundColor = useThemeColor({}, "background");
+  const textColor = useThemeColor({}, "text");
+  const mutedColor = useThemeColor({}, "muted");
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <View style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView
-        style={[styles.container, { backgroundColor }]}
+        style={{ flex: 1 }}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={[
+          styles.scroll,
+          { paddingTop: insets.top + 4, paddingBottom: insets.bottom + 32 },
+        ]}
       >
-        <Header title={label} />
+        {/* Header */}
+        <View style={styles.header}>
+          <TouchableOpacity
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Ionicons name="chevron-back" size={24} color={textColor} />
+          </TouchableOpacity>
+          <View style={{ flex: 1 }}>
+            <ThemedText style={styles.headerTitle}>{label}</ThemedText>
+            <ThemedText type="muted" style={styles.headerSub}>
+              Gait metric detail
+            </ThemedText>
+          </View>
+        </View>
+
+        {/* Hero */}
         <HeroCard data={data} />
+
+        {/* Compare section */}
         <MetricCompareSection />
+
+        {/* Article */}
         <ArticleCard data={data} />
-        <View style={{ height: 20 }} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
 
@@ -216,62 +207,77 @@ export default MetricDetailScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 20 },
+  scroll: {
+    paddingHorizontal: 20,
+    flexGrow: 1,
+  },
+
   header: {
     flexDirection: "row",
     alignItems: "center",
-    justifyContent: "space-between",
-    paddingVertical: 14,
+    gap: 12,
+    paddingVertical: 12,
+    marginBottom: 8,
   },
   headerTitle: {
     fontSize: 22,
-    letterSpacing: 0.6,
+    fontWeight: "700",
+    letterSpacing: -0.3,
+    lineHeight: 28,
+    fontFamily: Fonts.heading,
   },
-  description: {
-    fontSize: 13,
-    lineHeight: 20,
-    marginBottom: 16,
+  headerSub: {
+    fontSize: 12,
+    marginTop: 1,
   },
+
+  // Mode toggle
   modeToggle: {
     flexDirection: "row",
-    borderWidth: 1,
     borderRadius: 10,
-    overflow: "hidden",
-    marginBottom: 10,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 3,
+    marginBottom: 8,
+    gap: 2,
   },
   modeBtn: {
     flex: 1,
-    flexDirection: "row",
+    paddingVertical: 8,
+    borderRadius: 8,
     alignItems: "center",
-    justifyContent: "center",
-    paddingVertical: 10,
-  },
-  modeBtnActive: {
-    backgroundColor: "#5D7DDF",
   },
   modeBtnText: {
     fontSize: 13,
     fontWeight: "600",
   },
-  modeSubtitle: {
+  modeHint: {
     fontSize: 12,
     textAlign: "center",
-    marginBottom: 16,
-  },
-  stateCard: {
-    borderRadius: 12,
-    padding: 32,
-    alignItems: "center",
-    justifyContent: "center",
     marginBottom: 14,
   },
+
+  // State cards
+  stateBox: {
+    borderRadius: 14,
+    paddingVertical: 40,
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 10,
+    marginBottom: 12,
+  },
+  stateText: {
+    fontSize: 13,
+    textAlign: "center",
+  },
   retryBtn: {
-    marginTop: 12,
     paddingHorizontal: 20,
     paddingVertical: 8,
     borderRadius: 8,
-    borderWidth: 1,
-    borderColor: "#5D7DDF",
+    borderWidth: StyleSheet.hairlineWidth,
+  },
+  retryText: {
+    fontSize: 13,
+    fontWeight: "600",
   },
   emptyText: {
     fontSize: 13,

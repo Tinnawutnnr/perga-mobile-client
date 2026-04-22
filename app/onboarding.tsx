@@ -8,6 +8,7 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { AuthRadius, AuthSpacing, WelcomeColors } from "../constants/auth-theme";
+import { Fonts } from "../constants/fonts";
 
 const C = WelcomeColors;
 
@@ -64,6 +65,7 @@ const styles = StyleSheet.create({
     letterSpacing: 10,
     color: C.wordmark,
     marginBottom: AuthSpacing.lg,
+    fontFamily: Fonts.display,
   },
   rule: {
     height: 1,

@@ -1,9 +1,18 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { BenchmarkBar } from "@/types/compare";
 import React from "react";
 import { StyleSheet, View } from "react-native";
+
+function hexToRGBA(hex: string, alpha: number) {
+  if (!/^#([A-Fa-f0-9]{6})$/.test(hex)) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 interface Props {
   bar: BenchmarkBar;
@@ -11,39 +20,33 @@ interface Props {
   higherIsBetter?: boolean;
 }
 
-/**
- * Renders a horizontal range bar showing:
- *   lower_bound ──[====normal range====]── upper_bound
- *                        ▲ cohort avg
- *              ◆ patient value (marker that can sit inside or outside range)
- */
 const OtherCompareCard = ({ bar, unit, higherIsBetter = true }: Props) => {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+  const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const mutedColor = useThemeColor({}, "muted");
+  const tintColor = useThemeColor({}, "tint");
 
   const { patientValue, cohortAvg, lowerBound, upperBound, percentile, cohortAgeRange } = bar;
-
   const fmt = (n: number) => parseFloat(n.toFixed(2));
 
-  // ── Determine outcome ────────────────────────────────────────────────────
   const inRange = patientValue >= lowerBound && patientValue <= upperBound;
   const aboveRange = patientValue > upperBound;
   const belowRange = patientValue < lowerBound;
 
   const outcomeColor = inRange
-    ? "#4CAF50"
+    ? C.success
     : higherIsBetter
-    ? aboveRange ? "#4CAF50" : "#FF9800"
-    : belowRange ? "#4CAF50" : "#FF9800";
+    ? aboveRange ? C.success : C.warning
+    : belowRange ? C.success : C.warning;
 
   const outcomeLabel = inRange
     ? "Within normal range"
-    : aboveRange
-    ? higherIsBetter ? "Above normal range" : "Above normal range"
-    : higherIsBetter ? "Below normal range" : "Below normal range";
+    : aboveRange ? "Above normal range"
+    : "Below normal range";
 
-  // ── Horizontal range bar math ────────────────────────────────────────────
-  // Expand chart domain 10% on each side of the range so markers don't clip
+  // Domain spans 25% beyond each side of the normal range for margin
   const rangeSpan = upperBound - lowerBound || 1;
   const domainMin = lowerBound - rangeSpan * 0.25;
   const domainMax = upperBound + rangeSpan * 0.25;
@@ -57,7 +60,6 @@ const OtherCompareCard = ({ bar, unit, higherIsBetter = true }: Props) => {
   const cohortPct = toPct(cohortAvg);
   const patientPct = toPct(patientValue);
 
-  // ── Percentile insight ────────────────────────────────────────────────────
   const diffPct = Math.abs(
     Math.round(((patientValue - cohortAvg) / (cohortAvg || 1)) * 100)
   );
@@ -67,137 +69,138 @@ const OtherCompareCard = ({ bar, unit, higherIsBetter = true }: Props) => {
       : `${diffPct}% below peer average`;
 
   return (
-    <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
-      <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-        Peer Comparison
-      </ThemedText>
+    <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+      <ThemedText style={styles.sectionTitle}>Peer comparison</ThemedText>
 
-      {/* Peer group pill */}
-      <View style={[styles.pill, { borderColor }]}>
-        <ThemedText style={{ fontSize: 12, color: mutedColor }}>
-          Matched with · {cohortAgeRange}
+      {/* Peer group + outcome in one row */}
+      <View style={styles.metaRow}>
+        <ThemedText type="muted" style={styles.cohortLabel}>
+          {cohortAgeRange}
+        </ThemedText>
+        <View style={[styles.outcomeBadge, { backgroundColor: hexToRGBA(outcomeColor, 0.1) }]}>
+          <View style={[styles.outcomeDot, { backgroundColor: outcomeColor }]} />
+          <ThemedText style={[styles.outcomeText, { color: outcomeColor }]}>
+            {outcomeLabel}
+          </ThemedText>
+        </View>
+      </View>
+
+      {/* Axis labels */}
+      <View style={styles.axisRow}>
+        <ThemedText style={[styles.axisLabel, { color: mutedColor }]}>
+          {fmt(lowerBound)} {unit}
+        </ThemedText>
+        <ThemedText style={[styles.axisLabel, styles.axisCenter, { color: mutedColor }]}>
+          Normal range
+        </ThemedText>
+        <ThemedText style={[styles.axisLabel, styles.axisRight, { color: mutedColor }]}>
+          {fmt(upperBound)} {unit}
         </ThemedText>
       </View>
 
-      {/* Outcome badge */}
-      <View style={[styles.outcomeBadge, { backgroundColor: outcomeColor + "22" }]}>
-        <View style={[styles.outcomeDot, { backgroundColor: outcomeColor }]} />
-        <ThemedText style={[styles.outcomeText, { color: outcomeColor }]}>
-          {outcomeLabel}
-        </ThemedText>
-      </View>
-
-      {/* ── Horizontal range bar ── */}
-      <View style={styles.rangeSection}>
-        {/* Axis labels */}
-        <View style={styles.axisRow}>
-          <ThemedText style={[styles.axisLabel, { color: mutedColor }]}>
-            {fmt(lowerBound)} {unit}
-          </ThemedText>
-          <ThemedText style={[styles.axisLabel, { color: mutedColor, textAlign: "center" }]}>
-            Normal range
-          </ThemedText>
-          <ThemedText style={[styles.axisLabel, { color: mutedColor, textAlign: "right" }]}>
-            {fmt(upperBound)} {unit}
-          </ThemedText>
+      {/* Range track */}
+      <View style={[styles.track, { backgroundColor: borderColor }]}>
+        {/* Normal range fill */}
+        <View
+          style={[
+            styles.rangeFill,
+            {
+              left: `${rangeLPct}%`,
+              right: `${rangeRPct}%`,
+              backgroundColor: hexToRGBA(tintColor, 0.12),
+              borderColor: hexToRGBA(tintColor, 0.4),
+            },
+          ]}
+        />
+        {/* Cohort avg — vertical line */}
+        <View style={[styles.cohortMarker, { left: `${cohortPct}%` }]}>
+          <View style={[styles.cohortLine, { backgroundColor: mutedColor }]} />
         </View>
-
-        {/* Track */}
-        <View style={[styles.track, { backgroundColor: borderColor }]}>
-          {/* Normal range fill */}
-          <View
-            style={[
-              styles.rangeFill,
-              {
-                left: `${rangeLPct}%`,
-                right: `${rangeRPct}%`,
-                backgroundColor: "#5D7DDF33",
-                borderColor: "#5D7DDF",
-              },
-            ]}
-          />
-
-          {/* Cohort avg marker (triangle / notch) */}
-          <View style={[styles.cohortMarker, { left: `${cohortPct}%` }]}>
-            <View style={[styles.cohortLine, { backgroundColor: "#A0AABB" }]} />
-          </View>
-
-          {/* Patient value marker */}
-          <View style={[styles.patientMarker, { left: `${patientPct}%` }]}>
-            <View style={[styles.patientDiamond, { backgroundColor: outcomeColor }]} />
-          </View>
-        </View>
-
-        {/* Marker legend below track */}
-        <View style={styles.markerLegend}>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendDiamond, { backgroundColor: outcomeColor }]} />
-            <ThemedText style={[styles.legendLabel, { color: mutedColor }]}>
-              You · {fmt(patientValue)} {unit}
-            </ThemedText>
-          </View>
-          <View style={styles.legendItem}>
-            <View style={[styles.legendLine, { backgroundColor: "#A0AABB" }]} />
-            <ThemedText style={[styles.legendLabel, { color: mutedColor }]}>
-              Peer avg · {fmt(cohortAvg)} {unit}
-            </ThemedText>
-          </View>
+        {/* Patient value — diamond */}
+        <View style={[styles.patientMarker, { left: `${patientPct}%` }]}>
+          <View style={[styles.patientDiamond, { backgroundColor: outcomeColor }]} />
         </View>
       </View>
 
-      {/* Insight row */}
+      {/* Marker legend */}
+      <View style={styles.markerLegend}>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendDiamond, { backgroundColor: outcomeColor }]} />
+          <ThemedText style={[styles.legendLabel, { color: mutedColor }]}>
+            You · {fmt(patientValue)} {unit}
+          </ThemedText>
+        </View>
+        <View style={styles.legendItem}>
+          <View style={[styles.legendLine, { backgroundColor: mutedColor }]} />
+          <ThemedText style={[styles.legendLabel, { color: mutedColor }]}>
+            Peer avg · {fmt(cohortAvg)} {unit}
+          </ThemedText>
+        </View>
+      </View>
+
+      {/* Insight */}
       <View style={[styles.insightRow, { borderTopColor: borderColor }]}>
         <ThemedText style={[styles.insightText, { color: mutedColor }]}>
           {insightText}
           {percentile != null && (
             <>
               {" · "}
-              <ThemedText type="defaultSemiBold" style={{ color: outcomeColor }}>
+              <ThemedText style={[styles.insightEmphasis, { color: outcomeColor }]}>
                 {percentile}th percentile
               </ThemedText>
             </>
           )}
         </ThemedText>
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
-const styles = StyleSheet.create({
-  card: { borderRadius: 12, padding: 18, marginBottom: 14 },
-  sectionTitle: { fontSize: 18, marginBottom: 10 },
+export default OtherCompareCard;
 
-  pill: {
-    alignSelf: "flex-start",
-    borderWidth: 1,
-    borderRadius: 20,
-    paddingHorizontal: 10,
-    paddingVertical: 4,
+const styles = StyleSheet.create({
+  card: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.1,
     marginBottom: 12,
   },
 
+  metaRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 16,
+    flexWrap: "wrap",
+    gap: 8,
+  },
+  cohortLabel: {
+    fontSize: 13,
+  },
   outcomeBadge: {
     flexDirection: "row",
     alignItems: "center",
-    alignSelf: "flex-start",
     borderRadius: 8,
     paddingHorizontal: 10,
     paddingVertical: 5,
-    marginBottom: 20,
     gap: 6,
   },
-  outcomeDot: { width: 8, height: 8, borderRadius: 4 },
+  outcomeDot: { width: 7, height: 7, borderRadius: 3.5 },
   outcomeText: { fontSize: 13, fontWeight: "600" },
-
-  // ── Range bar ──
-  rangeSection: { marginBottom: 4 },
 
   axisRow: {
     flexDirection: "row",
-    justifyContent: "space-between",
     marginBottom: 6,
   },
   axisLabel: { fontSize: 11, flex: 1 },
+  axisCenter: { textAlign: "center" },
+  axisRight: { textAlign: "right" },
 
   track: {
     height: 28,
@@ -205,15 +208,13 @@ const styles = StyleSheet.create({
     position: "relative",
     overflow: "visible",
   },
-
   rangeFill: {
     position: "absolute",
     top: 0,
     bottom: 0,
-    borderWidth: 1,
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 14,
   },
-
   cohortMarker: {
     position: "absolute",
     top: -6,
@@ -222,12 +223,7 @@ const styles = StyleSheet.create({
     marginLeft: -1,
     alignItems: "center",
   },
-  cohortLine: {
-    flex: 1,
-    width: 2,
-    borderRadius: 1,
-  },
-
+  cohortLine: { flex: 1, width: 2, borderRadius: 1 },
   patientMarker: {
     position: "absolute",
     top: "50%",
@@ -258,19 +254,14 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     transform: [{ rotate: "45deg" }],
   },
-  legendLine: {
-    width: 12,
-    height: 3,
-    borderRadius: 1.5,
-  },
+  legendLine: { width: 12, height: 2, borderRadius: 1 },
   legendLabel: { fontSize: 12 },
 
   insightRow: {
     marginTop: 16,
     paddingTop: 12,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
-  insightText: { fontSize: 13 },
+  insightText: { fontSize: 13, lineHeight: 19 },
+  insightEmphasis: { fontWeight: "600" },
 });
-
-export default OtherCompareCard;

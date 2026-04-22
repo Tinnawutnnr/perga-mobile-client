@@ -1,6 +1,7 @@
 import { GaitMetricsSection } from "@/components/home/GaitMetricSection";
 import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
+import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
 import { useAuth } from "@/context/auth-context";
 import { useColorScheme } from "@/hooks/use-color-scheme";
@@ -508,7 +509,7 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 28 },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 28, fontFamily: Fonts.heading },
   subtitle: { fontSize: 13, marginTop: 2 },
   avatarRow: {
     flexDirection: "row",
