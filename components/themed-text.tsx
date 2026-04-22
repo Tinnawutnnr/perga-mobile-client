@@ -4,7 +4,7 @@ import { useThemeColor } from '../hooks/use-theme-color';
 export type ThemedTextProps = TextProps & {
   lightColor?: string;
   darkColor?: string;
-  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'muted';
+  type?: 'default' | 'title' | 'defaultSemiBold' | 'subtitle' | 'link' | 'muted' | 'caption';
 };
 
 export function ThemedText({
@@ -15,6 +15,7 @@ export function ThemedText({
   ...rest
 }: ThemedTextProps) {
   const color = useThemeColor({ light: lightColor, dark: darkColor }, 'text');
+  const tintColor = useThemeColor({}, 'tint');
 
   return (
     <Text
@@ -24,8 +25,9 @@ export function ThemedText({
         type === 'title' ? styles.title : undefined,
         type === 'defaultSemiBold' ? styles.defaultSemiBold : undefined,
         type === 'subtitle' ? styles.subtitle : undefined,
-        type === 'link' ? styles.link : undefined,
+        type === 'link' ? [styles.link, { color: tintColor }] : undefined,
         type === 'muted' ? styles.muted : undefined,
+        type === 'caption' ? styles.caption : undefined,
         style,
       ]}
       {...rest}
@@ -45,19 +47,27 @@ const styles = StyleSheet.create({
   },
   title: {
     fontSize: 32,
-    fontWeight: 'bold',
-    lineHeight: 32,
+    fontWeight: '700',
+    lineHeight: 40,
+    letterSpacing: -0.5,
   },
   subtitle: {
     fontSize: 20,
-    fontWeight: 'bold',
+    fontWeight: '600',
+    lineHeight: 27,
+    letterSpacing: -0.2,
   },
   link: {
-    lineHeight: 30,
     fontSize: 16,
-    color: '#4F7D81',
+    lineHeight: 24,
+    fontWeight: '500',
   },
   muted: {
-    opacity: 0.7,
+    opacity: 0.65,
+  },
+  caption: {
+    fontSize: 12,
+    lineHeight: 17,
+    letterSpacing: 0.1,
   },
 });

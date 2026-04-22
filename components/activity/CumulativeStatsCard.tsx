@@ -1,86 +1,147 @@
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { SessionTotals } from "@/utils/activity-session";
 import React from "react";
 import { StyleSheet, View } from "react-native";
 import { ThemedText } from "../themed-text";
-import { ThemedView } from "../themed-view";
 
 type Props = {
   totals: SessionTotals;
-  tintColor: string;
-  cardColor: string;
-  borderColor: string;
 };
 
-export const CumulativeStatsCard: React.FC<Props> = ({
-  totals,
-  tintColor,
-  cardColor,
-  borderColor,
-}) => {
+export const CumulativeStatsCard: React.FC<Props> = ({ totals }) => {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+  const cardColor = useThemeColor({}, "card");
+  const borderColor = useThemeColor({}, "border");
+  const tintColor = useThemeColor({}, "tint");
+
+  const hasData = totals.steps > 0 || totals.distanceM > 0 || totals.kcal > 0;
+
   return (
-    <ThemedView
-      style={[styles.card, { backgroundColor: cardColor, borderColor }]}
-    >
-      <ThemedText style={styles.title}>Cumulative Stat</ThemedText>
-      <View style={styles.row}>
-        <View style={styles.cell}>
-          <ThemedText style={[styles.value, { color: tintColor }]}>
-            {totals.steps}
+    <View style={[styles.container, { backgroundColor: cardColor }]}>
+      <ThemedText style={[styles.sectionLabel, { color: C.muted }]}>
+        SESSION TOTALS
+      </ThemedText>
+
+      <View style={styles.statsRow}>
+        {/* Steps — primary stat, larger */}
+        <View style={styles.stepsBlock}>
+          <ThemedText
+            style={[
+              styles.stepsValue,
+              { color: hasData ? tintColor : C.muted },
+            ]}
+            numberOfLines={1}
+          >
+            {totals.steps.toLocaleString()}
           </ThemedText>
-          <ThemedText type="muted" style={styles.label}>
-            Steps
+          <ThemedText style={[styles.stepsUnit, { color: C.muted }]}>
+            steps
           </ThemedText>
         </View>
-        <View style={styles.cell}>
-          <ThemedText style={[styles.value, { color: tintColor }]}>
-            {totals.distanceM.toFixed(1)} m
-          </ThemedText>
-          <ThemedText type="muted" style={styles.label}>
-            Distance
-          </ThemedText>
-        </View>
-        <View style={styles.cell}>
-          <ThemedText style={[styles.value, { color: tintColor }]}>
-            {totals.kcal.toFixed(1)} kcal
-          </ThemedText>
-          <ThemedText type="muted" style={styles.label}>
-            Energy
-          </ThemedText>
+
+        {/* Vertical divider */}
+        <View style={[styles.dividerV, { backgroundColor: borderColor }]} />
+
+        {/* Distance and energy — secondary, stacked */}
+        <View style={styles.secondaryBlock}>
+          <View style={styles.secondaryStat}>
+            <ThemedText
+              style={[
+                styles.secondaryValue,
+                { color: hasData ? tintColor : C.muted },
+              ]}
+            >
+              {totals.distanceM.toFixed(1)}
+            </ThemedText>
+            <ThemedText style={[styles.secondaryUnit, { color: C.muted }]}>
+              metres
+            </ThemedText>
+          </View>
+          <View
+            style={[styles.hairlineH, { backgroundColor: borderColor }]}
+          />
+          <View style={styles.secondaryStat}>
+            <ThemedText
+              style={[
+                styles.secondaryValue,
+                { color: hasData ? tintColor : C.muted },
+              ]}
+            >
+              {totals.kcal.toFixed(1)}
+            </ThemedText>
+            <ThemedText style={[styles.secondaryUnit, { color: C.muted }]}>
+              kcal
+            </ThemedText>
+          </View>
         </View>
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 20,
-    padding: 24,
-    marginBottom: 20,
-    borderWidth: 1,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.05,
-    shadowRadius: 8,
-    elevation: 2,
-  },
-  title: {
-    fontSize: 16,
-    fontWeight: "700",
+  container: {
+    borderRadius: 16,
+    paddingHorizontal: 20,
+    paddingVertical: 18,
     marginBottom: 12,
   },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-around",
-  },
-  cell: {
-    alignItems: "center",
-  },
-  value: {
-    fontSize: 22,
-    fontWeight: "bold",
-  },
-  label: {
+  sectionLabel: {
     fontSize: 11,
+    fontWeight: "700",
+    letterSpacing: 0.8,
+    marginBottom: 14,
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+  },
+  stepsBlock: {
+    flex: 1,
+    paddingRight: 20,
+    justifyContent: "center",
+    gap: 3,
+  },
+  stepsValue: {
+    fontSize: 36,
+    fontWeight: "700",
+    letterSpacing: -1,
+    lineHeight: 40,
+  },
+  stepsUnit: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  dividerV: {
+    width: StyleSheet.hairlineWidth,
+    marginHorizontal: 0,
+    alignSelf: "stretch",
+  },
+  secondaryBlock: {
+    flex: 1,
+    paddingLeft: 20,
+    gap: 0,
+  },
+  secondaryStat: {
+    flex: 1,
+    justifyContent: "center",
+    gap: 2,
+    paddingVertical: 4,
+  },
+  secondaryValue: {
+    fontSize: 20,
+    fontWeight: "700",
+    letterSpacing: -0.4,
+    lineHeight: 24,
+  },
+  secondaryUnit: {
+    fontSize: 11,
+    fontWeight: "500",
+  },
+  hairlineH: {
+    height: StyleSheet.hairlineWidth,
   },
 });

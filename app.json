@@ -1,16 +1,15 @@
 {
   "expo": {
-    "name": "pgad-mobile-app",
-    "slug": "pgad-mobile-app",
-    "version": "1.0.0",
+    "name": "Perga",
+    "slug": "perga",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "pgadmobileapp",
+    "scheme": "perga",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.tnnr.pgadmobileapp",
+      "bundleIdentifier": "com.tnnr.perga",
       "infoPlist": {
         "ITSAppUsesNonExemptEncryption": false,
         "NSBluetoothAlwaysUsageDescription": "This app uses Bluetooth to find and connect to supported devices.",
@@ -35,7 +34,7 @@
         "android.permission.BLUETOOTH_ADMIN",
         "android.permission.BLUETOOTH_CONNECT"
       ],
-      "package": "com.tnnr.pgadmobileapp"
+      "package": "com.tnnr.perga"
     },
     "web": {
       "output": "static",
@@ -62,7 +61,7 @@
           "modes": [
             "central"
           ],
-          "bluetoothAlwaysPermission": "Allow pgad-mobile-app to connect to bluetooth devices"
+          "bluetoothAlwaysPermission": "Allow Perga to connect to bluetooth devices"
         }
       ],
       "expo-secure-store"

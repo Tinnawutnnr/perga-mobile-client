@@ -62,12 +62,31 @@ export default function TabLayout() {
       />
 
       <Tabs.Screen
-        name="notification"
+        name="anomaly"
+        options={{ href: null }}
+      />
+
+      <Tabs.Screen
+        name="fall-analysis"
         options={{
-          title: "Notification",
+          title: "Analysis",
           tabBarIcon: ({ color, focused }) => (
             <Ionicons
-              name={focused ? "notifications" : "notifications-outline"}
+              name={focused ? "analytics" : "analytics-outline"}
+              size={24}
+              color={color}
+            />
+          ),
+        }}
+      />
+
+      <Tabs.Screen
+        name="notification"
+        options={{
+          title: "Alerts",
+          tabBarIcon: ({ color, focused }) => (
+            <Ionicons
+              name={focused ? "pulse" : "pulse-outline"}
               size={24}
               color={color}
             />

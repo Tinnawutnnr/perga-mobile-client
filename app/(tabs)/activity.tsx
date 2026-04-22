@@ -2,42 +2,138 @@ import { patientApi } from "@/api/patient";
 import { sessionApi } from "@/api/session";
 import { CumulativeStatsCard } from "@/components/activity/CumulativeStatsCard";
 import { WindowStatCard } from "@/components/activity/WindowStatCard";
+import { Fonts } from "@/constants/fonts";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useMqtt } from "@/hooks/use-mqtt";
+import { useThemeColor } from "@/hooks/use-theme-color";
 import { useBleStore } from "@/store/ble-store";
 import { WindowReport } from "@/types/metric";
 import {
   createEmptySessionTotals,
   formatDuration,
 } from "@/utils/activity-session";
+import { toast } from "@/store/toast-store";
 import { tokenStorage } from "@/utils/token-storage";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useCallback, useEffect, useRef, useState } from "react";
+import React, {
+  useCallback,
+  useEffect,
+  useRef,
+  useState,
+} from "react";
 import {
-  ActivityIndicator,
-  Alert,
+  Animated,
   ScrollView,
   StyleSheet,
   TouchableOpacity,
   View,
 } from "react-native";
 import "react-native-get-random-values";
-import { SafeAreaView } from "react-native-safe-area-context";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { v4 as uuidv4 } from "uuid";
 import { ThemedText } from "../../components/themed-text";
-import { ThemedView } from "../../components/themed-view";
-import { useThemeColor } from "../../hooks/use-theme-color";
 
 const WINDOW_REPORT_INTERVAL_MS = 10_000;
 
-const addAlphaToHex = (hex: string, alpha: number) => {
-  if (!hex || !hex.startsWith("#")) return hex;
-  const alphaInt = Math.round(Math.min(Math.max(alpha, 0), 1) * 255);
-  const alphaHex = alphaInt.toString(16).padStart(2, "0");
-  return `${hex.slice(0, 7)}${alphaHex}`;
-};
+// ─── Helpers ──────────────────────────────────────────────────────────────────
+
+function hexToRGBA(hex: string, alpha: number) {
+  if (!/^#([A-Fa-f0-9]{6}|[A-Fa-f0-9]{3})$/.test(hex))
+    return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ─── Pulse dot (recording indicator) ─────────────────────────────────────────
+
+function PulseDot({ color }: { color: string }) {
+  const opacity = useRef(new Animated.Value(0.4)).current;
+
+  useEffect(() => {
+    const anim = Animated.loop(
+      Animated.sequence([
+        Animated.timing(opacity, {
+          toValue: 1,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+        Animated.timing(opacity, {
+          toValue: 0.4,
+          duration: 600,
+          useNativeDriver: true,
+        }),
+      ]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  return (
+    <Animated.View
+      style={{
+        width: 8,
+        height: 8,
+        borderRadius: 4,
+        backgroundColor: color,
+        opacity,
+      }}
+    />
+  );
+}
+
+// ─── Waiting dots (initializing indicator) ───────────────────────────────────
+
+function WaitingDots({ color }: { color: string }) {
+  const d1 = useRef(new Animated.Value(0.3)).current;
+  const d2 = useRef(new Animated.Value(0.3)).current;
+  const d3 = useRef(new Animated.Value(0.3)).current;
+
+  useEffect(() => {
+    const makePulse = (dot: Animated.Value) =>
+      Animated.sequence([
+        Animated.timing(dot, {
+          toValue: 1,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+        Animated.timing(dot, {
+          toValue: 0.3,
+          duration: 280,
+          useNativeDriver: true,
+        }),
+      ]);
+    const anim = Animated.loop(
+      Animated.stagger(180, [makePulse(d1), makePulse(d2), makePulse(d3)]),
+    );
+    anim.start();
+    return () => anim.stop();
+  }, []);
+
+  return (
+    <View style={{ flexDirection: "row", gap: 5, alignItems: "center" }}>
+      {[d1, d2, d3].map((d, i) => (
+        <Animated.View
+          key={i}
+          style={{
+            width: 6,
+            height: 6,
+            borderRadius: 3,
+            backgroundColor: color,
+            opacity: d,
+          }}
+        />
+      ))}
+    </View>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
 
 const ActivityScreen = () => {
-  // ── Global BLE & MQTT state ──
+  // ── Global BLE & MQTT state ──────────────────────────────────────────────
   const connectedDevice = useBleStore((s) => s.connectedDevice);
   const pendingBatch = useBleStore((s) => s.pendingBatch);
   const startStreaming = useBleStore((s) => s.startStreaming);
@@ -50,17 +146,17 @@ const ActivityScreen = () => {
     isConnected: isMqttConnected,
   } = useMqtt();
 
-  // ── Local recording state ──
+  // ── Local recording state ─────────────────────────────────────────────────
   const [isRecording, setIsRecording] = useState(false);
   const [isWaitingForData, setIsWaitingForData] = useState(false);
   const [sessionId, setSessionId] = useState<string | null>(null);
   const [batchSentCount, setBatchSentCount] = useState(0);
 
-  // ── Duration timer ──
+  // ── Duration timer ────────────────────────────────────────────────────────
   const [elapsed, setElapsed] = useState(0);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // ── WindowReport polling ──
+  // ── WindowReport polling ──────────────────────────────────────────────────
   const [latestReport, setLatestReport] = useState<WindowReport | null>(null);
   const [reportCount, setReportCount] = useState(0);
   const pollRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -68,12 +164,20 @@ const ActivityScreen = () => {
     createEmptySessionTotals(),
   );
 
-  // ── Theme colors ──
+  // ── Theme ─────────────────────────────────────────────────────────────────
+  const insets = useSafeAreaInsets();
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const tintColor = useThemeColor({}, "tint");
   const mutedColor = useThemeColor({}, "muted");
+  const successColor = useThemeColor({}, "success");
+  const warningColor = useThemeColor({}, "warning");
+
+  // ── Timer helpers ─────────────────────────────────────────────────────────
 
   const stopTimer = useCallback(() => {
     if (timerRef.current) {
@@ -89,28 +193,15 @@ const ActivityScreen = () => {
     }
   }, []);
 
-  /**
-   * API Polling Logic
-   * Fetches latest window report and handles null/404 scenarios.
-   */
   const fetchWindowData = async (isRecordingActive: boolean) => {
     try {
       const token = await tokenStorage.get();
       if (!token) return;
-
       const response = await patientApi.getWindowReport(token);
-
-      // Check if response itself is null or undefined first
-      if (!response) {
-        return;
-      }
-
-      // Safe extraction of data (handles axios vs direct response)
+      if (!response) return;
       const report = (response as any).data || response;
-
       if (report) {
         setLatestReport(report);
-        // Only accumulate if a recording session is actually active
         if (isRecordingActive) {
           setSessionTotals((prev) => ({
             steps: prev.steps + (report.steps ?? 0),
@@ -121,7 +212,6 @@ const ActivityScreen = () => {
         }
       }
     } catch (error: any) {
-      // Ignore 404 errors as they just mean "no data found for this user yet"
       if (error?.status === 404 || error?.response?.status === 404) return;
       console.error("Polling error:", error);
     }
@@ -136,15 +226,13 @@ const ActivityScreen = () => {
     );
   }, []);
 
-  // ── Lifecycle: Initial Setup ──
+  // ── Lifecycle ─────────────────────────────────────────────────────────────
+
   useEffect(() => {
     connectMqtt().catch((err) =>
       console.error("MQTT Auto-connect failed:", err),
     );
-
-    // Fetch initial data even before recording to show latest state from DB
     fetchWindowData(false);
-
     return () => {
       disconnectMqtt();
       stopTimer();
@@ -152,7 +240,6 @@ const ActivityScreen = () => {
     };
   }, []);
 
-  // ── Lifecycle: BLE to MQTT Bridge ──
   useEffect(() => {
     if (
       (isRecording || isWaitingForData) &&
@@ -169,22 +256,14 @@ const ActivityScreen = () => {
       publishGaitData(pendingBatch);
       setBatchSentCount((prev) => prev + 1);
     }
-  }, [
-    pendingBatch,
-    isRecording,
-    isWaitingForData,
-    isMqttConnected,
-    startPolling,
-  ]);
+  }, [pendingBatch, isRecording, isWaitingForData, isMqttConnected, startPolling]);
 
-  // ── UI Handlers ──
+  // ── UI Handlers ───────────────────────────────────────────────────────────
+
   const handleToggleActivity = async () => {
     if (!isRecording && !isWaitingForData) {
       if (!connectedDevice) {
-        Alert.alert(
-          "No Device",
-          "Please connect to the wearable device first.",
-        );
+        toast.warning("Connect your gait sensor first");
         return;
       }
       setSessionId(uuidv4());
@@ -214,167 +293,245 @@ const ActivityScreen = () => {
           .catch((err) => console.error("Session stop failed:", err));
       }
 
-      Alert.alert(
-        "Session Finished",
-        `Gait session saved!\nDuration: ${formatDuration(elapsed)}\nBatches: ${batchSentCount}\nReports: ${reportCount}`,
-      );
+      toast.success(`Session saved · ${formatDuration(elapsed)}`);
       setSessionId(null);
     }
   };
 
-  const successColor = useThemeColor({}, "success");
-  const warningColor = useThemeColor({}, "warning");
-  const mqttBadgeColor = isMqttConnected ? successColor : warningColor;
-  const mqttBadgeBg = addAlphaToHex(mqttBadgeColor, 0.12);
+  // ── Derived UI state ──────────────────────────────────────────────────────
+
+  const mqttColor = isMqttConnected ? successColor : warningColor;
+  const timerColor = isRecording ? tintColor : mutedColor;
+
+  const recordingStatus =
+    isRecording && reportCount === 0
+      ? "Calibrating"
+      : isRecording
+        ? "Monitoring"
+        : null;
+
+  const buttonBg = isWaitingForData
+    ? mutedColor
+    : isRecording
+      ? C.error
+      : tintColor;
+
+  const buttonLabel = isWaitingForData
+    ? "Initializing…"
+    : isRecording
+      ? "Stop recording"
+      : "Start tracking";
+
+  // ── Render ────────────────────────────────────────────────────────────────
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
-      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <ThemedView style={styles.header}>
-          <ThemedText type="title" style={styles.titleText}>
-            Gait Analysis
-          </ThemedText>
-          <ThemedView style={[styles.badge, { backgroundColor: mqttBadgeBg }]}>
-            <ThemedText style={[styles.badgeText, { color: mqttBadgeColor }]}>
-              {isMqttConnected ? "MQTT Online" : "MQTT Offline"}
+    <View style={[styles.safeArea, { backgroundColor }]}>
+      <ScrollView
+        style={[styles.container, { backgroundColor }]}
+        showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 48,
+        }}
+      >
+        {/* Header */}
+        <View style={styles.headerRow}>
+          <View>
+            <ThemedText style={styles.title}>Activity</ThemedText>
+            <ThemedText type="muted" style={styles.subtitle}>
+              Gait recording
             </ThemedText>
-          </ThemedView>
-        </ThemedView>
+          </View>
+          {/* MQTT status badge */}
+          <View
+            style={[
+              styles.mqttBadge,
+              { backgroundColor: hexToRGBA(mqttColor, 0.1) },
+            ]}
+          >
+            <View
+              style={[styles.mqttDot, { backgroundColor: mqttColor }]}
+            />
+            <ThemedText style={[styles.mqttText, { color: mqttColor }]}>
+              {isMqttConnected ? "Online" : "Offline"}
+            </ThemedText>
+          </View>
+        </View>
 
+        {/* No device notice */}
+        {!connectedDevice && !isRecording && (
+          <View
+            style={[
+              styles.deviceNotice,
+              { backgroundColor: hexToRGBA(C.warning, 0.08) },
+            ]}
+          >
+            <Ionicons
+              name="watch-outline"
+              size={15}
+              color={C.warning}
+            />
+            <ThemedText
+              style={[styles.deviceNoticeText, { color: C.warning }]}
+            >
+              Connect your gait sensor before starting
+            </ThemedText>
+          </View>
+        )}
+
+        {/* Timer block */}
+        <View style={styles.timerBlock}>
+          <ThemedText
+            style={[styles.timerValue, { color: timerColor }]}
+          >
+            {formatDuration(elapsed)}
+          </ThemedText>
+
+          <View style={styles.timerStatus}>
+            {isWaitingForData ? (
+              <>
+                <WaitingDots color={mutedColor} />
+                <ThemedText style={[styles.timerLabel, { color: mutedColor }]}>
+                  Calibrating sensor
+                </ThemedText>
+              </>
+            ) : isRecording ? (
+              <>
+                <PulseDot color={tintColor} />
+                <ThemedText
+                  style={[styles.timerLabel, { color: mutedColor }]}
+                >
+                  {recordingStatus}
+                  {reportCount > 0 ? ` · ${reportCount} window${reportCount !== 1 ? "s" : ""}` : ""}
+                </ThemedText>
+              </>
+            ) : (
+              <ThemedText style={[styles.timerLabel, { color: mutedColor }]}>
+                Ready to start
+              </ThemedText>
+            )}
+          </View>
+        </View>
+
+        {/* Start / Stop button */}
         <TouchableOpacity
-          activeOpacity={0.8}
-          style={[
-            styles.mainButton,
-            {
-              backgroundColor: isWaitingForData
-                ? mutedColor
-                : isRecording
-                  ? "#FF5252"
-                  : tintColor,
-            },
-          ]}
+          style={[styles.actionButton, { backgroundColor: buttonBg }]}
           onPress={handleToggleActivity}
           disabled={isWaitingForData}
+          activeOpacity={0.85}
+          accessibilityRole="button"
+          accessibilityLabel={buttonLabel}
         >
-          {isWaitingForData ? (
-            <ActivityIndicator
-              size="small"
-              color="#FFF"
-              style={{ marginRight: 10 }}
-            />
-          ) : (
-            <Ionicons
-              name={isRecording ? "stop-circle" : "play-circle"}
-              size={32}
-              color="#FFF"
-              style={{ marginRight: 10 }}
-            />
-          )}
-          <ThemedText style={styles.buttonText}>
-            {isWaitingForData
-              ? "Waiting for Sensor..."
-              : isRecording
-                ? "Stop Activity"
-                : "Start Tracking"}
+          <ThemedText style={styles.actionButtonLabel}>
+            {buttonLabel}
           </ThemedText>
         </TouchableOpacity>
 
-        {/* RECORDING STATUS CARD */}
-        {isRecording && (
-          <ThemedView
-            style={[
-              styles.statusCard,
-              { backgroundColor: cardColor, borderColor: tintColor },
-            ]}
+        {/* Session ID — subtle, only when recording */}
+        {sessionId && isRecording && (
+          <ThemedText
+            style={[styles.sessionId, { color: C.muted }]}
+            numberOfLines={1}
           >
-            <View style={styles.liveIndicator}>
-              <Ionicons
-                name={reportCount === 0 ? "hardware-chip-outline" : "recording"}
-                size={28}
-                color={tintColor}
-              />
-              <ThemedText style={[styles.liveText, { color: tintColor }]}>
-                {reportCount === 0 ? "WAIT" : "LIVE"}
-              </ThemedText>
-            </View>
-            <ThemedView transparent style={{ flex: 1 }}>
-              {/* Check reportCount here */}
-              <ThemedText style={[styles.recordingTitle, { color: tintColor }]}>
-                {reportCount === 0 ? "Calibrating" : "Monitoring"}
-              </ThemedText>
-              <ThemedText type="muted" style={{ fontSize: 12 }}>
-                ID: {sessionId?.split("-")[0]}...
-              </ThemedText>
-            </ThemedView>
-            <ThemedView transparent style={{ alignItems: "flex-end" }}>
-              <ThemedText style={[styles.timerText, { color: tintColor }]}>
-                {formatDuration(elapsed)}
-              </ThemedText>
-              <ThemedText type="muted" style={{ fontSize: 10 }}>
-                Duration
-              </ThemedText>
-            </ThemedView>
-          </ThemedView>
+            Session {sessionId.split("-")[0]}
+          </ThemedText>
         )}
 
-        {/* CUMULATIVE STATS CARD (Always visible) */}
-        <CumulativeStatsCard
-          totals={sessionTotals}
-          tintColor={tintColor}
-          cardColor={cardColor}
-          borderColor={borderColor}
-        />
+        {/* Cumulative stats */}
+        <CumulativeStatsCard totals={sessionTotals} />
 
-        {/* LATEST WINDOW CARD (Always visible) */}
-        <WindowStatCard
-          report={latestReport}
-          cardColor={cardColor}
-          borderColor={borderColor}
-          tintColor={tintColor}
-        />
-
-        <View style={{ height: 40 }} />
+        {/* Per-window stats */}
+        <WindowStatCard report={latestReport} />
       </ScrollView>
-    </SafeAreaView>
+    </View>
   );
 };
+
+export default ActivityScreen;
+
+// ─── Styles ───────────────────────────────────────────────────────────────────
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
   container: { flex: 1, paddingHorizontal: 20 },
-  header: {
+
+  // Header
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
-    paddingVertical: 20,
-    marginTop: 10,
-  },
-  titleText: { fontSize: 24, fontWeight: "700" },
-  badge: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16 },
-  badgeText: { fontSize: 12, fontWeight: "bold" },
-  mainButton: {
-    height: 65,
-    borderRadius: 32,
-    flexDirection: "row",
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 30,
-    elevation: 4,
-  },
-  buttonText: { color: "#FFF", fontSize: 20, fontWeight: "bold" },
-  statusCard: {
-    flexDirection: "row",
-    alignItems: "center",
-    borderRadius: 16,
-    padding: 16,
+    marginTop: 8,
     marginBottom: 24,
-    borderWidth: 1,
-    borderLeftWidth: 6,
   },
-  liveIndicator: { marginRight: 15, alignItems: "center" },
-  liveText: { fontSize: 10, marginTop: 4, fontWeight: "bold" },
-  recordingTitle: { fontWeight: "700", fontSize: 16 },
-  timerText: { fontSize: 24, fontWeight: "bold" },
-});
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 28, fontFamily: Fonts.heading },
+  subtitle: { fontSize: 13, marginTop: 2 },
+  mqttBadge: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    paddingHorizontal: 11,
+    paddingVertical: 6,
+    borderRadius: 20,
+  },
+  mqttDot: { width: 6, height: 6, borderRadius: 3 },
+  mqttText: { fontSize: 12, fontWeight: "600" },
 
-export default ActivityScreen;
+  // Device notice
+  deviceNotice: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 24,
+  },
+  deviceNoticeText: { fontSize: 13, fontWeight: "500" },
+
+  // Timer
+  timerBlock: {
+    marginBottom: 24,
+    gap: 10,
+  },
+  timerValue: {
+    fontSize: 56,
+    fontWeight: "700",
+    letterSpacing: -2,
+    lineHeight: 60,
+    fontVariant: ["tabular-nums"],
+  },
+  timerStatus: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  timerLabel: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
+
+  // Action button
+  actionButton: {
+    height: 60,
+    borderRadius: 14,
+    alignItems: "center",
+    justifyContent: "center",
+    marginBottom: 10,
+  },
+  actionButtonLabel: {
+    fontSize: 17,
+    fontWeight: "700",
+    color: "#FFFFFF",
+    letterSpacing: 0.1,
+  },
+
+  // Session ID
+  sessionId: {
+    fontSize: 11,
+    fontWeight: "500",
+    letterSpacing: 0.3,
+    textAlign: "center",
+    marginBottom: 20,
+    opacity: 0.6,
+  },
+});

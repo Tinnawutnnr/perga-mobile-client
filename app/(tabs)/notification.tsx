@@ -1,448 +1,752 @@
-import { Ionicons } from "@expo/vector-icons";
-import React, { useState } from "react";
+import { AnomalyChartSection } from "@/components/home/AnomalyChartSection";
+import { ThemedText } from "@/components/themed-text";
+import { ThemedView } from "@/components/themed-view";
+import { Fonts } from "@/constants/fonts";
+import { Colors } from "@/constants/theme";
 import {
-    Alert,
-    FlatList,
-    ScrollView,
-    StyleSheet,
-    TouchableOpacity,
+  calculatePercentDiff,
+  useAnomalyData,
+} from "@/hooks/use-anomaly-data";
+import { useColorScheme } from "@/hooks/use-color-scheme";
+import { useThemeColor } from "@/hooks/use-theme-color";
+import { AnomalyLog } from "@/types/anomaly";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
+import {
+  ActivityIndicator,
+  Modal,
+  Pressable,
+  ScrollView,
+  StyleSheet,
+  TouchableOpacity,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { ThemedText } from "../../components/themed-text";
-import { ThemedView } from "../../components/themed-view";
-import { useThemeColor } from "../../hooks/use-theme-color";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-interface NotificationItem {
-  id: string;
-  title: string;
-  message: string;
-  type: "high_risk" | "moderate_risk" | "info" | "device" | "report";
-  timestamp: Date;
-  isRead: boolean;
-  severity: "high" | "medium" | "low" | "info";
-}
+// ─── Helpers ──────────────────────────────────────────────────────────────────
 
-// Mock data for notifications
-const getNotifications = (): NotificationItem[] => {
-  return [
-    {
-      id: "1",
-      title: "High Risk Detected",
-      message: "Gait pattern anomaly detected. Immediate attention required.",
-      type: "high_risk",
-      timestamp: new Date("2024-10-15T10:30:00"),
-      isRead: false,
-      severity: "high",
-    },
-    {
-      id: "2",
-      title: "Moderate Risk Alert",
-      message: "Unusual walking pattern detected. Monitor recommended.",
-      type: "moderate_risk",
-      timestamp: new Date("2024-10-15T08:00:00"),
-      isRead: false,
-      severity: "medium",
-    },
-    {
-      id: "3",
-      title: "Device Disconnected",
-      message: "Wearable Gait Detection device lost connection.",
-      type: "device",
-      timestamp: new Date("2024-10-15T07:30:00"),
-      isRead: true,
-      severity: "medium",
-    },
-    {
-      id: "4",
-      title: "Weekly Report Ready",
-      message: "Your weekly gait analysis report is available.",
-      type: "report",
-      timestamp: new Date("2024-10-14T09:00:00"),
-      isRead: true,
-      severity: "info",
-    },
-    {
-      id: "5",
-      title: "Low Risk Alert",
-      message: "Minor gait irregularity detected during evening walk.",
-      type: "info",
-      timestamp: new Date("2024-10-13T18:45:00"),
-      isRead: true,
-      severity: "low",
-    },
-  ];
+const FEATURE_LABELS: Record<string, string> = {
+  max_gyr: "Leg Swing Speed",
+  val_gyr: "Foot Landing Force",
+  max_gyr_ms: "Leg Swing Speed",
+  val_gyr_hs: "Foot Landing Force",
+  swing_time: "In-Air Time",
+  stance_time: "On-Ground Time",
+  stride_cv: "Step Consistency",
 };
 
-const NotificationScreen = () => {
-  const [notifications, setNotifications] = useState<NotificationItem[]>(() =>
-    getNotifications(),
+const FEATURE_UNITS: Record<string, string> = {
+  max_gyr: "rad/s",
+  val_gyr: "rad/s",
+  max_gyr_ms: "rad/s",
+  val_gyr_hs: "rad/s",
+  swing_time: "s",
+  stance_time: "s",
+  stride_cv: "%",
+};
+
+const ROOT_CAUSE_DISCLAIMERS: Record<string, string> = {
+  max_gyr:
+    "A slower swing often means dragging feet instead of lifting them.",
+  val_gyr:
+    "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favouring one side.",
+  max_gyr_ms:
+    "A slower swing often means dragging feet instead of lifting them.",
+  val_gyr_hs:
+    "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favouring one side.",
+  swing_time:
+    "A shorter time in the air often happens when dragging feet or taking small steps.",
+  stance_time:
+    "Spending more time on the ground suggests a cautious walk; a sudden drop can indicate pain.",
+  stride_cv:
+    "Higher percentages mean steps are less regular, which increases the risk of a fall.",
+};
+
+function featureLabel(key: string): string {
+  return (
+    FEATURE_LABELS[key] ||
+    key
+      .split("_")
+      .map((w) => w.charAt(0).toUpperCase() + w.slice(1))
+      .join(" ")
   );
-  // Theme colors
-  const backgroundColor = useThemeColor({}, "background");
-  const cardColor = useThemeColor({}, "card");
-  const borderColor = useThemeColor({}, "border");
-  const tintColor = useThemeColor({}, "tint");
-  const mutedColor = useThemeColor({}, "muted");
+}
 
-  const handleMarkAllRead = () => {
-    setNotifications((prev) =>
-      prev.map((notif) => ({ ...notif, isRead: true })),
-    );
-    Alert.alert("Success", "All notifications marked as read");
-  };
+function featureUnit(key: string): string {
+  return FEATURE_UNITS[key] ?? "";
+}
 
-  const handleNotificationPress = (notificationId: string) => {
-    setNotifications((prev) =>
-      prev.map((notif) =>
-        notif.id === notificationId ? { ...notif, isRead: true } : notif,
-      ),
-    );
-  };
+function severityInfo(score: number): { label: string; color: string } {
+  const magnitude = Math.abs(score);
+  if (magnitude >= 3) return { label: "Critical", color: "#EF4444" };
+  if (magnitude >= 1) return { label: "Moderate", color: "#F59E0B" };
+  return { label: "Slight", color: "#22C55E" };
+}
 
-  const getSeverityColor = (severity: string) => {
-    switch (severity) {
-      case "high":
-        return "#FF4444";
-      case "medium":
-        return "#FF9800";
-      case "low":
-        return "#FFC107";
-      case "info":
-        return tintColor;
-      default:
-        return mutedColor;
-    }
-  };
-
-  const getSeverityIcon = (type: string) => {
-    switch (type) {
-      case "high_risk":
-        return "warning";
-      case "moderate_risk":
-        return "alert-circle-outline";
-      case "device":
-        return "bluetooth-outline";
-      case "report":
-        return "document-text-outline";
-      case "info":
-        return "information-circle-outline";
-      default:
-        return "notifications-outline";
-    }
-  };
-
-  const formatTime = (timestamp: Date) => {
-    return timestamp.toLocaleString("en-US", {
-      month: "short",
-      day: "numeric",
-      year: "numeric",
-      hour: "numeric",
-      minute: "2-digit",
-    });
-  };
-
-  const isToday = (date: Date) => {
-    const today = new Date();
-    return date.toDateString() === today.toDateString();
-  };
-
-  const todayNotifications = notifications.filter((n) => isToday(n.timestamp));
-  const earlierNotifications = notifications.filter(
-    (n) => !isToday(n.timestamp),
+function isToday(dateStr: string): boolean {
+  const d = new Date(dateStr);
+  const t = new Date();
+  return (
+    d.getFullYear() === t.getFullYear() &&
+    d.getMonth() === t.getMonth() &&
+    d.getDate() === t.getDate()
   );
-  const unreadCount = notifications.filter((n) => !n.isRead).length;
-  const todayAlertsCount = todayNotifications.filter(
-    (n) => n.severity === "high" || n.severity === "medium",
-  ).length;
-  const weekAlertsCount = notifications.filter((n) => {
-    const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
-    return (
-      n.timestamp > weekAgo &&
-      (n.severity === "high" || n.severity === "medium")
-    );
-  }).length;
+}
 
-  const renderNotification = ({ item }: { item: NotificationItem }) => (
-    <TouchableOpacity
-      style={[
-        styles.notificationCard,
-        { backgroundColor: cardColor, borderColor },
-        !item.isRead && {
-          borderLeftWidth: 4,
-          borderLeftColor: getSeverityColor(item.severity),
-        },
-      ]}
-      onPress={() => handleNotificationPress(item.id)}
-      activeOpacity={0.7}
-    >
-      <ThemedView transparent style={styles.notificationContent}>
-        <ThemedView transparent style={styles.notificationHeader}>
-          <Ionicons
-            name={getSeverityIcon(item.type) as any}
-            size={20}
-            color={getSeverityColor(item.severity)}
-          />
-          <ThemedView transparent style={styles.headerContent}>
-            <ThemedText
-              style={[
-                styles.notificationTitle,
-                !item.isRead && { fontWeight: "700" },
-              ]}
-            >
-              {item.title}
-            </ThemedText>
-            <ThemedText type="muted" style={styles.timestamp}>
-              {formatTime(item.timestamp)}
-            </ThemedText>
-          </ThemedView>
-          {!item.isRead && (
-            <ThemedView
-              style={[
-                styles.unreadIndicator,
-                { backgroundColor: getSeverityColor(item.severity) },
-              ]}
-            />
-          )}
-        </ThemedView>
-        <ThemedText type="muted" style={styles.notificationMessage}>
-          {item.message}
-        </ThemedText>
-      </ThemedView>
-    </TouchableOpacity>
+function formatRelativeTime(dateStr: string): string {
+  const d = new Date(dateStr);
+  const now = new Date();
+  const diffMs = now.getTime() - d.getTime();
+  const diffMins = Math.floor(diffMs / 60000);
+  if (diffMins < 1) return "Just now";
+  if (diffMins < 60) return `${diffMins}m ago`;
+  const diffHours = Math.floor(diffMins / 60);
+  if (diffHours < 24) return `${diffHours}h ago`;
+  return d.toLocaleDateString("en-GB", { day: "numeric", month: "short" });
+}
+
+function formatFullTimestamp(dateStr: string): string {
+  return new Date(dateStr).toLocaleString("en-GB", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+  });
+}
+
+function hexToRGBA(hex: string, alpha: number): string {
+  if (!/^#([A-Fa-f0-9]{6})$/.test(hex)) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+// ─── Detail sheet ─────────────────────────────────────────────────────────────
+
+function DetailSheet({
+  entry,
+  onClose,
+  sheetBg,
+  mutedColor,
+}: {
+  entry: AnomalyLog | null;
+  onClose: () => void;
+  sheetBg: string;
+  mutedColor: string;
+}) {
+  if (!entry) return null;
+
+  const feat = entry.root_cause_feature ?? "unknown";
+  const unit = featureUnit(feat);
+  const { label: sevLabel, color: sevColor } = severityInfo(
+    entry.anomaly_score ?? 0,
   );
+  const pctChange = calculatePercentDiff(entry.current_val, entry.normal_ref);
+  const disclaimer = ROOT_CAUSE_DISCLAIMERS[feat] ?? null;
 
   return (
-    <SafeAreaView style={[styles.safeArea, { backgroundColor }]}>
+    <Modal
+      visible={true}
+      transparent
+      animationType="slide"
+      onRequestClose={onClose}
+    >
+      <View style={ds.overlay}>
+        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} />
+        <View style={[ds.sheet, { backgroundColor: sheetBg }]}>
+          {/* Handle */}
+          <View style={ds.handle} />
+
+          {/* Header */}
+          <View style={ds.header}>
+            <View style={ds.headerLeft}>
+              <View style={[ds.sevDot, { backgroundColor: sevColor }]} />
+              <ThemedText style={ds.metricTitle}>
+                {featureLabel(feat)}
+              </ThemedText>
+            </View>
+            <TouchableOpacity
+              onPress={onClose}
+              hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+              style={ds.closeBtn}
+              accessibilityRole="button"
+              accessibilityLabel="Close"
+            >
+              <Ionicons name="close" size={20} color={mutedColor} />
+            </TouchableOpacity>
+          </View>
+
+          <ThemedText style={[ds.timestamp, { color: mutedColor }]}>
+            {formatFullTimestamp(entry.timestamp)}
+          </ThemedText>
+
+          {/* Severity + score */}
+          <View
+            style={[
+              ds.severityRow,
+              { backgroundColor: hexToRGBA(sevColor, 0.08) },
+            ]}
+          >
+            <ThemedText style={[ds.sevLabel, { color: sevColor }]}>
+              {sevLabel}
+            </ThemedText>
+            {entry.anomaly_score != null && (
+              <ThemedText style={[ds.scoreText, { color: mutedColor }]}>
+                Risk score: {entry.anomaly_score.toFixed(2)}
+              </ThemedText>
+            )}
+          </View>
+
+          {/* Stats row */}
+          {(entry.current_val != null || entry.normal_ref != null) && (
+            <View style={ds.statsRow}>
+              <View style={ds.statCell}>
+                <ThemedText style={[ds.statLabel, { color: mutedColor }]}>
+                  Your value
+                </ThemedText>
+                <ThemedText style={ds.statValue}>
+                  {entry.current_val != null
+                    ? `${entry.current_val.toFixed(2)}${unit ? ` ${unit}` : ""}`
+                    : "—"}
+                </ThemedText>
+              </View>
+              <View style={[ds.statDivider, { backgroundColor: mutedColor }]} />
+              <View style={ds.statCell}>
+                <ThemedText style={[ds.statLabel, { color: mutedColor }]}>
+                  Normal baseline
+                </ThemedText>
+                <ThemedText style={ds.statValue}>
+                  {entry.normal_ref != null
+                    ? `${entry.normal_ref.toFixed(2)}${unit ? ` ${unit}` : ""}`
+                    : "—"}
+                </ThemedText>
+              </View>
+              <View style={[ds.statDivider, { backgroundColor: mutedColor }]} />
+              <View style={ds.statCell}>
+                <ThemedText style={[ds.statLabel, { color: mutedColor }]}>
+                  Change
+                </ThemedText>
+                <ThemedText style={[ds.statValue, { color: sevColor }]}>
+                  {pctChange}
+                </ThemedText>
+              </View>
+            </View>
+          )}
+
+          {/* Clinical explanation */}
+          {disclaimer && (
+            <ThemedText style={[ds.disclaimer, { color: mutedColor }]}>
+              {disclaimer}
+            </ThemedText>
+          )}
+        </View>
+      </View>
+    </Modal>
+  );
+}
+
+const ds = StyleSheet.create({
+  overlay: {
+    flex: 1,
+    justifyContent: "flex-end",
+    backgroundColor: "rgba(0,0,0,0.45)",
+  },
+  sheet: {
+    borderTopLeftRadius: 24,
+    borderTopRightRadius: 24,
+    paddingHorizontal: 20,
+    paddingBottom: 40,
+    paddingTop: 12,
+  },
+  handle: {
+    width: 36,
+    height: 3,
+    borderRadius: 2,
+    backgroundColor: "rgba(128,128,128,0.2)",
+    alignSelf: "center",
+    marginBottom: 20,
+  },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    marginBottom: 4,
+  },
+  headerLeft: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    flex: 1,
+  },
+  sevDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    flexShrink: 0,
+  },
+  metricTitle: {
+    fontSize: 18,
+    fontWeight: "700",
+    flex: 1,
+  },
+  closeBtn: {
+    width: 32,
+    height: 32,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  timestamp: {
+    fontSize: 13,
+    marginBottom: 16,
+    marginLeft: 20,
+  },
+  severityRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    borderRadius: 10,
+    paddingHorizontal: 14,
+    paddingVertical: 10,
+    marginBottom: 20,
+  },
+  sevLabel: {
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  scoreText: {
+    fontSize: 13,
+    fontWeight: "500",
+  },
+  statsRow: {
+    flexDirection: "row",
+    alignItems: "stretch",
+    marginBottom: 20,
+  },
+  statCell: {
+    flex: 1,
+    gap: 4,
+    alignItems: "center",
+  },
+  statDivider: {
+    width: StyleSheet.hairlineWidth,
+    opacity: 0.25,
+    marginVertical: 4,
+  },
+  statLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.5,
+    textAlign: "center",
+  },
+  statValue: {
+    fontSize: 17,
+    fontWeight: "700",
+    textAlign: "center",
+  },
+  disclaimer: {
+    fontSize: 13,
+    lineHeight: 20,
+    fontStyle: "italic",
+  },
+});
+
+// ─── Event row ────────────────────────────────────────────────────────────────
+
+function EventRow({
+  entry,
+  isRead,
+  onPress,
+  cardColor,
+  mutedColor,
+}: {
+  entry: AnomalyLog;
+  isRead: boolean;
+  onPress: () => void;
+  cardColor: string;
+  mutedColor: string;
+}) {
+  const { label: sevLabel, color: sevColor } = severityInfo(
+    entry.anomaly_score ?? 0,
+  );
+  const feat = entry.root_cause_feature ?? "unknown";
+  const pctChange = calculatePercentDiff(entry.current_val, entry.normal_ref);
+  const rowBg = isRead ? cardColor : hexToRGBA(sevColor, 0.07);
+
+  return (
+    <TouchableOpacity
+      style={[styles.eventRow, { backgroundColor: rowBg }]}
+      onPress={onPress}
+      activeOpacity={0.7}
+      accessibilityRole="button"
+      accessibilityLabel={`${featureLabel(feat)}, ${sevLabel}, ${pctChange} vs normal. Tap to view details.`}
+    >
+      <View style={[styles.sevDot, { backgroundColor: sevColor }]} />
+
+      <View style={styles.eventBody}>
+        <View style={styles.eventTopRow}>
+          <ThemedText style={styles.eventMetric} numberOfLines={1}>
+            {featureLabel(feat)}
+          </ThemedText>
+          <ThemedText style={[styles.eventTime, { color: mutedColor }]}>
+            {formatRelativeTime(entry.timestamp)}
+          </ThemedText>
+        </View>
+
+        <View style={styles.eventMidRow}>
+          <ThemedText style={[styles.eventChange, { color: sevColor }]}>
+            {pctChange} vs normal
+          </ThemedText>
+          <ThemedText style={[styles.eventSev, { color: sevColor }]}>
+            {sevLabel}
+          </ThemedText>
+        </View>
+      </View>
+
+      <View style={styles.rowTrailing}>
+        {!isRead && (
+          <View style={[styles.unreadDot, { backgroundColor: sevColor }]} />
+        )}
+        <Ionicons name="chevron-forward" size={15} color={mutedColor} />
+      </View>
+    </TouchableOpacity>
+  );
+}
+
+// ─── Screen ───────────────────────────────────────────────────────────────────
+
+export default function AlertsScreen() {
+  const insets = useSafeAreaInsets();
+  const backgroundColor = useThemeColor({}, "background");
+  const cardColor = useThemeColor({}, "card");
+  const tintColor = useThemeColor({}, "tint");
+  const mutedColor = useThemeColor({}, "muted");
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+
+  const { chartData, rawEntries, scale, setScale, loading, error, refresh } =
+    useAnomalyData();
+
+  const [readIds, setReadIds] = useState<Set<string>>(new Set());
+  const [selectedEntry, setSelectedEntry] = useState<AnomalyLog | null>(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      refresh();
+    }, [refresh]),
+  );
+
+  const handleRowPress = useCallback(
+    (entry: AnomalyLog) => {
+      setReadIds((prev) => new Set(prev).add(entry.anomaly_id));
+      setSelectedEntry(entry);
+    },
+    [],
+  );
+
+  const markAllRead = () => {
+    setReadIds(new Set(rawEntries.map((e) => e.anomaly_id)));
+  };
+
+  const sortedEntries = useMemo(
+    () =>
+      [...rawEntries].sort(
+        (a, b) =>
+          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime(),
+      ),
+    [rawEntries],
+  );
+
+  const todayEntries = sortedEntries.filter((e) => isToday(e.timestamp));
+  const earlierEntries = sortedEntries.filter((e) => !isToday(e.timestamp));
+  const unreadCount = sortedEntries.filter(
+    (e) => !readIds.has(e.anomaly_id),
+  ).length;
+
+  return (
+    <View style={[styles.safeArea, { backgroundColor }]}>
       <ScrollView
         style={[styles.container, { backgroundColor }]}
         showsVerticalScrollIndicator={false}
+        contentContainerStyle={{
+          paddingTop: insets.top + 8,
+          paddingBottom: 40,
+        }}
       >
         {/* Header */}
-        <ThemedView style={styles.header}>
-          <ThemedText type="title" style={styles.headerTitle}>
-            Notifications
-          </ThemedText>
+        <ThemedView style={styles.headerRow}>
+          <View style={styles.headerLeft}>
+            <View style={styles.titleRow}>
+              <ThemedText style={styles.title}>Alerts</ThemedText>
+              {unreadCount > 0 && (
+                <View style={[styles.badge, { backgroundColor: C.error }]}>
+                  <ThemedText style={styles.badgeText}>
+                    {unreadCount > 99 ? "99+" : unreadCount}
+                  </ThemedText>
+                </View>
+              )}
+            </View>
+            <ThemedText type="muted" style={styles.subtitle}>
+              Gait anomaly activity
+            </ThemedText>
+          </View>
+
           {unreadCount > 0 && (
             <TouchableOpacity
-              style={[styles.markAllButton, { backgroundColor: tintColor }]}
-              onPress={handleMarkAllRead}
-              activeOpacity={0.8}
+              onPress={markAllRead}
+              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+              accessibilityRole="button"
             >
-              <ThemedText style={styles.markAllText}>Mark All Read</ThemedText>
+              <ThemedText style={[styles.markAllText, { color: tintColor }]}>
+                Mark read
+              </ThemedText>
             </TouchableOpacity>
           )}
         </ThemedView>
 
-        {/* Statistics Cards */}
-        <ThemedView style={styles.statsContainer}>
-          <ThemedView
-            style={[
-              styles.statCard,
-              { backgroundColor: cardColor, borderColor },
-            ]}
-          >
-            <Ionicons name="today-outline" size={24} color="#FF9800" />
-            <ThemedText style={styles.statValue}>{todayAlertsCount}</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>
-              Alerts Today
-            </ThemedText>
-          </ThemedView>
-          <ThemedView
-            style={[
-              styles.statCard,
-              { backgroundColor: cardColor, borderColor },
-            ]}
-          >
-            <Ionicons name="calendar-outline" size={24} color={tintColor} />
-            <ThemedText style={styles.statValue}>{weekAlertsCount}</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>
-              This Week
-            </ThemedText>
-          </ThemedView>
-          <ThemedView
-            style={[
-              styles.statCard,
-              { backgroundColor: cardColor, borderColor },
-            ]}
-          >
-            <Ionicons name="mail-unread-outline" size={24} color="#4CAF50" />
-            <ThemedText style={styles.statValue}>{unreadCount}</ThemedText>
-            <ThemedText type="muted" style={styles.statLabel}>
-              Unread
-            </ThemedText>
-          </ThemedView>
-        </ThemedView>
-
-        {/* Today's Notifications */}
-        {todayNotifications.length > 0 && (
-          <ThemedView style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Today
-            </ThemedText>
-            <FlatList
-              data={todayNotifications}
-              renderItem={renderNotification}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
-          </ThemedView>
+        {error && (
+          <ThemedText style={[styles.errorText, { color: C.error }]}>
+            {error}
+          </ThemedText>
         )}
 
-        {/* Earlier Notifications */}
-        {earlierNotifications.length > 0 && (
-          <ThemedView style={styles.section}>
-            <ThemedText type="subtitle" style={styles.sectionTitle}>
-              Earlier
-            </ThemedText>
-            <FlatList
-              data={earlierNotifications}
-              renderItem={renderNotification}
-              keyExtractor={(item) => item.id}
-              scrollEnabled={false}
-            />
-          </ThemedView>
-        )}
+        {/* Chart */}
+        <AnomalyChartSection
+          chartData={chartData}
+          scale={scale}
+          onScaleChange={setScale}
+          loading={loading}
+        />
 
-        {/* Empty State */}
-        {notifications.length === 0 && (
-          <ThemedView
-            style={[
-              styles.emptyState,
-              { backgroundColor: cardColor, borderColor },
-            ]}
-          >
+        {/* Chart tip */}
+        {!loading && chartData.length > 0 && (
+          <View style={[styles.chartTip, { backgroundColor: cardColor }]}>
             <Ionicons
-              name="notifications-outline"
-              size={64}
+              name="hand-left-outline"
+              size={15}
               color={mutedColor}
             />
-            <ThemedText type="subtitle" style={styles.emptyTitle}>
-              No Notifications
+            <ThemedText style={[styles.chartTipText, { color: mutedColor }]}>
+              Tap any point on the chart to see which metrics triggered the
+              anomaly for that period.
             </ThemedText>
-            <ThemedText type="muted" style={styles.emptyText}>
-              You&apos;re all caught up! New anomaly alerts will appear here.
+          </View>
+        )}
+
+        {loading && !rawEntries.length && (
+          <ActivityIndicator
+            color={tintColor}
+            style={{ marginTop: 24, marginBottom: 8 }}
+          />
+        )}
+
+        {/* Today */}
+        {todayEntries.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionLabel}>Today</ThemedText>
+            <View style={[styles.eventGroup, { backgroundColor: cardColor }]}>
+              {todayEntries.map((entry, index) => (
+                <View key={entry.anomaly_id}>
+                  {index > 0 && (
+                    <View
+                      style={[styles.divider, { backgroundColor: C.border }]}
+                    />
+                  )}
+                  <EventRow
+                    entry={entry}
+                    isRead={readIds.has(entry.anomaly_id)}
+                    onPress={() => handleRowPress(entry)}
+                    cardColor={cardColor}
+                    mutedColor={mutedColor}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Earlier */}
+        {earlierEntries.length > 0 && (
+          <View style={styles.section}>
+            <ThemedText style={styles.sectionLabel}>Earlier</ThemedText>
+            <View style={[styles.eventGroup, { backgroundColor: cardColor }]}>
+              {earlierEntries.map((entry, index) => (
+                <View key={entry.anomaly_id}>
+                  {index > 0 && (
+                    <View
+                      style={[styles.divider, { backgroundColor: C.border }]}
+                    />
+                  )}
+                  <EventRow
+                    entry={entry}
+                    isRead={readIds.has(entry.anomaly_id)}
+                    onPress={() => handleRowPress(entry)}
+                    cardColor={cardColor}
+                    mutedColor={mutedColor}
+                  />
+                </View>
+              ))}
+            </View>
+          </View>
+        )}
+
+        {/* Empty */}
+        {!loading && rawEntries.length === 0 && (
+          <View style={[styles.emptyState, { backgroundColor: cardColor }]}>
+            <Ionicons
+              name="pulse-outline"
+              size={40}
+              color={tintColor}
+              style={{ marginBottom: 14 }}
+            />
+            <ThemedText style={styles.emptyHeadline}>
+              No anomalies recorded
             </ThemedText>
-          </ThemedView>
+            <ThemedText style={[styles.emptyBody, { color: mutedColor }]}>
+              Gait patterns are within normal range. Events will appear here
+              when the system detects unusual movement activity.
+            </ThemedText>
+          </View>
         )}
       </ScrollView>
-    </SafeAreaView>
-  );
-};
 
-export default NotificationScreen;
+      {/* Detail bottom sheet */}
+      {selectedEntry && (
+        <DetailSheet
+          entry={selectedEntry}
+          onClose={() => setSelectedEntry(null)}
+          sheetBg={cardColor}
+          mutedColor={mutedColor}
+        />
+      )}
+    </View>
+  );
+}
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-  },
-  container: {
-    flex: 1,
-    paddingHorizontal: 20,
-  },
-  header: {
+  safeArea: { flex: 1 },
+  container: { flex: 1, paddingHorizontal: 20 },
+
+  headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    paddingVertical: 16,
-    marginBottom: 8,
-  },
-  headerTitle: {
-    fontSize: 28,
-    fontWeight: "700",
-  },
-  markAllButton: {
-    paddingHorizontal: 12,
-    paddingVertical: 6,
-    borderRadius: 12,
-  },
-  markAllText: {
-    fontSize: 12,
-    fontWeight: "600",
-    color: "#FFFFFF",
-  },
-  statsContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+    alignItems: "flex-start",
     marginBottom: 24,
-    gap: 8,
-  },
-  statCard: {
-    flex: 1,
-    borderRadius: 12,
-    padding: 16,
-    alignItems: "center",
-    borderWidth: 1,
-  },
-  statValue: {
-    fontSize: 20,
-    fontWeight: "700",
     marginTop: 8,
-    marginBottom: 4,
   },
-  statLabel: {
-    fontSize: 12,
-    textAlign: "center",
-  },
-  section: {
-    marginBottom: 24,
-  },
-  sectionTitle: {
-    fontSize: 18,
-    fontWeight: "600",
-    marginBottom: 12,
-  },
-  notificationCard: {
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 8,
-    borderWidth: 1,
-  },
-  notificationContent: {
-    gap: 8,
-  },
-  notificationHeader: {
+  headerLeft: { flex: 1 },
+  titleRow: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    gap: 8,
   },
-  headerContent: {
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 32, fontFamily: Fonts.heading },
+  badge: {
+    borderRadius: 10,
+    paddingHorizontal: 7,
+    paddingVertical: 2,
+    minWidth: 20,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  badgeText: { fontSize: 11, fontWeight: "700", color: "#FFFFFF" },
+  subtitle: { fontSize: 13, marginTop: 2 },
+  markAllText: { fontSize: 13, fontWeight: "600" },
+
+  errorText: { fontSize: 14, marginBottom: 12 },
+
+  chartTip: {
+    flexDirection: "row",
+    alignItems: "flex-start",
+    gap: 8,
+    borderRadius: 10,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginTop: -10,
+    marginBottom: 24,
+  },
+  chartTipText: {
     flex: 1,
-  },
-  notificationTitle: {
-    fontSize: 16,
-    fontWeight: "600",
-    marginBottom: 2,
-  },
-  timestamp: {
     fontSize: 12,
+    lineHeight: 18,
   },
-  unreadIndicator: {
+
+  section: { marginBottom: 24 },
+  sectionLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    textTransform: "uppercase",
+    letterSpacing: 0.8,
+    opacity: 0.5,
+    marginBottom: 8,
+  },
+  eventGroup: { borderRadius: 14, overflow: "hidden" },
+
+  eventRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    gap: 12,
+    minHeight: 56,
+  },
+  sevDot: {
     width: 8,
     height: 8,
     borderRadius: 4,
+    flexShrink: 0,
   },
-  notificationMessage: {
-    fontSize: 14,
-    lineHeight: 20,
-    marginLeft: 32,
-  },
-  emptyState: {
-    borderRadius: 16,
-    padding: 40,
+  eventBody: { flex: 1, gap: 3 },
+  eventTopRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
     alignItems: "center",
-    marginTop: 40,
-    borderWidth: 1,
-    borderStyle: "dashed",
+    gap: 8,
   },
-  emptyTitle: {
-    fontSize: 20,
+  eventMetric: { fontSize: 14, fontWeight: "600", flex: 1 },
+  eventTime: { fontSize: 12, flexShrink: 0 },
+  eventMidRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+  },
+  eventChange: { fontSize: 13, fontWeight: "600" },
+  eventSev: { fontSize: 12, fontWeight: "500", opacity: 0.85 },
+  rowTrailing: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 6,
+    flexShrink: 0,
+  },
+  unreadDot: {
+    width: 7,
+    height: 7,
+    borderRadius: 3.5,
+  },
+  divider: {
+    height: StyleSheet.hairlineWidth,
+    marginHorizontal: 16,
+  },
+
+  emptyState: {
+    borderRadius: 14,
+    paddingHorizontal: 24,
+    paddingVertical: 40,
+    alignItems: "center",
+  },
+  emptyHeadline: {
+    fontSize: 17,
     fontWeight: "600",
-    marginTop: 16,
-    marginBottom: 8,
-  },
-  emptyText: {
-    fontSize: 14,
+    marginBottom: 10,
     textAlign: "center",
-    lineHeight: 20,
+  },
+  emptyBody: {
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    maxWidth: 280,
   },
 });

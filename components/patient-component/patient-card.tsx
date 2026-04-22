@@ -1,25 +1,40 @@
 import { PatientBrief } from "@/api/caregiver";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useRef, useState } from "react";
 import {
   Modal,
   StyleSheet,
-  Text,
   TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
+import { ThemedText } from "../themed-text";
 
 type Props = {
   patient: PatientBrief;
   isSelected: boolean;
   onPress: (id: number) => void;
   onDelete: (patient: PatientBrief) => void;
+  isLast?: boolean;
 };
 
-const PatientCard = ({ patient, isSelected, onPress, onDelete }: Props) => {
-  const fullname =
-    `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim();
+function hexToRGBA(hex: string, alpha: number) {
+  if (!/^#([A-Fa-f0-9]{6})$/.test(hex)) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
+
+const PatientCard = ({ patient, isSelected, onPress, onDelete, isLast }: Props) => {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+
+  const fullname = `${patient.first_name ?? ""} ${patient.last_name ?? ""}`.trim();
+  const initial = (patient.first_name ?? patient.username ?? "?").charAt(0).toUpperCase();
+
   const [menuVisible, setMenuVisible] = useState(false);
   const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
   const dotButtonRef = useRef<View>(null);
@@ -31,44 +46,53 @@ const PatientCard = ({ patient, isSelected, onPress, onDelete }: Props) => {
     });
   };
 
+  const discBg = isSelected ? C.tint : hexToRGBA(C.tint, 0.1);
+  const discText = isSelected ? "#FFFFFF" : C.tint;
+
   return (
-    <TouchableOpacity
-      style={[styles.card, isSelected && styles.cardSelected]}
-      onPress={() => onPress(patient.id)}
-      activeOpacity={0.8}
-    >
-      <View style={styles.headerRow}>
-        <View style={[styles.avatar, isSelected && styles.avatarSelected]}>
-          <Text
-            style={[styles.avatarText, isSelected && styles.avatarTextSelected]}
-          >
-            {(patient.first_name ?? patient.username ?? "?")
-              .charAt(0)
-              .toUpperCase()}
-          </Text>
+    <>
+      <TouchableOpacity
+        style={[
+          styles.row,
+          !isLast && { borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: C.border },
+        ]}
+        onPress={() => onPress(patient.id)}
+        activeOpacity={0.7}
+        accessibilityRole="radio"
+        accessibilityState={{ checked: isSelected }}
+        accessibilityLabel={fullname || patient.username}
+      >
+        {/* Initials disc */}
+        <View style={[styles.disc, { backgroundColor: discBg }]}>
+          <ThemedText style={[styles.discText, { color: discText }]}>
+            {initial}
+          </ThemedText>
         </View>
+
+        {/* Name block */}
         <View style={styles.nameBlock}>
-          <Text style={[styles.name, isSelected && styles.nameSelected]}>
-            {fullname}
-          </Text>
-          <Text
-            style={[styles.username, isSelected && styles.usernameSelected]}
-          >
+          <ThemedText style={styles.name} numberOfLines={1}>
+            {fullname || patient.username}
+          </ThemedText>
+          <ThemedText type="muted" style={styles.username} numberOfLines={1}>
             @{patient.username}
-          </Text>
+          </ThemedText>
         </View>
-        <TouchableOpacity
-          ref={dotButtonRef}
-          onPress={handleDotPress}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <Ionicons
-            name="ellipsis-vertical"
-            size={20}
-            color={isSelected ? "#FFFFFF" : "#808080"}
-          />
-        </TouchableOpacity>
-      </View>
+
+        {/* Right: checkmark when selected, menu when not */}
+        {isSelected ? (
+          <Ionicons name="checkmark-circle" size={22} color={C.tint} />
+        ) : (
+          <TouchableOpacity
+            ref={dotButtonRef}
+            onPress={handleDotPress}
+            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
+            accessibilityLabel="Patient options"
+          >
+            <Ionicons name="ellipsis-horizontal" size={18} color={C.muted} />
+          </TouchableOpacity>
+        )}
+      </TouchableOpacity>
 
       <Modal
         visible={menuVisible}
@@ -81,7 +105,11 @@ const PatientCard = ({ patient, isSelected, onPress, onDelete }: Props) => {
             <View
               style={[
                 styles.menuContainer,
-                { top: menuPosition.y + 24, left: menuPosition.x - 120 },
+                {
+                  backgroundColor: C.card,
+                  top: menuPosition.y + 20,
+                  left: menuPosition.x - 148,
+                },
               ]}
             >
               <TouchableOpacity
@@ -91,65 +119,65 @@ const PatientCard = ({ patient, isSelected, onPress, onDelete }: Props) => {
                   onDelete(patient);
                 }}
               >
-                <Ionicons name="trash-outline" size={18} color="#EF4444" />
-                <Text style={styles.menuDeleteText}>Remove Patient</Text>
+                <Ionicons name="trash-outline" size={16} color={C.error} />
+                <ThemedText style={[styles.menuDeleteText, { color: C.error }]}>
+                  Remove patient
+                </ThemedText>
               </TouchableOpacity>
             </View>
           </View>
         </TouchableWithoutFeedback>
       </Modal>
-    </TouchableOpacity>
+    </>
   );
 };
 
 export default PatientCard;
 
 const styles = StyleSheet.create({
-  card: {
-    borderRadius: 16,
-    borderWidth: 1.5,
-    borderColor: "#E5E5E5",
-    backgroundColor: "#FFFFFF",
-    padding: 16,
-    marginBottom: 12,
-  },
-  cardSelected: {
-    borderColor: "#4F7D81",
-    backgroundColor: "#4F7D81",
-  },
-  headerRow: {
+  row: {
     flexDirection: "row",
     alignItems: "center",
-    gap: 12,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+    minHeight: 64,
+    gap: 14,
   },
-  avatar: {
+  disc: {
     width: 44,
     height: 44,
     borderRadius: 22,
-    backgroundColor: "#E8F0F1",
     justifyContent: "center",
     alignItems: "center",
+    flexShrink: 0,
   },
-  avatarSelected: { backgroundColor: "rgba(255,255,255,0.25)" },
-  avatarText: { fontSize: 18, fontWeight: "700", color: "#4F7D81" },
-  avatarTextSelected: { color: "#FFFFFF" },
-  nameBlock: { flex: 1 },
-  name: { fontSize: 16, fontWeight: "600", color: "#000000" },
-  nameSelected: { color: "#FFFFFF" },
-  username: { fontSize: 13, color: "#808080", marginTop: 2 },
-  usernameSelected: { color: "rgba(255,255,255,0.75)" },
+  discText: {
+    fontSize: 18,
+    fontWeight: "700",
+  },
+  nameBlock: {
+    flex: 1,
+  },
+  name: {
+    fontSize: 16,
+    fontWeight: "600",
+    lineHeight: 22,
+  },
+  username: {
+    fontSize: 13,
+    marginTop: 1,
+  },
   modalOverlay: { flex: 1 },
   menuContainer: {
     position: "absolute",
-    backgroundColor: "#FFFFFF",
     borderRadius: 12,
     paddingVertical: 4,
-    minWidth: 160,
+    minWidth: 164,
     shadowColor: "#000",
     shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.12,
-    shadowRadius: 8,
-    elevation: 6,
+    shadowOpacity: 0.1,
+    shadowRadius: 12,
+    elevation: 8,
   },
   menuItem: {
     flexDirection: "row",
@@ -158,5 +186,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 16,
     gap: 10,
   },
-  menuDeleteText: { fontSize: 14, color: "#EF4444", fontWeight: "500" },
+  menuDeleteText: {
+    fontSize: 14,
+    fontWeight: "500",
+  },
 });

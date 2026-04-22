@@ -4,7 +4,6 @@ import { router, useLocalSearchParams } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Alert,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -17,34 +16,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { z } from "zod";
 import { authApi } from "../api/auth";
 import PrimaryInput from "../components/primary-input";
+import { AuthPalette, AuthRadius, AuthSpacing } from "../constants/auth-theme";
+import { Fonts } from "../constants/fonts";
+import { useColorScheme } from "../hooks/use-color-scheme";
 
-// ── Zod schema ──────────────────────────────────────────────────────────
 const resetPasswordSchema = z
   .object({
     otp: z
       .string()
-      .length(6, "OTP must be exactly 6 digits")
-      .regex(/^\d{6}$/, "OTP must contain only digits"),
-    new_password: z
-      .string()
-      .min(8, "Password must be at least 8 characters"),
+      .length(6, "The code must be exactly 6 digits")
+      .regex(/^\d{6}$/, "The code must contain only digits"),
+    new_password: z.string().min(8, "Password must be at least 8 characters"),
     confirm_password: z.string(),
   })
-  .refine((data) => data.new_password === data.confirm_password, {
+  .refine((d) => d.new_password === d.confirm_password, {
     message: "Passwords do not match",
     path: ["confirm_password"],
   });
 
 type ResetPasswordFormData = z.infer<typeof resetPasswordSchema>;
 
-// ── Screen ──────────────────────────────────────────────────────────────
-const ResetPasswordScreen = () => {
+export default function ResetPasswordScreen() {
   const { token, email } = useLocalSearchParams<{
     token: string;
     email: string;
   }>();
+  const scheme = useColorScheme() ?? "light";
+  const C = AuthPalette[scheme];
   const [secureNew, setSecureNew] = useState(true);
   const [secureConfirm, setSecureConfirm] = useState(true);
+  const [formError, setFormError] = useState<string | null>(null);
+  const [resetSuccess, setResetSuccess] = useState(false);
 
   const {
     control,
@@ -57,160 +59,217 @@ const ResetPasswordScreen = () => {
 
   const onSubmit = async (data: ResetPasswordFormData) => {
     if (!token) {
-      Alert.alert("Error", "Missing session token. Please restart the flow.");
+      setFormError("Session expired. Please restart the reset flow.");
       return;
     }
+    setFormError(null);
     try {
-      const res = await authApi.resetPassword({
+      await authApi.resetPassword({
         reset_session_token: token,
         otp: data.otp,
         new_password: data.new_password,
       });
-      Alert.alert("Success", res.message ?? "Password reset successfully.", [
-        { text: "Sign In", onPress: () => router.replace("/login") },
-      ]);
+      setResetSuccess(true);
     } catch (error) {
-      const message =
+      setFormError(
         error instanceof Error
           ? error.message
-          : "Something went wrong. Please try again.";
-      Alert.alert("Error", message);
+          : "Unable to reset your password. Check the code and try again."
+      );
     }
   };
 
-  const handleBack = () => {
-    router.back();
-  };
+  if (resetSuccess) {
+    return (
+      <SafeAreaView
+        style={[styles.safeArea, { backgroundColor: C.background }]}
+      >
+        <View style={styles.successContainer}>
+          <View
+            style={[
+              styles.successIconWrap,
+              { backgroundColor: C.tintPale },
+            ]}
+          >
+            <Ionicons name="checkmark" size={28} color={C.tint} />
+          </View>
+          <Text style={[styles.successHeading, { color: C.textPrimary }]}>
+            Password updated
+          </Text>
+          <Text style={[styles.successBody, { color: C.textSecondary }]}>
+            Your password has been changed successfully. Sign in with your new
+            password.
+          </Text>
+          <TouchableOpacity
+            style={[styles.primaryButton, { backgroundColor: C.tint }]}
+            onPress={() => router.replace("/login")}
+            activeOpacity={0.85}
+            accessibilityRole="button"
+          >
+            <Text style={styles.primaryButtonText}>Sign in</Text>
+          </TouchableOpacity>
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: C.background }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scroll}
           bounces={false}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          <View style={styles.contentContainer}>
-            {/* Back button */}
-            <TouchableOpacity
-              style={styles.backButton}
-              onPress={handleBack}
-              activeOpacity={0.7}
-            >
-              <Ionicons name="arrow-back" size={24} color="#4F7D81" />
-            </TouchableOpacity>
+          {/* Back */}
+          <TouchableOpacity
+            style={styles.backButton}
+            onPress={() => router.back()}
+            activeOpacity={0.7}
+            hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+            accessibilityRole="button"
+            accessibilityLabel="Back"
+          >
+            <Ionicons name="arrow-back" size={22} color={C.tint} />
+            <Text style={[styles.backLabel, { color: C.tint }]}>Back</Text>
+          </TouchableOpacity>
 
-            {/* Header icon */}
-            <View style={styles.iconWrapper}>
-              <View style={styles.iconCircle}>
-                <Ionicons name="lock-closed" size={40} color="#4F7D81" />
-              </View>
-            </View>
-
-            <Text style={styles.title}>Reset Password</Text>
-            <Text style={styles.subtitle}>
-              {email
-                ? `Enter the 6-digit code sent to ${email} and your new password.`
-                : "Enter the 6-digit code sent to your email and your new password."}
+          {/* Heading */}
+          <View style={styles.headingSection}>
+            <Text style={[styles.heading, { color: C.textPrimary }]}>
+              Check your email
             </Text>
+            <Text style={[styles.subheading, { color: C.textSecondary }]}>
+              {email
+                ? `We sent a 6-digit code to ${email}`
+                : "We sent a 6-digit code to your email address"}
+              . Enter it below along with your new password.
+            </Text>
+          </View>
 
-            {/* OTP input */}
-            <Text style={styles.fieldLabel}>Verification Code</Text>
+          {/* Form */}
+          <View style={styles.form}>
+            <Text style={[styles.label, { color: C.textLabel }]}>
+              Verification code
+            </Text>
             <Controller
               control={control}
               name="otp"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={(text) =>
-                      onChange(text.replace(/\D/g, "").slice(0, 6))
-                    }
-                    placeholder="6-digit code"
-                    keyboardType="number-pad"
-                    hasError={!!errors.otp}
-                    maxLength={6}
-                  />
-                  {errors.otp && (
-                    <Text style={styles.errorText}>{errors.otp.message}</Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={(t) =>
+                    onChange(t.replace(/\D/g, "").slice(0, 6))
+                  }
+                  placeholder="6-digit code"
+                  keyboardType="number-pad"
+                  hasError={!!errors.otp}
+                  maxLength={6}
+                />
               )}
             />
+            {errors.otp && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.otp.message}
+              </Text>
+            )}
 
-            {/* New Password */}
-            <Text style={styles.fieldLabel}>New Password</Text>
+            <Text style={[styles.label, { color: C.textLabel }]}>
+              New password
+            </Text>
             <Controller
               control={control}
               name="new_password"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Min 8 characters"
-                    secureTextEntry={secureNew}
-                    rightText={secureNew ? "Show" : "Hide"}
-                    onPressRight={() => setSecureNew((prev) => !prev)}
-                    hasError={!!errors.new_password}
-                  />
-                  {errors.new_password && (
-                    <Text style={styles.errorText}>
-                      {errors.new_password.message}
-                    </Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="At least 8 characters"
+                  secureTextEntry={secureNew}
+                  rightText={secureNew ? "Show" : "Hide"}
+                  onPressRight={() => setSecureNew((p) => !p)}
+                  hasError={!!errors.new_password}
+                />
               )}
             />
+            {errors.new_password && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.new_password.message}
+              </Text>
+            )}
 
-            {/* Confirm Password */}
-            <Text style={styles.fieldLabel}>Confirm New Password</Text>
+            <Text style={[styles.label, { color: C.textLabel }]}>
+              Confirm new password
+            </Text>
             <Controller
               control={control}
               name="confirm_password"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Re-enter new password"
-                    secureTextEntry={secureConfirm}
-                    rightText={secureConfirm ? "Show" : "Hide"}
-                    onPressRight={() => setSecureConfirm((prev) => !prev)}
-                    hasError={!!errors.confirm_password}
-                  />
-                  {errors.confirm_password && (
-                    <Text style={styles.errorText}>
-                      {errors.confirm_password.message}
-                    </Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Re-enter your new password"
+                  secureTextEntry={secureConfirm}
+                  rightText={secureConfirm ? "Show" : "Hide"}
+                  onPressRight={() => setSecureConfirm((p) => !p)}
+                  hasError={!!errors.confirm_password}
+                />
               )}
             />
+            {errors.confirm_password && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.confirm_password.message}
+              </Text>
+            )}
 
-            {/* Submit button */}
+            {formError && (
+              <View
+                style={[
+                  styles.formErrorBox,
+                  { backgroundColor: C.errorSubtle },
+                ]}
+              >
+                <Text style={[styles.formErrorText, { color: C.error }]}>
+                  {formError}
+                </Text>
+              </View>
+            )}
+          </View>
+
+          {/* Actions */}
+          <View style={styles.actions}>
             <TouchableOpacity
               style={[
-                styles.submitButton,
-                isSubmitting && styles.submitButtonDisabled,
+                styles.primaryButton,
+                { backgroundColor: isSubmitting ? C.buttonDisabled : C.tint },
               ]}
               onPress={handleSubmit(onSubmit)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               disabled={isSubmitting}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting }}
             >
-              <Text style={styles.submitButtonText}>
-                {isSubmitting ? "Resetting..." : "Reset Password"}
+              <Text style={styles.primaryButtonText}>
+                {isSubmitting ? "Resetting…" : "Reset password"}
               </Text>
             </TouchableOpacity>
 
-            {/* Back to login */}
-            <View style={styles.loginRow}>
-              <Text style={styles.loginText}>Remember your password? </Text>
-              <TouchableOpacity onPress={() => router.replace("/login")}>
-                <Text style={styles.loginLink}>Sign In</Text>
+            <View style={styles.switchRow}>
+              <Text style={[styles.switchPrompt, { color: C.textMuted }]}>
+                Remember your password?{" "}
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.replace("/login")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="link"
+              >
+                <Text style={[styles.switchLink, { color: C.tint }]}>
+                  Sign in
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -218,101 +277,117 @@ const ResetPasswordScreen = () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
-
-export default ResetPasswordScreen;
+}
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollContent: {
+  safeArea: { flex: 1 },
+  scroll: {
     flexGrow: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 40,
+    paddingHorizontal: AuthSpacing.lg,
+    paddingBottom: AuthSpacing.xl,
   },
   backButton: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
-    backgroundColor: "#F5F5F5",
-    justifyContent: "center",
+    flexDirection: "row",
     alignItems: "center",
-    marginBottom: 32,
+    gap: AuthSpacing.sm,
+    paddingTop: AuthSpacing.lg,
+    paddingBottom: AuthSpacing.xxl,
+    alignSelf: "flex-start",
   },
-  iconWrapper: {
-    alignItems: "center",
-    marginBottom: 24,
-  },
-  iconCircle: {
-    width: 88,
-    height: 88,
-    borderRadius: 44,
-    backgroundColor: "#EEF4F5",
-    justifyContent: "center",
-    alignItems: "center",
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000000",
-    marginBottom: 12,
-    textAlign: "center",
-  },
-  subtitle: {
+  backLabel: {
     fontSize: 15,
-    color: "#808080",
-    lineHeight: 22,
-    marginBottom: 32,
-    textAlign: "center",
+    fontWeight: "500",
   },
-  fieldLabel: {
+  headingSection: {
+    marginBottom: AuthSpacing.xl,
+    gap: AuthSpacing.md,
+  },
+  heading: {
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    fontFamily: Fonts.heading,
+  },
+  subheading: {
+    fontSize: 16,
+    lineHeight: 25,
+  },
+  form: {
+    marginBottom: AuthSpacing.lg,
+  },
+  label: {
     fontSize: 14,
     fontWeight: "600",
-    color: "#333333",
-    marginBottom: 8,
+    letterSpacing: 0.1,
+    marginBottom: AuthSpacing.sm,
   },
-  errorText: {
-    color: "#FF4444",
-    fontSize: 12,
-    marginTop: -12,
-    marginBottom: 12,
-    marginLeft: 4,
+  fieldError: {
+    fontSize: 13,
+    marginTop: -10,
+    marginBottom: AuthSpacing.md,
   },
-  submitButton: {
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#4F7D81",
+  formErrorBox: {
+    borderRadius: AuthRadius.md,
+    padding: AuthSpacing.base,
+    marginTop: AuthSpacing.xs,
+  },
+  formErrorText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  actions: {
+    marginTop: "auto",
+    gap: AuthSpacing.base,
+    paddingTop: AuthSpacing.lg,
+  },
+  primaryButton: {
+    height: 56,
+    borderRadius: AuthRadius.lg,
     justifyContent: "center",
     alignItems: "center",
-    marginTop: 8,
-    marginBottom: 24,
   },
-  submitButtonDisabled: {
-    backgroundColor: "#C4C4C4",
-  },
-  submitButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  primaryButtonText: {
+    fontSize: 17,
     fontWeight: "600",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
-  loginRow: {
+  switchRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
+    paddingVertical: AuthSpacing.sm,
   },
-  loginText: {
-    fontSize: 14,
-    color: "#808080",
+  switchPrompt: { fontSize: 14 },
+  switchLink: { fontSize: 14, fontWeight: "600" },
+
+  // Success state
+  successContainer: {
+    flex: 1,
+    paddingHorizontal: AuthSpacing.lg,
+    justifyContent: "center",
+    gap: AuthSpacing.base,
+    paddingBottom: AuthSpacing.xxl,
   },
-  loginLink: {
-    fontSize: 14,
-    color: "#477E85",
-    fontWeight: "600",
+  successIconWrap: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    justifyContent: "center",
+    alignItems: "center",
+    alignSelf: "center",
+    marginBottom: AuthSpacing.sm,
+  },
+  successHeading: {
+    fontSize: 28,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    alignSelf: "center",
+  },
+  successBody: {
+    fontSize: 16,
+    lineHeight: 25,
+    marginBottom: AuthSpacing.lg,
+    textAlign: "center",
   },
 });

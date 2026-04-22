@@ -1,7 +1,8 @@
 import { BluetoothDeviceDisplay } from "@/types/ble-type";
 import { Buffer } from "buffer";
 import * as ExpoDevice from "expo-device";
-import { Alert, PermissionsAndroid, Platform } from "react-native";
+import { PermissionsAndroid, Platform } from "react-native";
+import { toast } from "@/store/toast-store";
 import { BleManager, Device, Subscription } from "react-native-ble-plx";
 import { create } from "zustand";
 
@@ -118,7 +119,7 @@ export const useBleStore = create<BleState>()((set, get) => {
       if (!bleManager) return;
       const hasPermission = await requestBlePermissions();
       if (!hasPermission) {
-        Alert.alert("Permission Denied", "Bluetooth permissions are required.");
+        toast.error("Bluetooth permission required");
         return;
       }
 
@@ -186,10 +187,10 @@ export const useBleStore = create<BleState>()((set, get) => {
         }
 
         set({ connectedDevice: connected });
-        Alert.alert("Connected", `Connected to ${device.name}`);
+        toast.success(`Connected to ${device.name}`);
       } catch (e) {
         console.error("Connection Error:", e);
-        Alert.alert("Error", "Connection failed");
+        toast.error("Connection failed");
       }
     },
 

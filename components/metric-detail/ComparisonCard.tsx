@@ -1,9 +1,18 @@
 import { ThemedText } from "@/components/themed-text";
-import { ThemedView } from "@/components/themed-view";
+import { Colors } from "@/constants/theme";
+import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { BenchmarkBar } from "@/types/compare";
 import React from "react";
 import { StyleSheet, View } from "react-native";
+
+function hexToRGBA(hex: string, alpha: number) {
+  if (!/^#([A-Fa-f0-9]{6})$/.test(hex)) return `rgba(0,0,0,${alpha})`;
+  const r = parseInt(hex.slice(1, 3), 16);
+  const g = parseInt(hex.slice(3, 5), 16);
+  const b = parseInt(hex.slice(5, 7), 16);
+  return `rgba(${r},${g},${b},${alpha})`;
+}
 
 interface Props {
   bar: BenchmarkBar;
@@ -11,47 +20,32 @@ interface Props {
   higherIsBetter?: boolean;
 }
 
-/**
- * Bell-curve-style column chart:
- *   • 7 columns spanning [lowerBound … upperBound]
- *   • Column heights follow a normal distribution shape
- *   • Patient value column is highlighted
- *   • Cohort avg column is marked
- */
+const CHART_H = 110;
+const NUM_COLS = 7;
+
 const ComparisonCard = ({ bar, unit, higherIsBetter = true }: Props) => {
+  const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
+  const cardColor = useThemeColor({}, "card");
   const borderColor = useThemeColor({}, "border");
   const mutedColor = useThemeColor({}, "muted");
 
   const { patientValue, cohortAvg, lowerBound, upperBound, cohortAgeRange } = bar;
-
   const fmt = (n: number) => parseFloat(n.toFixed(2));
 
-  // ── Build 7 evenly-spaced buckets across [lower, upper] ──────────────────
-  const NUM_COLS = 7;
   const span = upperBound - lowerBound || 1;
   const step = span / (NUM_COLS - 1);
-
-  // Normal distribution height (σ = span/4 so ~95% of range fits within ±2σ)
   const sigma = span / 4;
   const mid = (lowerBound + upperBound) / 2;
   const gaussian = (x: number) =>
     Math.exp(-0.5 * Math.pow((x - mid) / sigma, 2));
 
-  interface Column {
-    value: number;           // actual metric value this bucket represents
-    height: number;          // 0–1 normalised height
-    isPatient: boolean;
-    isCohort: boolean;
-  }
-
-  // Snap each value to nearest bucket, clamped within [0, NUM_COLS-1]
   const snapIdx = (val: number) =>
     Math.min(NUM_COLS - 1, Math.max(0, Math.round((val - lowerBound) / step)));
 
   let cohortIdx = snapIdx(cohortAvg);
   let patientIdx = snapIdx(patientValue);
 
-  // If they land on the same bucket, nudge patient in the direction it actually sits
   if (patientIdx === cohortIdx) {
     if (patientValue >= cohortAvg && patientIdx < NUM_COLS - 1) patientIdx += 1;
     else if (patientIdx > 0) patientIdx -= 1;
@@ -66,7 +60,14 @@ const ComparisonCard = ({ bar, unit, higherIsBetter = true }: Props) => {
     }
   }
 
-  const columns: Column[] = Array.from({ length: NUM_COLS }, (_, i) => {
+  const inRange = !patientOutside;
+  const outcomeColor = inRange
+    ? C.success
+    : higherIsBetter
+    ? patientValue > upperBound ? C.success : C.warning
+    : patientValue < lowerBound ? C.success : C.warning;
+
+  const columns = Array.from({ length: NUM_COLS }, (_, i) => {
     const v = lowerBound + i * step;
     return {
       value: Math.round(v * 10) / 10,
@@ -76,44 +77,34 @@ const ComparisonCard = ({ bar, unit, higherIsBetter = true }: Props) => {
     };
   });
 
-  const inRange = !patientOutside;
-  const outcomeColor = inRange
-    ? "#4CAF50"
-    : higherIsBetter
-    ? patientValue > upperBound ? "#4CAF50" : "#FF9800"
-    : patientValue < lowerBound ? "#4CAF50" : "#FF9800";
-
   return (
-    <ThemedView style={styles.card} lightColor="#F8F9FA" darkColor="#1A1A1A">
-      <ThemedText type="defaultSemiBold" style={styles.sectionTitle}>
-        Distribution in Peer Group
-      </ThemedText>
+    <View style={[styles.card, { backgroundColor: cardColor, borderColor }]}>
+      <ThemedText style={styles.sectionTitle}>Distribution in peer group</ThemedText>
 
-      <ThemedText style={[styles.subtitle, { color: mutedColor }]}>
+      <ThemedText type="muted" style={styles.subtitle}>
         {cohortAgeRange} · normal range {fmt(lowerBound)}–{fmt(upperBound)} {unit}
       </ThemedText>
 
       {/* Bell-curve bar chart */}
       <View style={styles.chartWrap}>
         {columns.map((col, i) => {
-          const heightPx = Math.max(16, Math.round(col.height * CHART_H));
+          const heightPx = Math.max(14, Math.round(col.height * CHART_H));
           const bgColor = col.isPatient
             ? outcomeColor
             : col.isCohort
-            ? "#A0AABB"
-            : "#34456F";
+            ? mutedColor
+            : hexToRGBA(mutedColor, 0.25);
 
           return (
             <View key={i} style={styles.colWrap}>
               <View style={styles.barWrap}>
-                {/* Labels float absolutely above bar — won't push bar down */}
                 {col.isCohort && (
-                  <ThemedText style={[styles.cohortLabel, { color: mutedColor }]}>
+                  <ThemedText style={[styles.floatLabel, { color: mutedColor }]}>
                     avg
                   </ThemedText>
                 )}
                 {col.isPatient && (
-                  <ThemedText style={[styles.patientLabel, { color: outcomeColor }]}>
+                  <ThemedText style={[styles.floatLabel, { color: outcomeColor, fontWeight: "700" }]}>
                     you
                   </ThemedText>
                 )}
@@ -123,7 +114,6 @@ const ComparisonCard = ({ bar, unit, higherIsBetter = true }: Props) => {
                     {
                       height: heightPx,
                       backgroundColor: bgColor,
-                      opacity: col.isPatient || col.isCohort ? 1 : 0.55,
                     },
                   ]}
                 />
@@ -142,31 +132,36 @@ const ComparisonCard = ({ bar, unit, higherIsBetter = true }: Props) => {
         <ThemedText style={[styles.legendText, { color: mutedColor }]}>
           You · {fmt(patientValue)} {unit}
         </ThemedText>
-        <View style={[styles.legendDot, { backgroundColor: "#A0AABB", marginLeft: 12 }]} />
+        <View style={[styles.legendDot, { backgroundColor: mutedColor, marginLeft: 12 }]} />
         <ThemedText style={[styles.legendText, { color: mutedColor }]}>
           Peer avg · {fmt(cohortAvg)} {unit}
         </ThemedText>
       </View>
 
-      {/* Range labels */}
-      <View style={[styles.rangeRow]}>
-        <ThemedText style={{ fontSize: 11, color: mutedColor }}>
-          ← Lower
-        </ThemedText>
-        <ThemedText style={{ fontSize: 11, color: mutedColor }}>
-          Higher →
-        </ThemedText>
+      <View style={styles.rangeRow}>
+        <ThemedText style={[styles.rangeLabel, { color: mutedColor }]}>← Lower</ThemedText>
+        <ThemedText style={[styles.rangeLabel, { color: mutedColor }]}>Higher →</ThemedText>
       </View>
-    </ThemedView>
+    </View>
   );
 };
 
-const CHART_H = 110;
+export default ComparisonCard;
 
 const styles = StyleSheet.create({
-  card: { borderRadius: 12, padding: 18, marginBottom: 14 },
-  sectionTitle: { fontSize: 18, marginBottom: 4 },
-  subtitle: { fontSize: 12, marginBottom: 16 },
+  card: {
+    borderRadius: 14,
+    borderWidth: StyleSheet.hairlineWidth,
+    padding: 18,
+    marginBottom: 12,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "600",
+    letterSpacing: -0.1,
+    marginBottom: 4,
+  },
+  subtitle: { fontSize: 12, marginBottom: 16, lineHeight: 17 },
 
   chartWrap: {
     flexDirection: "row",
@@ -188,26 +183,13 @@ const styles = StyleSheet.create({
     justifyContent: "flex-end",
     position: "relative",
   },
-  cohortLabel: {
+  floatLabel: {
     position: "absolute",
-    top: -24,
+    top: -22,
     left: -40,
     right: -40,
     fontSize: 10,
     textAlign: "center",
-  },
-  patientLabel: {
-    position: "absolute",
-    top: -24,
-    left: -40,
-    right: -40,
-    fontSize: 10,
-    fontWeight: "700",
-    textAlign: "center",
-  },
-  labelSpacer: {
-    height: 14,
-    marginBottom: 2,
   },
   bar: {
     width: "100%",
@@ -225,7 +207,7 @@ const styles = StyleSheet.create({
     gap: 6,
     marginTop: 14,
     paddingTop: 12,
-    borderTopWidth: 1,
+    borderTopWidth: StyleSheet.hairlineWidth,
   },
   legendDot: { width: 8, height: 8, borderRadius: 4 },
   legendText: { fontSize: 12 },
@@ -235,6 +217,5 @@ const styles = StyleSheet.create({
     justifyContent: "space-between",
     marginTop: 8,
   },
+  rangeLabel: { fontSize: 11 },
 });
-
-export default ComparisonCard;

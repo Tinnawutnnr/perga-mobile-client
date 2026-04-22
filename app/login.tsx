@@ -3,8 +3,6 @@ import { router } from "expo-router";
 import React, { useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import {
-  Alert,
-  Image,
   KeyboardAvoidingView,
   Platform,
   ScrollView,
@@ -18,24 +16,29 @@ import { z } from "zod";
 import { authApi } from "../api/auth";
 import { profileApi } from "../api/profile";
 import PrimaryInput from "../components/primary-input";
+import { AuthPalette, AuthRadius, AuthSpacing } from "../constants/auth-theme";
+import { Fonts } from "../constants/fonts";
 import { useAuth } from "../context/auth-context";
+import { useColorScheme } from "../hooks/use-color-scheme";
 
-// ── Zod schema ──────────────────────────────────────────────────────────
 const loginSchema = z.object({
-  username: z.string().min(1, "Username or email is required"),
-  password: z.string().min(1, "Password is required"),
+  username: z.string().min(1, "Please enter your username or email"),
+  password: z.string().min(1, "Please enter your password"),
 });
 
 type LoginFormData = z.infer<typeof loginSchema>;
 
-// ── Screen ──────────────────────────────────────────────────────────────
-const LoginScreen = () => {
+export default function LoginScreen() {
+  const scheme = useColorScheme() ?? "light";
+  const C = AuthPalette[scheme];
   const [securePassword, setSecurePassword] = useState(true);
-  const { saveToken, saveRole, saveUsername } = useAuth();
+  const [formError, setFormError] = useState<string | null>(null);
+  const { saveToken, saveRole, saveUsername, clearToken } = useAuth();
 
   const {
     control,
     handleSubmit,
+    setValue,
     formState: { errors, isSubmitting },
   } = useForm<LoginFormData>({
     resolver: zodResolver(loginSchema),
@@ -43,132 +46,184 @@ const LoginScreen = () => {
   });
 
   const onSubmit = async (data: LoginFormData) => {
+    setFormError(null);
     try {
       const res = await authApi.login({
-        username: data.username,
+        username: data.username.trim(),
         password: data.password,
       });
+
       await saveToken(res.access_token);
-      const status = await profileApi.getStatus(res.access_token);
+
+      // Fetch role separately — if this fails, roll back the saved token so the
+      // app doesn't end up in a partially-authenticated state on next launch.
+      let status: { role: string };
+      try {
+        status = await profileApi.getStatus(res.access_token);
+      } catch {
+        await clearToken();
+        setFormError("Signed in but couldn't load your profile. Please try again.");
+        return;
+      }
+
       await saveRole(status.role);
-      await saveUsername(data.username);
+      await saveUsername(data.username.trim());
       if (status.role === "caregiver") {
         router.replace("/(tabs)/patient-selection");
       } else {
         router.replace("/(tabs)/home");
       }
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Login failed. Please try again.";
-      Alert.alert("Login Failed", message);
+      // Clear the password field — never leave credentials pre-filled after a failure
+      setValue("password", "");
+
+      if (error instanceof TypeError) {
+        // fetch threw before a response arrived — network unreachable or timeout
+        setFormError("Unable to connect. Check your internet connection and try again.");
+      } else {
+        setFormError(
+          error instanceof Error
+            ? error.message
+            : "Unable to sign in. Check your credentials and try again."
+        );
+      }
     }
   };
 
-  const handleForgotPassword = () => {
-    router.push("/forgot-password");
-  };
-
-  const handleRegister = () => {
-    router.push("/register");
-  };
-
   return (
-    <SafeAreaView style={styles.safeArea}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: C.background }]}>
       <KeyboardAvoidingView
         style={{ flex: 1 }}
         behavior={Platform.OS === "ios" ? "padding" : undefined}
       >
         <ScrollView
-          contentContainerStyle={styles.scrollContent}
+          contentContainerStyle={styles.scroll}
           bounces={false}
           showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
         >
-          {/* Top image */}
-          <View style={styles.imageContainer}>
-            <Image
-              source={{
-                uri: "https://images.pexels.com/photos/672358/pexels-photo-672358.jpeg",
-              }}
-              style={styles.image}
-              resizeMode="cover"
-            />
+          {/* Brand mark */}
+          <View style={styles.brandRow}>
+            <Text style={[styles.brand, { color: C.tint }]}>PERGA</Text>
           </View>
 
-          {/* Bottom content */}
-          <View style={styles.contentContainer}>
-            <Text style={styles.title}>Welcome!</Text>
+          {/* Heading */}
+          <View style={styles.headingSection}>
+            <Text style={[styles.heading, { color: C.textPrimary }]}>
+              Welcome back
+            </Text>
+            <Text style={[styles.subheading, { color: C.textSecondary }]}>
+              Sign in to your account
+            </Text>
+          </View>
 
-            {/* Username / Email input */}
+          {/* Form */}
+          <View style={styles.form}>
+            {/* Username / email */}
+            <Text style={[styles.label, { color: C.textLabel }]}>
+              Username or email
+            </Text>
             <Controller
               control={control}
               name="username"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Username or Email"
-                    keyboardType="email-address"
-                    autoCapitalize="none"
-                    hasError={!!errors.username}
-                  />
-                  {errors.username && (
-                    <Text style={styles.errorText}>{errors.username.message}</Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="e.g. john.doe"
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  hasError={!!errors.username}
+                />
               )}
             />
+            {errors.username && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.username.message}
+              </Text>
+            )}
 
-            {/* Password input */}
+            {/* Password label row */}
+            <View style={styles.labelRow}>
+              <Text style={[styles.label, { color: C.textLabel }]}>
+                Password
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/forgot-password")}
+                hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+                accessibilityRole="link"
+              >
+                <Text style={[styles.forgotLink, { color: C.tint }]}>
+                  Forgot password?
+                </Text>
+              </TouchableOpacity>
+            </View>
             <Controller
               control={control}
               name="password"
               render={({ field: { onChange, value } }) => (
-                <>
-                  <PrimaryInput
-                    value={value}
-                    onChangeText={onChange}
-                    placeholder="Password"
-                    secureTextEntry={securePassword}
-                    rightIcon={securePassword ? "eye-off" : "eye"}
-                    onPressRight={() => setSecurePassword((prev) => !prev)}
-                    hasError={!!errors.password}
-                  />
-                  {errors.password && (
-                    <Text style={styles.errorText}>{errors.password.message}</Text>
-                  )}
-                </>
+                <PrimaryInput
+                  value={value}
+                  onChangeText={onChange}
+                  placeholder="Your password"
+                  secureTextEntry={securePassword}
+                  rightText={securePassword ? "Show" : "Hide"}
+                  onPressRight={() => setSecurePassword((p) => !p)}
+                  hasError={!!errors.password}
+                />
               )}
             />
+            {errors.password && (
+              <Text style={[styles.fieldError, { color: C.error }]}>
+                {errors.password.message}
+              </Text>
+            )}
 
-            {/* Forgot password */}
-            <TouchableOpacity
-              onPress={handleForgotPassword}
-              style={styles.forgotWrapper}
-            >
-              <Text style={styles.forgotText}>Forgot password?</Text>
-            </TouchableOpacity>
+            {/* Form-level error */}
+            {formError && (
+              <View
+                style={[
+                  styles.formErrorBox,
+                  { backgroundColor: C.errorSubtle },
+                ]}
+              >
+                <Text style={[styles.formErrorText, { color: C.error }]}>
+                  {formError}
+                </Text>
+              </View>
+            )}
+          </View>
 
-            {/* Login button */}
+          {/* Actions */}
+          <View style={styles.actions}>
             <TouchableOpacity
               style={[
-                styles.loginButton,
-                isSubmitting && styles.loginButtonDisabled,
+                styles.primaryButton,
+                { backgroundColor: isSubmitting ? C.buttonDisabled : C.tint },
               ]}
               onPress={handleSubmit(onSubmit)}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
               disabled={isSubmitting}
+              accessibilityRole="button"
+              accessibilityState={{ disabled: isSubmitting }}
             >
-              <Text style={styles.loginButtonText}>
-                {isSubmitting ? "Logging in..." : "Login"}
+              <Text style={styles.primaryButtonText}>
+                {isSubmitting ? "Signing in…" : "Sign in"}
               </Text>
             </TouchableOpacity>
 
-            {/* Register text */}
-            <View style={styles.registerRow}>
-              <Text style={styles.registerText}>Not a member? </Text>
-              <TouchableOpacity onPress={handleRegister}>
-                <Text style={styles.registerLink}>Register now</Text>
+            <View style={styles.switchRow}>
+              <Text style={[styles.switchPrompt, { color: C.textMuted }]}>
+                New to PERGA?{" "}
+              </Text>
+              <TouchableOpacity
+                onPress={() => router.push("/register")}
+                hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+                accessibilityRole="link"
+              >
+                <Text style={[styles.switchLink, { color: C.tint }]}>
+                  Create an account
+                </Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -176,84 +231,99 @@ const LoginScreen = () => {
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
-};
-
-export default LoginScreen;
+}
 
 const styles = StyleSheet.create({
-  safeArea: {
-    flex: 1,
-    backgroundColor: "#FFFFFF",
-  },
-  scrollContent: {
+  safeArea: { flex: 1 },
+  scroll: {
     flexGrow: 1,
-    backgroundColor: "#FFFFFF",
+    paddingHorizontal: AuthSpacing.lg,
+    paddingBottom: AuthSpacing.xl,
   },
-  imageContainer: {
-    height: 260,
-    width: "100%",
-    overflow: "hidden",
+  brandRow: {
+    paddingTop: AuthSpacing.lg,
+    paddingBottom: AuthSpacing.xxl,
   },
-  image: {
-    width: "100%",
-    height: "100%",
-  },
-  contentContainer: {
-    paddingHorizontal: 24,
-    paddingTop: 24,
-    paddingBottom: 32,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: "700",
-    color: "#000000",
-    marginBottom: 24,
-  },
-  errorText: {
-    color: "#FF4444",
-    fontSize: 12,
-    marginTop: -12,
-    marginBottom: 12,
-    marginLeft: 4,
-  },
-  forgotWrapper: {
-    alignSelf: "flex-start",
-    marginBottom: 24,
-  },
-  forgotText: {
+  brand: {
     fontSize: 14,
-    color: "#477E85",
+    fontWeight: "700",
+    letterSpacing: 4,
+  },
+  headingSection: {
+    marginBottom: AuthSpacing.xl,
+    gap: AuthSpacing.xs,
+  },
+  heading: {
+    fontSize: 30,
+    fontWeight: "700",
+    letterSpacing: -0.5,
+    fontFamily: Fonts.heading,
+  },
+  subheading: {
+    fontSize: 16,
+    lineHeight: 24,
+  },
+  form: {
+    marginBottom: AuthSpacing.lg,
+  },
+  label: {
+    fontSize: 14,
+    fontWeight: "600",
+    letterSpacing: 0.1,
+    marginBottom: AuthSpacing.sm,
+  },
+  labelRow: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginBottom: AuthSpacing.sm,
+  },
+  forgotLink: {
+    fontSize: 13,
     fontWeight: "500",
   },
-  loginButton: {
-    height: 54,
-    borderRadius: 16,
-    backgroundColor: "#4F7D81",
+  fieldError: {
+    fontSize: 13,
+    marginTop: -10,
+    marginBottom: AuthSpacing.md,
+  },
+  formErrorBox: {
+    borderRadius: AuthRadius.md,
+    padding: AuthSpacing.base,
+    marginTop: AuthSpacing.sm,
+  },
+  formErrorText: {
+    fontSize: 14,
+    lineHeight: 20,
+  },
+  actions: {
+    marginTop: "auto",
+    gap: AuthSpacing.base,
+    paddingTop: AuthSpacing.lg,
+  },
+  primaryButton: {
+    height: 56,
+    borderRadius: AuthRadius.lg,
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 16,
   },
-  loginButtonDisabled: {
-    backgroundColor: "#C4C4C4",
-  },
-  loginButtonText: {
-    color: "#FFFFFF",
-    fontSize: 16,
+  primaryButtonText: {
+    fontSize: 17,
     fontWeight: "600",
+    color: "#FFFFFF",
+    letterSpacing: 0.2,
   },
-  registerRow: {
+  switchRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
-    marginBottom: 24,
+    paddingVertical: AuthSpacing.sm,
   },
-  registerText: {
+  switchPrompt: {
     fontSize: 14,
-    color: "#808080",
   },
-  registerLink: {
+  switchLink: {
     fontSize: 14,
-    color: "#477E85",
     fontWeight: "600",
   },
 });
