@@ -38,7 +38,7 @@ const styles = StyleSheet.create({
     gap: 10,
     marginBottom: 8,
   },
-  sideLabel: { fontSize: 12, opacity: 0.55, width: 36 },
+  sideLabel: { fontSize: 12, opacity: 0.55, width: 48 },
   trackWrap: { flex: 1 },
   track: {
     height: 8,
