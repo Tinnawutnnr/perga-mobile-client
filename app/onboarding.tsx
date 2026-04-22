@@ -26,7 +26,7 @@ export default function OnboardingScreen() {
       <View style={styles.ctaSection}>
         <TouchableOpacity
           style={styles.primaryButton}
-          onPress={() => router.push("/register")}
+          onPress={() => router.replace("/register")}
           activeOpacity={0.88}
           accessibilityRole="button"
           accessibilityLabel="Get started — create a new account"
@@ -36,7 +36,7 @@ export default function OnboardingScreen() {
 
         <TouchableOpacity
           style={styles.ghostButton}
-          onPress={() => router.push("/login")}
+          onPress={() => router.replace("/login")}
           activeOpacity={0.7}
           accessibilityRole="button"
           accessibilityLabel="Sign in to an existing account"

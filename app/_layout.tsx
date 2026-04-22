@@ -41,7 +41,7 @@ export default function RootLayout() {
               <Stack.Screen name="create-profile" />
               <Stack.Screen name="forgot-password" />
               <Stack.Screen name="reset-password" />
-              <Stack.Screen name="(tabs)" />
+              <Stack.Screen name="(tabs)" options={{ gestureEnabled: false }} />
             </Stack>
             <ToastContainer />
           </View>
