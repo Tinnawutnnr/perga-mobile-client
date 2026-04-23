@@ -282,20 +282,20 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 28, fontFamily: Fonts.heading },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 34, fontFamily: Fonts.heading },
   subtitle: { fontSize: 13, marginTop: 2 },
   errorText: {
-    fontSize: 14,
+    fontSize: 16,
     marginBottom: 12,
   },
   pickerSection: {
     marginBottom: 12,
   },
   fieldLabel: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "600",
-    letterSpacing: 0.8,
-    marginBottom: 6,
+    letterSpacing: 0.6,
+    marginBottom: 8,
   },
   durationTrack: {
     flexDirection: "row",
@@ -328,8 +328,8 @@ const styles = StyleSheet.create({
     textAlign: "center",
   },
   emptyBody: {
-    fontSize: 14,
-    lineHeight: 21,
+    fontSize: 15,
+    lineHeight: 22,
     textAlign: "center",
     maxWidth: 300,
   },

@@ -14,6 +14,7 @@ import { Ionicons } from "@expo/vector-icons";
 import { router, useFocusEffect } from "expo-router";
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
+  ActivityIndicator,
   Animated,
   ScrollView,
   StyleSheet,
@@ -115,11 +116,13 @@ function DateNav({
   onPrev,
   onNext,
   scheme,
+  loading = false,
 }: {
   date: Date;
   onPrev: () => void;
   onNext: () => void;
   scheme: "light" | "dark";
+  loading?: boolean;
 }) {
   const C = Colors[scheme];
   const atToday = isToday(date);
@@ -136,9 +139,18 @@ function DateNav({
         <Ionicons name="chevron-back" size={20} color={C.tint} />
       </TouchableOpacity>
 
-      <ThemedText style={dateNavStyles.label}>
-        {formatDateLabel(date)}
-      </ThemedText>
+      <View style={dateNavStyles.labelWrap}>
+        <ThemedText style={dateNavStyles.label}>
+          {formatDateLabel(date)}
+        </ThemedText>
+        {loading && (
+          <ActivityIndicator
+            size="small"
+            color={C.tint}
+            style={dateNavStyles.spinner}
+          />
+        )}
+      </View>
 
       <TouchableOpacity
         onPress={onNext}
@@ -173,81 +185,90 @@ const dateNavStyles = StyleSheet.create({
     alignItems: "center",
     justifyContent: "center",
   },
+  labelWrap: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    minWidth: 120,
+    gap: 6,
+  },
   label: {
     fontSize: 15,
     fontWeight: "600",
     letterSpacing: 0.1,
-    minWidth: 120,
     textAlign: "center",
+  },
+  spinner: {
+    // ActivityIndicator "small" is ~20dp; sits inline with the label
   },
 });
 
-// ─── Skeleton ─────────────────────────────────────────────────────────────────
-
-const METRIC_ROW_COUNT = 7;
+// ─── Skeleton (first load only) ───────────────────────────────────────────────
 
 function HomeSkeleton({
   insetTop,
-  cardColor,
-  borderColor,
+  cardBg,
+  boneBg,
 }: {
   insetTop: number;
-  cardColor: string;
-  borderColor: string;
+  cardBg: string;
+  boneBg: string;
 }) {
-  const pulse = useRef(new Animated.Value(0.35)).current;
+  const opacity = useRef(new Animated.Value(0.4)).current;
 
   useEffect(() => {
     const anim = Animated.loop(
       Animated.sequence([
-        Animated.timing(pulse, {
+        Animated.timing(opacity, {
           toValue: 0.75,
-          duration: 900,
+          duration: 850,
           useNativeDriver: true,
         }),
-        Animated.timing(pulse, {
-          toValue: 0.35,
-          duration: 900,
+        Animated.timing(opacity, {
+          toValue: 0.4,
+          duration: 850,
           useNativeDriver: true,
         }),
       ]),
     );
     anim.start();
     return () => anim.stop();
-  }, [pulse]);
+  }, [opacity]);
 
-  // eslint-disable-next-line react/no-unstable-nested-components
   const Bone = ({
     w,
     h,
     r = 6,
-    style,
+    mb = 0,
   }: {
     w: number | string;
     h: number;
     r?: number;
-    style?: object;
+    mb?: number;
   }) => (
     <Animated.View
       style={[
         // @ts-ignore — RN DimensionValue accepts string percentages
-        { width: w, height: h, borderRadius: r, backgroundColor: borderColor, opacity: pulse },
-        style,
+        { width: w, height: h, borderRadius: r, backgroundColor: boneBg, opacity },
+        mb ? { marginBottom: mb } : undefined,
       ]}
     />
   );
 
   return (
     <ScrollView
-      style={skStyles.container}
       scrollEnabled={false}
-      contentContainerStyle={{ paddingTop: insetTop + 8, paddingBottom: 32 }}
+      contentContainerStyle={{
+        paddingTop: insetTop + 8,
+        paddingBottom: 32,
+        paddingHorizontal: 20,
+      }}
     >
       {/* Header */}
       <View style={skStyles.headerRow}>
         <View style={{ gap: 8 }}>
-          <Bone w={140} h={22} r={8} />
-          <Bone w={90} h={13} r={6} />
+          <Bone w={140} h={20} r={8} />
+          <Bone w={80} h={13} r={6} />
         </View>
         <Bone w={40} h={40} r={20} />
       </View>
@@ -255,39 +276,24 @@ function HomeSkeleton({
       {/* Date nav */}
       <View style={skStyles.dateNavRow}>
         <Bone w={36} h={36} r={18} />
-        <Bone w={100} h={16} r={6} />
+        <Bone w={100} h={15} r={6} />
         <Bone w={36} h={36} r={18} />
       </View>
 
-      {/* Status summary */}
-      <Bone w="100%" h={54} r={12} style={{ marginBottom: 20 }} />
-
-      {/* Metric group card */}
-      <Bone w={80} h={11} r={5} style={{ marginBottom: 8, marginLeft: 2 }} />
-      <View
-        style={[
-          skStyles.metricsCard,
-          { backgroundColor: cardColor, borderColor, borderWidth: StyleSheet.hairlineWidth },
-        ]}
-      >
-        {Array.from({ length: METRIC_ROW_COUNT }).map((_, i) => (
+      {/* Section label + metrics card */}
+      <Bone w={80} h={11} r={5} mb={8} />
+      <View style={[skStyles.metricsCard, { backgroundColor: cardBg }]}>
+        {Array.from({ length: 7 }).map((_, i) => (
           <View key={i}>
             <View style={skStyles.metricRow}>
-              {/* Left col */}
               <View style={skStyles.metricLeft}>
                 <Bone w={110} h={13} r={5} />
                 <Bone w={70} h={10} r={4} />
               </View>
-              {/* Right col */}
               <Bone w={52} h={22} r={6} />
             </View>
-            {i < METRIC_ROW_COUNT - 1 && (
-              <View
-                style={[
-                  skStyles.divider,
-                  { backgroundColor: borderColor },
-                ]}
-              />
+            {i < 6 && (
+              <View style={[skStyles.divider, { backgroundColor: boneBg }]} />
             )}
           </View>
         ))}
@@ -297,7 +303,6 @@ function HomeSkeleton({
 }
 
 const skStyles = StyleSheet.create({
-  container: { flex: 1, paddingHorizontal: 20 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -315,7 +320,6 @@ const skStyles = StyleSheet.create({
   metricsCard: {
     borderRadius: 14,
     overflow: "hidden",
-    paddingTop: 0,
   },
   metricRow: {
     flexDirection: "row",
@@ -323,7 +327,6 @@ const skStyles = StyleSheet.create({
     justifyContent: "space-between",
     paddingVertical: 16,
     paddingHorizontal: 16,
-    minHeight: 56,
   },
   metricLeft: {
     flex: 1,
@@ -342,6 +345,7 @@ const SummaryScreen = () => {
   const backgroundColor = useThemeColor({}, "background");
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
+  const borderColor = useThemeColor({}, "border");
   const scheme = useColorScheme() ?? "light";
   const C = Colors[scheme];
 
@@ -369,6 +373,18 @@ const SummaryScreen = () => {
       refreshHomeData();
     }, [refreshHomeData]),
   );
+
+  // Track whether we've ever completed a load so we know which
+  // loading treatment to use: skeleton (first) vs. inline spinner (subsequent).
+  const hasShownContent = useRef(false);
+  useEffect(() => {
+    if (!loading) {
+      hasShownContent.current = true;
+    }
+  }, [loading]);
+
+  const isFirstLoad = loading && !hasShownContent.current;
+  const isRefreshing = loading && hasShownContent.current;
 
   const hasData = periodGaitData !== null;
 
@@ -404,15 +420,13 @@ const SummaryScreen = () => {
     setSelectedViewDate(d);
   };
 
-  const borderColor = useThemeColor({}, "border");
-
-  if (loading) {
+  if (isFirstLoad) {
     return (
       <View style={[styles.safeArea, { backgroundColor }]}>
         <HomeSkeleton
           insetTop={insets.top}
-          cardColor={cardColor}
-          borderColor={borderColor}
+          cardBg={cardColor}
+          boneBg={borderColor}
         />
       </View>
     );
@@ -441,6 +455,8 @@ const SummaryScreen = () => {
             style={styles.avatarRow}
             onPress={() => router.push("/profile")}
             activeOpacity={0.8}
+            accessibilityLabel={headerName ? `View profile for ${headerName}` : "View profile"}
+            accessibilityRole="button"
           >
             {!!headerName && (
               <ThemedText style={styles.patientName} numberOfLines={1}>
@@ -453,44 +469,42 @@ const SummaryScreen = () => {
           </TouchableOpacity>
         </ThemedView>
 
-        {/* Error */}
-        {error && (
-          <ThemedText style={[styles.errorText, { color: C.error }]}>
-            {error}
-          </ThemedText>
-        )}
-
         {/* Date navigation */}
         <DateNav
           date={selectedViewDate}
           onPrev={handlePrevDay}
           onNext={handleNextDay}
           scheme={scheme}
+          loading={isRefreshing}
         />
 
-        {/* Status summary */}
-        <View
-          style={[
-            styles.statusSummary,
-            { backgroundColor: hexToRGBA(dotColor, 0.08) },
-          ]}
-        >
-          <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
-          <View style={styles.statusTextCol}>
-            <ThemedText style={styles.statusHeadline}>{headline}</ThemedText>
-            {detail && (
-              <ThemedText style={[styles.statusDetail, { color: C.muted }]}>
-                {detail}
-              </ThemedText>
-            )}
+        {/* Status summary — only shown when there is actual data to summarise */}
+        {hasData && !error && (
+          <View
+            style={[
+              styles.statusSummary,
+              { backgroundColor: hexToRGBA(dotColor, 0.10) },
+            ]}
+          >
+            <View style={[styles.statusDot, { backgroundColor: dotColor }]} />
+            <View style={styles.statusTextCol}>
+              <ThemedText style={styles.statusHeadline}>{headline}</ThemedText>
+              {detail && (
+                <ThemedText style={[styles.statusDetail, { color: C.muted }]}>
+                  {detail}
+                </ThemedText>
+              )}
+            </View>
           </View>
-        </View>
+        )}
 
         {/* Gait metrics */}
         <GaitMetricsSection
           title="Gait Metrics"
           metrics={metrics}
           hasData={hasData}
+          error={error}
+          onRetry={refreshHomeData}
         />
       </ScrollView>
     </View>
@@ -501,7 +515,7 @@ export default SummaryScreen;
 
 const styles = StyleSheet.create({
   safeArea: { flex: 1 },
-  container: { flex: 1, paddingHorizontal: 20, paddingTop: 8 },
+  container: { flex: 1, paddingHorizontal: 20 },
   headerRow: {
     flexDirection: "row",
     justifyContent: "space-between",
@@ -509,13 +523,14 @@ const styles = StyleSheet.create({
     marginBottom: 24,
     marginTop: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 28, fontFamily: Fonts.heading },
+  title: { fontSize: 28, fontWeight: "700", lineHeight: 34, fontFamily: Fonts.heading },
   subtitle: { fontSize: 13, marginTop: 2 },
   avatarRow: {
     flexDirection: "row",
     alignItems: "center",
     gap: 8,
     maxWidth: 180,
+    minHeight: 48,
   },
   patientName: {
     fontSize: 14,
@@ -529,10 +544,6 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     justifyContent: "center",
     alignItems: "center",
-  },
-  errorText: {
-    fontSize: 14,
-    marginBottom: 12,
   },
   // Status summary
   statusSummary: {
@@ -555,7 +566,7 @@ const styles = StyleSheet.create({
     gap: 2,
   },
   statusHeadline: {
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: "600",
     letterSpacing: 0.1,
   },

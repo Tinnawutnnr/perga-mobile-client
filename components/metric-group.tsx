@@ -22,7 +22,7 @@ export function MetricGroup({ title, children, style }: MetricGroupProps) {
       lightColor={Colors.light.card}
       darkColor={Colors.dark.card}
     >
-      <ThemedText style={styles.title}>{title}</ThemedText>
+      <ThemedText style={[styles.title, { color: Colors[scheme].muted }]}>{title}</ThemedText>
       {childArray.map((child, index) => (
         <View key={index}>
           {index > 0 && (
@@ -45,13 +45,12 @@ const styles = StyleSheet.create({
     paddingTop: 14,
   },
   title: {
-    fontSize: 11,
+    fontSize: 13,
     fontWeight: "600",
     textTransform: "uppercase",
-    letterSpacing: 0.8,
-    opacity: 0.5,
+    letterSpacing: 0.6,
     paddingHorizontal: 16,
-    paddingBottom: 6,
+    paddingBottom: 8,
   },
   separator: {
     height: StyleSheet.hairlineWidth,
