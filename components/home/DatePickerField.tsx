@@ -1,4 +1,3 @@
-import { ThemedText } from "@/components/themed-text";
 import { Colors } from "@/constants/theme";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
@@ -7,7 +6,13 @@ import DateTimePicker, {
   DateTimePickerEvent,
 } from "@react-native-community/datetimepicker";
 import React, { useState } from "react";
-import { Platform, StyleSheet, TouchableOpacity, View } from "react-native";
+import {
+  Platform,
+  StyleSheet,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 interface DatePickerFieldProps {
   label: string;
@@ -20,37 +25,43 @@ interface DatePickerFieldProps {
 export function DatePickerField({
   label,
   value,
-  placeholder = "Tap to select",
+  placeholder = "Select a date",
   onChange,
   onClear,
 }: DatePickerFieldProps) {
   const cardColor = useThemeColor({}, "card");
   const tintColor = useThemeColor({}, "tint");
+  const borderColor = useThemeColor({}, "border");
   const scheme = useColorScheme() ?? "light";
+  const C = Colors[scheme];
 
-  const [showPicker, setShowPicker] = useState(false);
+  const [open, setOpen] = useState(false);
   const [tempDate, setTempDate] = useState<Date | null>(null);
 
   const handleChange = (event: DateTimePickerEvent, date?: Date) => {
     if (Platform.OS === "android") {
-      setShowPicker(false);
+      setOpen(false);
       if (event.type === "set" && date) onChange(date);
     } else {
-      // iOS spinner — เก็บค่าชั่วคราวใน tempDate ไม่ call onChange
-      // เพื่อไม่ให้ parent re-render ระหว่าง scroll แล้วสีหาย
       if (date) setTempDate(date);
     }
   };
 
-  const handleDone = () => {
+  const handleConfirm = () => {
     if (tempDate) onChange(tempDate);
     setTempDate(null);
-    setShowPicker(false);
+    setOpen(false);
   };
 
-  const handleOpen = () => {
-    setTempDate(value);
-    setShowPicker(true);
+  const handleTriggerPress = () => {
+    if (open) {
+      // Dismiss without confirming — discard tempDate
+      setTempDate(null);
+      setOpen(false);
+    } else {
+      setTempDate(value);
+      setOpen(true);
+    }
   };
 
   const formattedValue = value
@@ -63,69 +74,82 @@ export function DatePickerField({
 
   return (
     <View style={styles.wrapper}>
-      {/* Card row */}
-      <View style={styles.row}>
-        <TouchableOpacity
-          style={[styles.card, { backgroundColor: cardColor, flex: 1 }]}
-          onPress={() => showPicker ? setShowPicker(false) : handleOpen()}
-          activeOpacity={0.8}
-        >
-          <View style={[styles.iconWrap, { backgroundColor: tintColor + "22" }]}>
-            <Ionicons name="calendar-outline" size={18} color={tintColor} />
-          </View>
-          <View style={{ flex: 1 }}>
-            <ThemedText style={styles.label}>{label}</ThemedText>
-            <ThemedText style={styles.subLabel}>
-              {showPicker ? "Tap to close" : "Tap to change"}
-            </ThemedText>
-          </View>
-          {/* วันที่ที่เลือก */}
-          {formattedValue && (
-            <ThemedText style={[styles.dateChip, { color: tintColor }]}>
+      {/* ── Trigger field ── */}
+      <TouchableOpacity
+        style={[
+          styles.trigger,
+          {
+            backgroundColor: cardColor,
+            borderColor: open ? tintColor : borderColor,
+            borderWidth: open ? 1.5 : 1,
+          },
+        ]}
+        onPress={handleTriggerPress}
+        activeOpacity={0.85}
+        accessibilityLabel={
+          formattedValue
+            ? `${label}: ${formattedValue}. Double tap to ${open ? "close" : "change"}.`
+            : `${label}: not set. Double tap to select.`
+        }
+        accessibilityRole="button"
+      >
+        {/* Date or placeholder */}
+        <View style={styles.triggerContent}>
+          {formattedValue ? (
+            <Text style={[styles.dateValue, { color: C.text }]}>
               {formattedValue}
-            </ThemedText>
+            </Text>
+          ) : (
+            <Text style={[styles.placeholder, { color: C.muted }]}>
+              {placeholder}
+            </Text>
           )}
-          <Ionicons
-            name={showPicker ? "chevron-up" : "chevron-down"}
-            size={16}
-            color={tintColor}
-          />
-        </TouchableOpacity>
+        </View>
 
-        {/* Clear button */}
-        {value && onClear && (
-          <TouchableOpacity
-            style={[styles.clearButton, { backgroundColor: cardColor }]}
-            onPress={() => {
-              setShowPicker(false);
-              onClear();
-            }}
-            activeOpacity={0.8}
-          >
-            <Ionicons
-              name="close-outline"
-              size={24}
-              color={Colors[scheme].error}
-            />
-          </TouchableOpacity>
-        )}
-      </View>
-
-      {/* Picker */}
-      {showPicker && (
-        <View
-          style={[
-            styles.pickerWrap,
-            { backgroundColor: cardColor },
-          ]}
-        >
-          {Platform.OS === "ios" && (
-            <TouchableOpacity onPress={handleDone} style={styles.doneRow}>
-              <ThemedText style={[styles.doneText, { color: tintColor }]}>
-                Done
-              </ThemedText>
+        {/* Right controls: clear (if set) + icon */}
+        <View style={styles.rightControls}>
+          {value && onClear && (
+            <TouchableOpacity
+              onPress={() => {
+                setOpen(false);
+                setTempDate(null);
+                onClear();
+              }}
+              hitSlop={10}
+              style={styles.clearButton}
+              accessibilityLabel="Clear selected date"
+              accessibilityRole="button"
+            >
+              <Ionicons name="close-circle" size={18} color={C.muted} />
             </TouchableOpacity>
           )}
+          <Ionicons
+            name={
+              open
+                ? "chevron-up"
+                : formattedValue
+                ? "chevron-down"
+                : "calendar-outline"
+            }
+            size={18}
+            color={open ? tintColor : C.muted}
+          />
+        </View>
+      </TouchableOpacity>
+
+      {/* ── Picker panel ── */}
+      {open && (
+        <View style={[styles.pickerPanel, { backgroundColor: cardColor }]}>
+          <TouchableOpacity
+            onPress={handleConfirm}
+            style={[styles.confirmRow, { borderBottomColor: borderColor }]}
+            accessibilityRole="button"
+            accessibilityLabel="Confirm selected date"
+          >
+            <Text style={[styles.confirmText, { color: tintColor }]}>
+              Confirm
+            </Text>
+          </TouchableOpacity>
           <DateTimePicker
             value={tempDate ?? value ?? new Date()}
             mode="date"
@@ -133,7 +157,7 @@ export function DatePickerField({
             onChange={handleChange}
             maximumDate={new Date()}
             accentColor={tintColor}
-            textColor={scheme === "dark" ? "#FFFFFF" : "#11181C"}
+            textColor={scheme === "dark" ? "#E4F0F2" : "#0E1A1C"}
             style={{ alignSelf: "center" }}
           />
         </View>
@@ -146,57 +170,45 @@ const styles = StyleSheet.create({
   wrapper: {
     gap: 8,
   },
-  row: {
-    flexDirection: "row",
-    alignItems: "stretch",
-    gap: 12,
-  },
-  card: {
+  trigger: {
     flexDirection: "row",
     alignItems: "center",
     borderRadius: 14,
-    padding: 14,
-    gap: 12,
+    paddingHorizontal: 16,
+    height: 56,
+    gap: 8,
   },
-  iconWrap: {
-    width: 36,
-    height: 36,
-    borderRadius: 10,
-    justifyContent: "center",
-    alignItems: "center",
+  triggerContent: {
+    flex: 1,
   },
-  label: {
+  dateValue: {
     fontSize: 16,
     fontWeight: "600",
+    letterSpacing: 0.1,
   },
-  subLabel: {
-    fontSize: 13,
-    opacity: 0.4,
-    marginTop: 2,
+  placeholder: {
+    fontSize: 16,
   },
-  dateChip: {
-    fontSize: 13,
-    fontWeight: "600",
-  },
-  pickerWrap: {
-    borderRadius: 16,
-    overflow: "hidden",
-  },
-  doneRow: {
-    alignItems: "flex-end",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: "#88888844",
-  },
-  doneText: {
-    fontSize: 15,
-    fontWeight: "600",
+  rightControls: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
   },
   clearButton: {
-    width: 56,
+    padding: 2,
+  },
+  pickerPanel: {
     borderRadius: 14,
-    justifyContent: "center",
-    alignItems: "center",
+    overflow: "hidden",
+  },
+  confirmRow: {
+    alignItems: "flex-end",
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+  },
+  confirmText: {
+    fontSize: 15,
+    fontWeight: "600",
   },
 });
