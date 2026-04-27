@@ -53,7 +53,7 @@ function FetchErrorState({ onRetry }: { onRetry?: () => void }) {
       />
       <View style={stateStyles.textBlock}>
         <Text style={[stateStyles.headline, { color: C.text }]}>
-          Couldn't load data
+          Couldn&apos;t load data
         </Text>
         <Text style={[stateStyles.body, { color: C.muted }]}>
           Check your connection, then try again.
