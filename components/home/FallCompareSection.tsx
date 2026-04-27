@@ -71,7 +71,7 @@ function buildRows(
         "Spending more time on the ground suggests a cautious walk, a sudden drop can indicate pain.",
     },
     {
-      label: "Step Consistency",
+      label: "Step Inconsistency",
       unit: "%",
       previous:
         previous?.avg_stride_cv != null

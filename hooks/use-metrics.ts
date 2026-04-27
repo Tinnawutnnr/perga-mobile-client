@@ -157,7 +157,7 @@ export const useMetrics = (data: GaitData) => {
         }),
     },
     {
-      label: "Step Consistency",
+      label: "Step Inconsistency",
       infoText:
         "How similar each step is to the next (CV%). Normal is <= 5.5%. A value of 5.6-8.8% suggests reduced stability, and > 8.8% indicates high fall risk.",
       value: fmt(data.stability, 1) + "%",
