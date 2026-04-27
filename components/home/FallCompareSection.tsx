@@ -41,16 +41,16 @@ function buildRows(
       latest: latest?.avg_max_gyr_ms ?? null,
       higherIsBetter: true,
       disclaimer:
-        "A slower swing often means dragging feet instead of lifting them.",
+        "Too low often means the foot is barely leaving the ground. Too high can mean movement is jerky and harder to balance.",
     },
     {
       label: "Foot Landing Force",
       unit: "rad/s",
       previous: previous?.avg_val_gyr_hs ?? null,
       latest: latest?.avg_val_gyr_hs ?? null,
-      higherIsBetter: false, // Adjusted based on context; usually, a "normal" range is best.
+      higherIsBetter: false,
       disclaimer:
-        "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favoring one side.",
+        "Too close to zero can mean the person is guarding a painful foot. Very negative values can mean landing too hard and adding joint stress.",
     },
     {
       label: "In-Air Time",
@@ -59,7 +59,7 @@ function buildRows(
       latest: latest?.avg_swing_time ?? null,
       higherIsBetter: false,
       disclaimer:
-        "A shorter time in the air often happens when dragging feet or taking small steps.",
+        "Too short often means feet are sliding instead of lifting. Too long can make step timing uneven and affect balance.",
     },
     {
       label: "On-Ground Time",
@@ -68,7 +68,7 @@ function buildRows(
       latest: latest?.avg_stance_time ?? null,
       higherIsBetter: false,
       disclaimer:
-        "Spending more time on the ground suggests a cautious walk, a sudden drop can indicate pain.",
+        "Longer than usual can mean careful weight-bearing. Shorter than usual can mean rushed or unstable steps.",
     },
     {
       label: "Step Inconsistency",
@@ -81,7 +81,7 @@ function buildRows(
         latest?.avg_stride_cv != null ? +latest.avg_stride_cv.toFixed(1) : null,
       higherIsBetter: false,
       disclaimer:
-        "Higher percentages mean steps are less regular, which increases the risk of a fall.",
+        "Higher percentages mean step rhythm is uneven and fall risk is higher.",
     },
     {
       label: "Irregular Movements",

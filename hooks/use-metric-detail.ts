@@ -30,7 +30,7 @@ const MOCK_KEY_TO_METRICS_LABEL: Record<string, string> = {
   "Heel Impact": "Foot Landing Force",
   "Swing Time": "In-Air Time",
   "Stance Time": "On-Ground Time",
-  Stability: "Step Consistency",
+  Stability: "Step Inconsistency",
 };
 
 /**
@@ -135,7 +135,9 @@ export const useMetricDetail = () => {
   const rawLabel = label || "Cadence";
 
   // Map rawLabel → the label used inside useMetrics (e.g. "Leg Swing Speed")
-  const metricsLabel = MOCK_KEY_TO_METRICS_LABEL[rawLabel] ?? rawLabel;
+  const displayLabel = MOCK_KEY_TO_METRICS_LABEL[rawLabel] ?? rawLabel;
+  const metricsLabel = displayLabel;
+
   const baseMetric = allMetrics.find(
     (m) => m.label.toLowerCase() === metricsLabel.toLowerCase(),
   );
@@ -186,7 +188,7 @@ export const useMetricDetail = () => {
   };
 
   return {
-    label: rawLabel,
+    label: displayLabel,
     data: mergedData,
     isLoading,
     refetch: fetchDailyByDate,
