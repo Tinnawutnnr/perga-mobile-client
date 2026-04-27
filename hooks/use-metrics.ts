@@ -9,7 +9,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Total Steps",
       infoText:
-        "How many steps you took today. In general, more steps means better daily activity and mobility. If this drops far below your normal pattern, it may suggest pain, fatigue, or less confidence to move.",
+        "How many steps you took today. More steps generally means better daily activity and mobility. If this drops far below your usual pattern, it may suggest pain, fatigue, or less confidence to move around.",
       value: (data.totalSteps ?? 0).toLocaleString(),
       subValue: "steps",
       status: "Keep moving",
@@ -24,7 +24,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Cadence",
       infoText:
-        "Steps per minute (walking rhythm). Normal range is 90-130 steps/min. Lower than 90 usually means slower, more cautious gait; higher than 130 can mean rushed or less controlled stepping.",
+        "Steps per minute — your walking rhythm. A normal range is 90–130 steps/min. Below 90 usually means walking slowly and carefully. Above 130 can mean steps are rushed and harder to control.",
       value: fmt(data.cadence, 1),
       subValue: "steps/min",
       status:
@@ -38,7 +38,11 @@ export const useMetrics = (data: GaitData) => {
                 ? "Brisk/Fast"
                 : "Rushed Pace",
       statusColor:
-        data.cadence < 90 || data.cadence > 130 ? "warning" : "success",
+        data.cadence < 70 || data.cadence > 150
+          ? "error"
+          : data.cadence < 90 || data.cadence > 130
+            ? "warning"
+            : "success",
       iconName: "timer-outline",
       onPress: () =>
         router.push({
@@ -49,7 +53,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Leg Swing Speed",
       infoText:
-        "How fast the leg swings forward during each step. Normal range is 4.5-10.0 rad/s. Lower values often mean weak push-off and poor foot lift; higher values can mean overly forceful or less controlled movement.",
+        "How fast the leg swings forward with each step. Normal range is 4.5–10.0 rad/s. Too low often means the foot is barely leaving the ground. Too high can mean the movement is jerky and harder to balance.",
       value: fmt(data.swingSpeed, 2),
       subValue: "rad/s",
       status:
@@ -63,7 +67,11 @@ export const useMetrics = (data: GaitData) => {
                 ? "Atypically High"
                 : "Overly Forceful",
       statusColor:
-        data.swingSpeed < 4.5 || data.swingSpeed > 10 ? "warning" : "success",
+        data.swingSpeed < 2 || data.swingSpeed > 12
+          ? "error"
+          : data.swingSpeed < 4.5 || data.swingSpeed > 10
+            ? "warning"
+            : "success",
       iconName: "speedometer-outline",
       onPress: () =>
         router.push({
@@ -74,7 +82,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Foot Landing Force",
       infoText:
-        "How strongly the foot lands on the ground. Normal range is -4.5 to -1.5 rad/s. Too close to zero can indicate guarding due to pain; more negative values indicate heavier impact and more joint stress.",
+        "How hard the foot hits the ground each step. Normal range is −4.5 to −1.5 rad/s. A value close to zero means the person is stepping very softly — often because the foot hurts. A very negative value means landing too hard, which puts extra stress on the joints.",
       value: fmt(data.heelImpact, 2),
       subValue: "rad/s",
       status:
@@ -88,9 +96,11 @@ export const useMetrics = (data: GaitData) => {
                 ? "Limping/Guarding"
                 : "Extreme Guarding",
       statusColor:
-        data.heelImpact < -4.5 || data.heelImpact > -1.5
-          ? "warning"
-          : "success",
+        data.heelImpact < -6 || data.heelImpact > -0.5
+          ? "error"
+          : data.heelImpact < -4.5 || data.heelImpact > -1.5
+            ? "warning"
+            : "success",
       iconName: "footsteps-outline",
       onPress: () =>
         router.push({
@@ -101,7 +111,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "In-Air Time",
       infoText:
-        "How long the foot stays in the air between steps. Normal range is 0.35-0.55 s. Too short often means dragging or shuffling; too long may reflect unstable timing and reduced balance control.",
+        "How long the foot stays off the ground between steps. Normal range is 0.35–0.55s. Too short often means the feet are sliding along rather than lifting properly. Too long means the timing between steps is uneven, which can affect balance.",
       value: fmt(data.swingTime, 3),
       subValue: "s",
       status:
@@ -115,7 +125,7 @@ export const useMetrics = (data: GaitData) => {
                 ? "Slow Swing"
                 : "Prolonged Swing",
       statusColor:
-        data.swingTime < 0.25
+        data.swingTime < 0.25 || data.swingTime > 0.75
           ? "error"
           : data.swingTime < 0.35 || data.swingTime > 0.55
             ? "warning"
@@ -130,7 +140,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "On-Ground Time",
       infoText:
-        "How long the foot stays on the ground while bearing weight. Normal range is 0.55-0.95 s. Longer times often mean cautious compensation, while shorter times can indicate rushed, unstable steps.",
+        "How long the foot stays on the ground while taking weight. Normal range is 0.55–0.95s. Longer than usual often means the person is being careful and leaning on that foot. Shorter than usual can mean steps feel rushed or unstable.",
       value: fmt(data.stanceTime, 3),
       subValue: "s",
       status:
@@ -144,7 +154,7 @@ export const useMetrics = (data: GaitData) => {
                 ? "Stiff/Cautious"
                 : "Highly Cautious",
       statusColor:
-        data.stanceTime > 1.2
+        data.stanceTime < 0.45 || data.stanceTime > 1.2
           ? "error"
           : data.stanceTime < 0.55 || data.stanceTime > 0.95
             ? "warning"
@@ -159,7 +169,7 @@ export const useMetrics = (data: GaitData) => {
     {
       label: "Step Inconsistency",
       infoText:
-        "How similar each step is to the next (CV%). Normal is <= 5.5%. A value of 5.6-8.8% suggests reduced stability, and > 8.8% indicates high fall risk.",
+        "How similar each step is to the next, shown as a percentage. Normal is below 5.5%. Between 5.5–8.8% suggests the rhythm is getting uneven. Above 8.8% is a real warning sign for fall risk.",
       value: fmt(data.stability, 1) + "%",
       subValue: "CV",
       status:
