@@ -80,7 +80,7 @@ const PatientSelectionScreen = () => {
           <View style={{ flex: 1, gap: 3 }}>
             <ThemedText style={styles.title}>Your patients</ThemedText>
             <ThemedText type="muted" style={styles.subtitle}>
-              Select who you're monitoring today
+              Select who you&apos;re monitoring today
             </ThemedText>
           </View>
           <TouchableOpacity
@@ -126,7 +126,8 @@ const PatientSelectionScreen = () => {
             </View>
             <ThemedText style={styles.emptyTitle}>No patients yet</ThemedText>
             <ThemedText type="muted" style={styles.emptyBody}>
-              Add a patient by their username to start monitoring their gait health.
+              Add a patient by their username to start monitoring their gait
+              health.
             </ThemedText>
           </View>
         )}

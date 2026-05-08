@@ -3,10 +3,7 @@ import { ThemedText } from "@/components/themed-text";
 import { ThemedView } from "@/components/themed-view";
 import { Fonts } from "@/constants/fonts";
 import { Colors } from "@/constants/theme";
-import {
-  calculatePercentDiff,
-  useAnomalyData,
-} from "@/hooks/use-anomaly-data";
+import { calculatePercentDiff, useAnomalyData } from "@/hooks/use-anomaly-data";
 import { useColorScheme } from "@/hooks/use-color-scheme";
 import { useThemeColor } from "@/hooks/use-theme-color";
 import { AnomalyLog } from "@/types/anomaly";
@@ -33,7 +30,7 @@ const FEATURE_LABELS: Record<string, string> = {
   val_gyr_hs: "Foot Landing Force",
   swing_time: "In-Air Time",
   stance_time: "On-Ground Time",
-  stride_cv: "Step Consistency",
+  stride_cv: "Step Inconsistency",
 };
 
 const FEATURE_UNITS: Record<string, string> = {
@@ -48,19 +45,19 @@ const FEATURE_UNITS: Record<string, string> = {
 
 const ROOT_CAUSE_DISCLAIMERS: Record<string, string> = {
   max_gyr:
-    "A slower swing often means dragging feet instead of lifting them.",
+    "Too low often means the foot is barely leaving the ground. Too high can mean movement is jerky and harder to balance.",
   val_gyr:
-    "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favouring one side.",
+    "Too close to zero can mean the person is guarding a painful foot. Very negative values can mean landing too hard and adding joint stress.",
   max_gyr_ms:
-    "A slower swing often means dragging feet instead of lifting them.",
+    "Too low often means the foot is barely leaving the ground. Too high can mean movement is jerky and harder to balance.",
   val_gyr_hs:
-    "High values suggest landing too heavily on the foot due to weak muscles, low values suggest limping or favouring one side.",
+    "Too close to zero can mean the person is guarding a painful foot. Very negative values can mean landing too hard and adding joint stress.",
   swing_time:
-    "A shorter time in the air often happens when dragging feet or taking small steps.",
+    "Too short often means feet are sliding instead of lifting. Too long can make step timing uneven and affect balance.",
   stance_time:
-    "Spending more time on the ground suggests a cautious walk; a sudden drop can indicate pain.",
+    "Longer than usual can mean careful weight-bearing. Shorter than usual can mean rushed or unstable steps.",
   stride_cv:
-    "Higher percentages mean steps are less regular, which increases the risk of a fall.",
+    "Higher percentages mean step rhythm is uneven and fall risk is higher.",
 };
 
 function featureLabel(key: string): string {
@@ -439,13 +436,10 @@ export default function AlertsScreen() {
     }, [refresh]),
   );
 
-  const handleRowPress = useCallback(
-    (entry: AnomalyLog) => {
-      setReadIds((prev) => new Set(prev).add(entry.anomaly_id));
-      setSelectedEntry(entry);
-    },
-    [],
-  );
+  const handleRowPress = useCallback((entry: AnomalyLog) => {
+    setReadIds((prev) => new Set(prev).add(entry.anomaly_id));
+    setSelectedEntry(entry);
+  }, []);
 
   const markAllRead = () => {
     setReadIds(new Set(rawEntries.map((e) => e.anomaly_id)));
@@ -524,11 +518,7 @@ export default function AlertsScreen() {
         {/* Chart tip */}
         {!loading && chartData.length > 0 && (
           <View style={[styles.chartTip, { backgroundColor: cardColor }]}>
-            <Ionicons
-              name="hand-left-outline"
-              size={15}
-              color={mutedColor}
-            />
+            <Ionicons name="hand-left-outline" size={15} color={mutedColor} />
             <ThemedText style={[styles.chartTipText, { color: mutedColor }]}>
               Tap any point on the chart to see which metrics triggered the
               anomaly for that period.
@@ -643,7 +633,12 @@ const styles = StyleSheet.create({
     alignItems: "center",
     gap: 8,
   },
-  title: { fontSize: 28, fontWeight: "700", lineHeight: 32, fontFamily: Fonts.heading },
+  title: {
+    fontSize: 28,
+    fontWeight: "700",
+    lineHeight: 32,
+    fontFamily: Fonts.heading,
+  },
   badge: {
     borderRadius: 10,
     paddingHorizontal: 7,

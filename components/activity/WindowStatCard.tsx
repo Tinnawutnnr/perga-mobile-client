@@ -56,11 +56,11 @@ export const WindowStatCard: React.FC<Props> = ({ report }) => {
     anomalyScore < 0.25 ? C.success : anomalyScore < 0.4 ? C.warning : C.error;
 
   const statRows = [
-    { label: "Swing velocity", value: val(report?.max_gyr_ms, " deg/s") },
-    { label: "Impact intensity", value: val(report?.val_gyr_hs, " deg/s") },
-    { label: "Swing time", value: val(report?.swing_time, " s") },
-    { label: "Stance time", value: val(report?.stance_time, " s") },
-    { label: "Stride variability", value: val(report?.stride_cv, "%") },
+    { label: "Leg Swing Speed", value: val(report?.max_gyr_ms, " rad/s") },
+    { label: "Foot Landing Force", value: val(report?.val_gyr_hs, " rad/s") },
+    { label: "In-Air Time", value: val(report?.swing_time, " s") },
+    { label: "On-Ground Time", value: val(report?.stance_time, " s") },
+    { label: "Step Inconsistency", value: val(report?.stride_cv, "%") },
   ];
 
   const timestamp = report?.timestamp
@@ -94,9 +94,7 @@ export const WindowStatCard: React.FC<Props> = ({ report }) => {
               <View
                 style={[styles.healthDot, { backgroundColor: healthColor }]}
               />
-              <ThemedText
-                style={[styles.healthText, { color: healthColor }]}
-              >
+              <ThemedText style={[styles.healthText, { color: healthColor }]}>
                 {healthLabel(report.gait_health)}
               </ThemedText>
             </View>

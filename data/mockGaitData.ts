@@ -587,9 +587,9 @@ export const mockMetricDetailData = {
     weekly: [4.6, 4.8, 4.7, 4.9, 5.1, 5.0, 4.9],
     compareText: "Your swing speed is stronger than 70% of users.",
     compareBars: [1, 2, 4, 5, 7, 6, 4, 3, 2, 1],
-    articleTitle: "Understanding Swing Speed",
+    articleTitle: "Understanding Leg Swing Speed",
     articleBody:
-      "This measures how fast the leg swings forward when taking a step. Imagine someone lifting their foot and stepping forward - a healthy person does this with power. If this number is low, the leg is barely lifting and swinging slowly, which can cause the foot to catch on the ground and trip.",
+      "This measures how fast the leg swings forward with each step. Normal range is 4.5-10.0 rad/s. Too low often means the foot is barely leaving the ground. Too high can mean movement is jerky and harder to balance.",
     iconName: "speedometer-outline",
   },
   "Heel Impact": {
@@ -604,9 +604,9 @@ export const mockMetricDetailData = {
     weekly: [-2.4, -2.3, -2.2, -2.1, -2.1, -2.0, -2.0],
     compareText: "Your heel impact is lower than 62% of users.",
     compareBars: [6, 7, 6, 5, 4, 3, 2, 2, 1, 1],
-    articleTitle: "Managing Heel Impact",
+    articleTitle: "Understanding Foot Landing Force",
     articleBody:
-      "This measures how the foot touches down when stepping. A healthy step has a firm, confident landing. If this number is close to zero, it means the person is stepping very gently and carefully like they are trying not to put weight on a painful foot. If the number is very negative, the landing is heavier than normal.",
+      "This measures how hard the foot hits the ground each step. Normal range is -4.5 to -1.5 rad/s. Too close to zero can mean the person is guarding a painful foot. Very negative values can mean landing too hard and adding joint stress.",
     iconName: "footsteps-outline",
   },
   "Swing Time": {
@@ -621,9 +621,9 @@ export const mockMetricDetailData = {
     weekly: [0.42, 0.44, 0.45, 0.43, 0.41, 0.44, 0.45],
     compareText: "Your swing time is in the healthy range.",
     compareBars: [3, 4, 6, 7, 5, 4, 2, 2, 1, 1],
-    articleTitle: "Optimizing Swing Time",
+    articleTitle: "Understanding In-Air Time",
     articleBody:
-      "This is how long the foot stays in the air between steps. Too short means the foot is barely leaving the ground, like someone sliding their feet instead of lifting them properly. Too long means each step takes a lot of time in the air, which can make walking unstable and wobbly.",
+      "This measures how long the foot stays off the ground between steps. Normal range is 0.35-0.55 s. Too short often means feet are sliding instead of lifting. Too long can make step timing uneven and affect balance.",
     iconName: "hourglass-outline",
   },
   "Stance Time": {
@@ -638,9 +638,9 @@ export const mockMetricDetailData = {
     weekly: [0.61, 0.63, 0.66, 0.64, 0.62, 0.64, 0.65],
     compareText: "Your stance time is typical for your age.",
     compareBars: [2, 3, 5, 8, 6, 4, 3, 2, 1, 1],
-    articleTitle: "Understanding Stance Time",
+    articleTitle: "Understanding On-Ground Time",
     articleBody:
-      "This is how long the foot stays on the ground when taking each step. A little longer than normal is okay and just means careful walking. But if this is very long, it may mean the person is leaning heavily on that foot and afraid to shift their weight to the other side like someone trying not to step on a sore leg.",
+      "This measures how long the foot stays on the ground while taking weight. Normal range is 0.55-0.95 s. Longer than usual can mean careful weight-bearing. Shorter than usual can mean rushed or unstable steps.",
     iconName: "footsteps",
   },
   Stability: {
@@ -655,9 +655,9 @@ export const mockMetricDetailData = {
     weekly: [95, 94, 93, 96, 97, 98, 98],
     compareText: "Your gait stability is higher than 82% of users.",
     compareBars: [1, 2, 2, 3, 4, 6, 7, 6, 4, 2],
-    articleTitle: "Why Stability Is Critical",
+    articleTitle: "Why Step Inconsistency Matters",
     articleBody:
-      "This measures how similar each step is to the next one (shown as a percentage). Healthy walking has a steady, regular rhythm with each step almost the same as the last. If this number is high, the steps are all different sizes and timing, like someone constantly adjusting their balance to stop themselves from falling. Above 8.8% is a real warning sign.",
+      "This measures how similar each step is to the next, shown as a percentage. Normal is below 5.5%. Between 5.5-8.8% suggests rhythm is becoming uneven. Above 8.8% is a warning sign for higher fall risk.",
     iconName: "analytics-outline",
   },
 };

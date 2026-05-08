@@ -39,7 +39,7 @@ const FEATURE_LABELS: Record<string, string> = {
   val_gyr_hs: "Foot Landing Force",
   swing_time: "In-Air Time",
   stance_time: "On-Ground Time",
-  stride_cv: "Step Consistency",
+  stride_cv: "Step Inconsistency",
 };
 
 const FEATURE_UNITS: Record<string, string> = {
